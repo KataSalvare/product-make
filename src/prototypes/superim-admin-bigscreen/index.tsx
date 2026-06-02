@@ -312,8 +312,8 @@ export default function Component() {
             <span className="font-bold text-lg">S</span>
           </div>
           <div>
-            <h1 className="text-xl font-bold">SuperIM 实时数据监控大屏</h1>
-            <p className="text-sm text-gray-400">Real-time Data Dashboard</p>
+            <h1 className="text-xl font-bold" style={{ color: '#ffffff' }}>SuperIM 实时数据监控大屏</h1>
+            <p className="text-sm" style={{ color: '#9ca3af' }}>Real-time Data Dashboard</p>
           </div>
         </div>
         <div className="flex items-center gap-6">
@@ -391,13 +391,13 @@ export default function Component() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Map */}
           <div className="p-6 rounded-xl bg-slate-800/50 border border-white/10">
-            <h3 className="text-lg font-semibold mb-4">用户地理分布</h3>
+            <h3 className="text-lg font-semibold mb-4" style={{ color: '#ffffff' }}>用户地理分布</h3>
             <AfricaMap data={data.mapData} />
           </div>
 
           {/* Realtime Activity */}
           <div className="p-6 rounded-xl bg-slate-800/50 border border-white/10">
-            <h3 className="text-lg font-semibold mb-4">实时动态</h3>
+            <h3 className="text-lg font-semibold mb-4" style={{ color: '#ffffff' }}>实时动态</h3>
             <div className="grid grid-cols-2 gap-4">
               {/* New Users */}
               <div>
@@ -433,7 +433,7 @@ export default function Component() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Message Types */}
           <div className="p-6 rounded-xl bg-slate-800/50 border border-white/10">
-            <h3 className="text-lg font-semibold mb-4">消息类型分布</h3>
+            <h3 className="text-lg font-semibold mb-4" style={{ color: '#ffffff' }}>消息类型分布</h3>
             <div className="flex items-center justify-between">
               <PieChart data={data.messageTypes} />
               <div className="flex-1 ml-8">
@@ -451,7 +451,7 @@ export default function Component() {
 
           {/* User Growth */}
           <div className="p-6 rounded-xl bg-slate-800/50 border border-white/10">
-            <h3 className="text-lg font-semibold mb-4">用户增长趋势</h3>
+            <h3 className="text-lg font-semibold mb-4" style={{ color: '#ffffff' }}>用户增长趋势</h3>
             <div className="space-y-4">
               <div>
                 <p className="text-sm text-gray-400 mb-2">新增用户</p>
