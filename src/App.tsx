@@ -1,6 +1,6 @@
-import { BrowserRouter, Routes, Route, NavLink, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, NavLink, useLocation, useParams } from 'react-router-dom'
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { Smartphone, Monitor, ChevronRight, ChevronDown, FileText, XIcon, Keyboard, Sun, Moon } from 'lucide-react'
+import { Smartphone, Monitor, ChevronRight, ChevronDown, FileText, XIcon, Keyboard, Sun, Moon, Palette } from 'lucide-react'
 
 // ==================== 主题类型 ====================
 type Theme = 'light' | 'dark'
@@ -8,7 +8,7 @@ type Theme = 'light' | 'dark'
 // 从 localStorage 加载主题
 const loadTheme = (): Theme => {
   try {
-    const saved = localStorage.getItem('superim-theme')
+    const saved = localStorage.getItem('prototype-theme')
     if (saved === 'dark' || saved === 'light') {
       return saved
     }
@@ -21,19 +21,19 @@ const loadTheme = (): Theme => {
 // 保存主题到 localStorage
 const saveTheme = (theme: Theme) => {
   try {
-    localStorage.setItem('superim-theme', theme)
+    localStorage.setItem('prototype-theme', theme)
   } catch {
     // ignore
   }
 }
 
 // ==================== 项目名称配置 ====================
-const DEFAULT_PROJECT_NAME = 'SuperIM 原型预览'
+const DEFAULT_PROJECT_NAME = '项目原型预览'
 
 // 从 localStorage 加载项目名称
 const loadProjectName = (): string => {
   try {
-    const saved = localStorage.getItem('superim-project-name')
+    const saved = localStorage.getItem('prototype-project-name')
     if (saved) {
       return saved
     }
@@ -46,64 +46,72 @@ const loadProjectName = (): string => {
 // 保存项目名称到 localStorage
 const saveProjectName = (name: string) => {
   try {
-    localStorage.setItem('superim-project-name', name)
+    localStorage.setItem('prototype-project-name', name)
   } catch {
     // ignore
   }
 }
 
-// ==================== 前端页面 ====================
-import SuperimLogin from './prototypes/superim-login'
-import SuperimRegister from './prototypes/superim-register'
-import SuperimForgotPassword from './prototypes/superim-forgotpassword'
-import SuperimChats from './prototypes/superim-chats'
-import SuperimChatroom from './prototypes/superim-chatroom'
-import SuperimContacts from './prototypes/superim-contacts'
-import SuperimFeed from './prototypes/superim-feed'
-import SuperimMe from './prototypes/superim-me'
-import SuperimCalls from './prototypes/superim-calls'
-import SuperimSplash from './prototypes/superim-splash'
-import SuperimAddContact from './prototypes/superim-addcontact'
-import SuperimCallscreen from './prototypes/superim-callscreen'
-import SuperimContactSelection from './prototypes/superim-contact-selection'
-import SuperimEditprofile from './prototypes/superim-editprofile'
-import SuperimForwardmessage from './prototypes/superim-forwardmessage'
-import SuperimGroupchat from './prototypes/superim-groupchat'
-import SuperimGroupchatSettings from './prototypes/superim-groupchat-settings'
-import SuperimMyposts from './prototypes/superim-myposts'
-import SuperimNewpost from './prototypes/superim-newpost'
-import SuperimPostdetail from './prototypes/superim-postdetail'
-import SuperimPrivacySettings from './prototypes/superim-privacy-settings'
-import SuperimSecurity from './prototypes/superim-security'
-import SuperimUserprofile from './prototypes/superim-userprofile'
+// ==================== 动态导入页面组件 ====================
+// 使用 import.meta.glob 动态导入所有页面组件
+// 导入所有 prototypes 下的目录，不限制前缀
+const allModules = import.meta.glob('./prototypes/*/index.tsx', { eager: true })
 
-// ==================== 后台页面 ====================
-import SuperimAdminLogin from './prototypes/superim-admin-login'
-import SuperimAdminDashboard from './prototypes/superim-admin-dashboard'
-import SuperimAdminUsers from './prototypes/superim-admin-users'
-import SuperimAdminUserDetail from './prototypes/superim-admin-user-detail'
-import SuperimAdminAdmins from './prototypes/superim-admin-admins'
-import SuperimAdminRoles from './prototypes/superim-admin-roles'
-import SuperimAdminConversations from './prototypes/superim-admin-conversations'
-import SuperimAdminConversationDetail from './prototypes/superim-admin-conversation-detail'
-import SuperimAdminComments from './prototypes/superim-admin-comments'
-import SuperimAdminFeed from './prototypes/superim-admin-feed'
-import SuperimAdminFeedDetail from './prototypes/superim-admin-feed-detail'
-import SuperimAdminFeedReports from './prototypes/superim-admin-feed-reports'
-import SuperimAdminMessageReports from './prototypes/superim-admin-message-reports'
-import SuperimAdminCalls from './prototypes/superim-admin-calls'
-import SuperimAdminBans from './prototypes/superim-admin-bans'
-import SuperimAdminSensitiveWords from './prototypes/superim-admin-sensitive-words'
-import SuperimAdminOnlineUsers from './prototypes/superim-admin-online-users'
-import SuperimAdminLoginLogs from './prototypes/superim-admin-login-logs'
-import SuperimAdminOperationLogs from './prototypes/superim-admin-operation-logs'
-import SuperimAdminSystemLogs from './prototypes/superim-admin-system-logs'
-import SuperimAdminSettings from './prototypes/superim-admin-settings'
-import SuperimAdminVersions from './prototypes/superim-admin-versions'
-import SuperimAdminBigscreen from './prototypes/superim-admin-bigscreen'
+// 过滤出前端页面和后台页面（根据路径是否包含 admin 判断）
+const frontendModules: Record<string, unknown> = {}
+const adminModules: Record<string, unknown> = {}
+
+Object.entries(allModules).forEach(([path, mod]) => {
+  // 提取目录名
+  const match = path.match(/\.\/prototypes\/([^/]+)\//)
+  if (match) {
+    const dirName = match[1]
+    // 根据目录名是否包含 admin 来判断是后台还是前端页面
+    if (dirName.includes('admin')) {
+      adminModules[path] = mod
+    } else {
+      frontendModules[path] = mod
+    }
+  }
+})
+
+// 页面路径映射配置
+const frontendPageConfig: Record<string, { path: string; label: string }> = {
+  'demo-me': { path: '/me', label: '我的' },
+  'demo-privacy-settings': { path: '/privacy-settings', label: '隐私设置' },
+  'demo-register': { path: '/register', label: '注册' },
+}
+
+const adminPageConfig: Record<string, { path: string; label: string }> = {
+  'demo-admin-dashboard': { path: '/admin/dashboard', label: '仪表盘' },
+  'demo-admin-bigscreen': { path: '/admin/bigscreen', label: '数据大屏' },
+  'demo-admin-users': { path: '/admin/users', label: '用户管理' },
+}
+
+// 提取默认组件
+const getDefaultComponent = (mod: unknown): React.ComponentType => {
+  const moduleWithDefault = mod as { default?: React.ComponentType }
+  return moduleWithDefault?.default || (() => null)
+}
 
 // ==================== Spec 文件动态加载 ====================
 const specGlob = import.meta.glob('./prototypes/*/spec.md', { query: '?raw', import: 'default' })
+
+// ==================== 主题动态加载 ====================
+const themeModules = import.meta.glob('./themes/*/index.tsx', { eager: true })
+const themeDesignDocs = import.meta.glob('./themes/*/DESIGN.md', { query: '?raw', import: 'default' })
+
+// 提取主题信息
+const getThemeInfo = (dirName: string): { name: string; description: string } => {
+  const nameMap: Record<string, { name: string; description: string }> = {
+    'antd-new': { name: 'Ant Design', description: '企业级中后台设计系统' },
+    'equatorial-minimalism': { name: 'Equatorial Minimalism', description: '非洲即时通讯设计系统' },
+  }
+  return nameMap[dirName] || { name: dirName, description: '主题设计系统' }
+}
+
+// ==================== 文档动态加载 ====================
+const docModules = import.meta.glob('./docs/*.md', { query: '?raw', import: 'default' })
 
 // ==================== 操作系统检测 ====================
 const getOS = (): 'mac' | 'windows' | 'linux' | 'unknown' => {
@@ -130,7 +138,7 @@ const DEFAULT_SHORTCUTS: ShortcutConfig = {
 // 从 localStorage 加载快捷键配置
 const loadShortcuts = (): ShortcutConfig => {
   try {
-    const saved = localStorage.getItem('superim-shortcuts')
+    const saved = localStorage.getItem('prototype-shortcuts')
     if (saved) {
       return { ...DEFAULT_SHORTCUTS, ...JSON.parse(saved) }
     }
@@ -143,7 +151,7 @@ const loadShortcuts = (): ShortcutConfig => {
 // 保存快捷键配置到 localStorage
 const saveShortcuts = (shortcuts: ShortcutConfig) => {
   try {
-    localStorage.setItem('superim-shortcuts', JSON.stringify(shortcuts))
+    localStorage.setItem('prototype-shortcuts', JSON.stringify(shortcuts))
   } catch {
     // ignore
   }
@@ -209,56 +217,154 @@ interface PageItem {
   dirName: string
 }
 
-const pages: PageItem[] = [
-  { path: '/splash', label: '启动页', component: SuperimSplash, category: 'frontend', dirName: 'superim-splash' },
-  { path: '/', label: '登录', component: SuperimLogin, category: 'frontend', dirName: 'superim-login' },
-  { path: '/register', label: '注册', component: SuperimRegister, category: 'frontend', dirName: 'superim-register' },
-  { path: '/forgot-password', label: '忘记密码', component: SuperimForgotPassword, category: 'frontend', dirName: 'superim-forgotpassword' },
-  { path: '/chats', label: '聊天列表', component: SuperimChats, category: 'frontend', dirName: 'superim-chats' },
-  { path: '/chatroom', label: '聊天室', component: SuperimChatroom, category: 'frontend', dirName: 'superim-chatroom' },
-  { path: '/group-chat', label: '群聊', component: SuperimGroupchat, category: 'frontend', dirName: 'superim-groupchat' },
-  { path: '/group-chat-settings', label: '群聊设置', component: SuperimGroupchatSettings, category: 'frontend', dirName: 'superim-groupchat-settings' },
-  { path: '/contacts', label: '通讯录', component: SuperimContacts, category: 'frontend', dirName: 'superim-contacts' },
-  { path: '/add-contact', label: '添加联系人', component: SuperimAddContact, category: 'frontend', dirName: 'superim-addcontact' },
-  { path: '/contact-selection', label: '选择联系人', component: SuperimContactSelection, category: 'frontend', dirName: 'superim-contact-selection' },
-  { path: '/feed', label: '动态', component: SuperimFeed, category: 'frontend', dirName: 'superim-feed' },
-  { path: '/new-post', label: '发布动态', component: SuperimNewpost, category: 'frontend', dirName: 'superim-newpost' },
-  { path: '/post-detail', label: '动态详情', component: SuperimPostdetail, category: 'frontend', dirName: 'superim-postdetail' },
-  { path: '/my-posts', label: '我的动态', component: SuperimMyposts, category: 'frontend', dirName: 'superim-myposts' },
-  { path: '/me', label: '我的', component: SuperimMe, category: 'frontend', dirName: 'superim-me' },
-  { path: '/user-profile', label: '用户资料', component: SuperimUserprofile, category: 'frontend', dirName: 'superim-userprofile' },
-  { path: '/edit-profile', label: '编辑资料', component: SuperimEditprofile, category: 'frontend', dirName: 'superim-editprofile' },
-  { path: '/privacy-settings', label: '隐私设置', component: SuperimPrivacySettings, category: 'frontend', dirName: 'superim-privacy-settings' },
-  { path: '/security', label: '安全设置', component: SuperimSecurity, category: 'frontend', dirName: 'superim-security' },
-  { path: '/calls', label: '通话', component: SuperimCalls, category: 'frontend', dirName: 'superim-calls' },
-  { path: '/call-screen', label: '通话中', component: SuperimCallscreen, category: 'frontend', dirName: 'superim-callscreen' },
-  { path: '/forward-message', label: '转发消息', component: SuperimForwardmessage, category: 'frontend', dirName: 'superim-forwardmessage' },
-  { path: '/admin/login', label: '后台登录', component: SuperimAdminLogin, category: 'admin', dirName: 'superim-admin-login' },
-  { path: '/admin/dashboard', label: '仪表盘', component: SuperimAdminDashboard, category: 'admin', dirName: 'superim-admin-dashboard' },
-  { path: '/admin/bigscreen', label: '数据大屏', component: SuperimAdminBigscreen, category: 'admin', dirName: 'superim-admin-bigscreen' },
-  { path: '/admin/users', label: '用户管理', component: SuperimAdminUsers, category: 'admin', dirName: 'superim-admin-users' },
-  { path: '/admin/user-detail', label: '用户详情', component: SuperimAdminUserDetail, category: 'admin', dirName: 'superim-admin-user-detail' },
-  { path: '/admin/admins', label: '管理员', component: SuperimAdminAdmins, category: 'admin', dirName: 'superim-admin-admins' },
-  { path: '/admin/roles', label: '角色权限', component: SuperimAdminRoles, category: 'admin', dirName: 'superim-admin-roles' },
-  { path: '/admin/conversations', label: '会话管理', component: SuperimAdminConversations, category: 'admin', dirName: 'superim-admin-conversations' },
-  { path: '/admin/conversation-detail', label: '会话详情', component: SuperimAdminConversationDetail, category: 'admin', dirName: 'superim-admin-conversation-detail' },
-  { path: '/admin/comments', label: '评论管理', component: SuperimAdminComments, category: 'admin', dirName: 'superim-admin-comments' },
-  { path: '/admin/feed', label: '动态管理', component: SuperimAdminFeed, category: 'admin', dirName: 'superim-admin-feed' },
-  { path: '/admin/feed-detail', label: '动态详情', component: SuperimAdminFeedDetail, category: 'admin', dirName: 'superim-admin-feed-detail' },
-  { path: '/admin/feed-reports', label: '动态举报', component: SuperimAdminFeedReports, category: 'admin', dirName: 'superim-admin-feed-reports' },
-  { path: '/admin/message-reports', label: '消息举报', component: SuperimAdminMessageReports, category: 'admin', dirName: 'superim-admin-message-reports' },
-  { path: '/admin/calls', label: '通话记录', component: SuperimAdminCalls, category: 'admin', dirName: 'superim-admin-calls' },
-  { path: '/admin/bans', label: '封禁管理', component: SuperimAdminBans, category: 'admin', dirName: 'superim-admin-bans' },
-  { path: '/admin/sensitive-words', label: '敏感词', component: SuperimAdminSensitiveWords, category: 'admin', dirName: 'superim-admin-sensitive-words' },
-  { path: '/admin/online-users', label: '在线用户', component: SuperimAdminOnlineUsers, category: 'admin', dirName: 'superim-admin-online-users' },
-  { path: '/admin/login-logs', label: '登录日志', component: SuperimAdminLoginLogs, category: 'admin', dirName: 'superim-admin-login-logs' },
-  { path: '/admin/operation-logs', label: '操作日志', component: SuperimAdminOperationLogs, category: 'admin', dirName: 'superim-admin-operation-logs' },
-  { path: '/admin/system-logs', label: '系统日志', component: SuperimAdminSystemLogs, category: 'admin', dirName: 'superim-admin-system-logs' },
-  { path: '/admin/settings', label: '系统设置', component: SuperimAdminSettings, category: 'admin', dirName: 'superim-admin-settings' },
-  { path: '/admin/versions', label: '版本管理', component: SuperimAdminVersions, category: 'admin', dirName: 'superim-admin-versions' },
-]
+// 动态生成页面配置
+const generatePages = (): PageItem[] => {
+  const pages: PageItem[] = []
 
+  // 处理前端页面
+  Object.entries(frontendModules).forEach(([filePath, mod]) => {
+    // 从路径中提取目录名，例如 './prototypes/demo-login/index.tsx' -> 'demo-login'
+    const match = filePath.match(/\.\/prototypes\/([^/]+)\//)
+    if (match) {
+      const dirName = match[1]
+      const config = frontendPageConfig[dirName]
+      if (config) {
+        pages.push({
+          path: config.path,
+          label: config.label,
+          component: getDefaultComponent(mod),
+          category: 'frontend',
+          dirName,
+        })
+      }
+    }
+  })
 
+  // 处理后台页面
+  Object.entries(adminModules).forEach(([filePath, mod]) => {
+    const match = filePath.match(/\.\/prototypes\/([^/]+)\//)
+    if (match) {
+      const dirName = match[1]
+      const config = adminPageConfig[dirName]
+      if (config) {
+        pages.push({
+          path: config.path,
+          label: config.label,
+          component: getDefaultComponent(mod),
+          category: 'admin',
+          dirName,
+        })
+      }
+    }
+  })
+
+  return pages
+}
+
+const pages = generatePages()
+
+// ==================== 主题导航组件 ====================
+interface ThemeNavProps {
+  isDark: boolean
+}
+
+const ThemeNav = ({ isDark }: ThemeNavProps) => {
+  const location = useLocation()
+
+  // 动态生成主题列表
+  const themes = Object.entries(themeModules).map(([path, mod]) => {
+    const match = path.match(/\.\/themes\/([^/]+)\//)
+    if (match) {
+      const dirName = match[1]
+      const info = getThemeInfo(dirName)
+      return {
+        id: dirName,
+        name: info.name,
+        description: info.description,
+        component: getDefaultComponent(mod),
+      }
+    }
+    return null
+  }).filter(Boolean) as { id: string; name: string; description: string; component: React.ComponentType }[]
+
+  return (
+    <div className="space-y-1">
+      <div className={`px-3 py-2 text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-500' : 'text-gray-400'}`}>
+        设计系统主题
+      </div>
+      {themes.map(theme => (
+        <NavLink
+          key={theme.id}
+          to={`/theme/${theme.id}`}
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+              isActive || location.pathname === `/theme/${theme.id}`
+                ? 'bg-blue-600 text-white'
+                : isDark
+                  ? 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                  : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+            }`
+          }
+        >
+          <Palette size={16} />
+          <div className="flex flex-col">
+            <span>{theme.name}</span>
+            <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-400'}`}>{theme.description}</span>
+          </div>
+        </NavLink>
+      ))}
+    </div>
+  )
+}
+
+// ==================== 文档导航组件 ====================
+interface DocNavProps {
+  isDark: boolean
+}
+
+const DocNav = ({ isDark }: DocNavProps) => {
+  const location = useLocation()
+
+  // 动态生成文档列表
+  const docs = Object.entries(docModules).map(([path]) => {
+    const match = path.match(/\.\/docs\/(.+)\.md$/)
+    if (match) {
+      const fileName = match[1]
+      return {
+        id: fileName,
+        name: fileName,
+        path: `/doc/${fileName}`,
+      }
+    }
+    return null
+  }).filter(Boolean) as { id: string; name: string; path: string }[]
+
+  return (
+    <div className="space-y-1">
+      <div className={`px-3 py-2 text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-slate-500' : 'text-gray-400'}`}>
+        项目文档
+      </div>
+      {docs.map(doc => (
+        <NavLink
+          key={doc.id}
+          to={doc.path}
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+              isActive || location.pathname === doc.path
+                ? 'bg-blue-600 text-white'
+                : isDark
+                  ? 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                  : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+            }`
+          }
+        >
+          <FileText size={16} />
+          <span>{doc.name}</span>
+        </NavLink>
+      ))}
+    </div>
+  )
+}
 
 // ==================== 侧边栏导航组件 ====================
 interface SidebarProps {
@@ -271,20 +377,18 @@ const Sidebar = ({ theme, projectName, onProjectNameChange }: SidebarProps) => {
   const [isEditingName, setIsEditingName] = useState(false)
   const [tempName, setTempName] = useState(projectName)
   const location = useLocation()
-  const [activeTab, setActiveTab] = useState<PageCategory>('frontend')
-  const [expandedGroups, setExpandedGroups] = useState<string[]>(['用户管理', '消息管理', '动态管理', '系统设置', '权限管理', '日志管理'])
+  const [activeTab, setActiveTab] = useState<PageCategory | 'themes' | 'docs'>('frontend')
+  // 默认展开所有后台管理分组
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(['数据概览', '用户管理'])
 
-  const filteredPages = pages.filter(p => p.category === activeTab)
+  // 根据当前选中的标签页过滤页面
+  const filteredPages = pages.filter(p => p.category === activeTab as PageCategory)
 
+  // 后台页面分组配置
+  // 根据实际存在的路由调整：仪表盘、数据大屏、用户管理
   const adminGroups: Record<string, PageItem[]> = {
     '数据概览': filteredPages.filter(p => ['仪表盘', '数据大屏'].includes(p.label)),
-    '用户管理': filteredPages.filter(p => ['用户管理', '用户详情', '在线用户', '封禁管理'].includes(p.label)),
-    '消息管理': filteredPages.filter(p => ['会话管理', '会话详情', '消息举报', '敏感词'].includes(p.label)),
-    '动态管理': filteredPages.filter(p => ['动态管理', '动态详情', '评论管理', '动态举报'].includes(p.label)),
-    '通话记录': filteredPages.filter(p => p.label === '通话记录'),
-    '系统设置': filteredPages.filter(p => ['系统设置', '版本管理'].includes(p.label)),
-    '权限管理': filteredPages.filter(p => ['后台登录', '管理员', '角色权限'].includes(p.label)),
-    '日志管理': filteredPages.filter(p => ['登录日志', '操作日志', '系统日志'].includes(p.label)),
+    '用户管理': filteredPages.filter(p => ['用户管理'].includes(p.label)),
   }
 
   const toggleGroup = (group: string) => {
@@ -351,7 +455,7 @@ const Sidebar = ({ theme, projectName, onProjectNameChange }: SidebarProps) => {
       <div className={`flex border-b ${isDark ? 'border-slate-800' : 'border-gray-200'}`}>
         <button
           onClick={() => setActiveTab('frontend')}
-          className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+          className={`flex-1 px-3 py-3 text-xs font-medium transition-colors ${
             activeTab === 'frontend'
               ? 'bg-blue-600 text-white'
               : isDark
@@ -359,11 +463,11 @@ const Sidebar = ({ theme, projectName, onProjectNameChange }: SidebarProps) => {
                 : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
           }`}
         >
-          前端 ({pages.filter(p => p.category === 'frontend').length})
+          前端
         </button>
         <button
           onClick={() => setActiveTab('admin')}
-          className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+          className={`flex-1 px-3 py-3 text-xs font-medium transition-colors ${
             activeTab === 'admin'
               ? 'bg-blue-600 text-white'
               : isDark
@@ -371,12 +475,36 @@ const Sidebar = ({ theme, projectName, onProjectNameChange }: SidebarProps) => {
                 : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
           }`}
         >
-          后台 ({pages.filter(p => p.category === 'admin').length})
+          后台
+        </button>
+        <button
+          onClick={() => setActiveTab('themes')}
+          className={`flex-1 px-3 py-3 text-xs font-medium transition-colors ${
+            activeTab === 'themes'
+              ? 'bg-blue-600 text-white'
+              : isDark
+                ? 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+          }`}
+        >
+          主题
+        </button>
+        <button
+          onClick={() => setActiveTab('docs')}
+          className={`flex-1 px-3 py-3 text-xs font-medium transition-colors ${
+            activeTab === 'docs'
+              ? 'bg-blue-600 text-white'
+              : isDark
+                ? 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+          }`}
+        >
+          文档
         </button>
       </div>
 
       <nav className="flex-1 overflow-y-auto p-2">
-        {activeTab === 'frontend' ? (
+        {activeTab === 'frontend' && (
           <div className="space-y-1">
             {filteredPages.map(page => (
               <NavLink
@@ -397,7 +525,8 @@ const Sidebar = ({ theme, projectName, onProjectNameChange }: SidebarProps) => {
               </NavLink>
             ))}
           </div>
-        ) : (
+        )}
+        {activeTab === 'admin' && (
           <div className="space-y-1">
             {Object.entries(adminGroups).map(([groupName, groupPages]) => (
               groupPages.length > 0 && (
@@ -443,6 +572,12 @@ const Sidebar = ({ theme, projectName, onProjectNameChange }: SidebarProps) => {
               )
             ))}
           </div>
+        )}
+        {activeTab === 'themes' && (
+          <ThemeNav isDark={isDark} />
+        )}
+        {activeTab === 'docs' && (
+          <DocNav isDark={isDark} />
         )}
       </nav>
     </aside>
@@ -861,6 +996,254 @@ const TopBar = ({ deviceMode, setDeviceMode, showToast, shortcuts, setShortcuts,
   )
 }
 
+// ==================== 主题详情页面 ====================
+const ThemeDetailPage = () => {
+  const { themeId } = useParams<{ themeId: string }>()
+  const [designDoc, setDesignDoc] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  // 获取主题组件
+  const themeEntry = Object.entries(themeModules).find(([path]) => {
+    const match = path.match(/\.\/themes\/([^/]+)\//)
+    return match && match[1] === themeId
+  })
+  const ThemeComponent = themeEntry ? getDefaultComponent(themeEntry[1]) : null
+
+  // 加载设计文档
+  useEffect(() => {
+    const loadDesignDoc = async () => {
+      setLoading(true)
+      const docKey = `./themes/${themeId}/DESIGN.md`
+      const loader = themeDesignDocs[docKey]
+      if (loader) {
+        try {
+          const content = await loader() as string
+          setDesignDoc(content)
+        } catch {
+          setDesignDoc('无法加载设计文档。')
+        }
+      } else {
+        setDesignDoc('暂无设计文档。')
+      }
+      setLoading(false)
+    }
+    loadDesignDoc()
+  }, [themeId])
+
+  const info = themeId ? getThemeInfo(themeId) : { name: '未知主题', description: '' }
+
+  return (
+    <div className="h-full flex flex-col bg-gray-50">
+      {/* 主题头部 */}
+      <div className="bg-white border-b px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900">{info.name}</h1>
+            <p className="text-sm text-gray-500 mt-1">{info.description}</p>
+          </div>
+          <div className="flex gap-2">
+            <NavLink
+              to="/themes"
+              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              返回主题列表
+            </NavLink>
+          </div>
+        </div>
+      </div>
+
+      {/* 主题内容 */}
+      <div className="flex-1 overflow-hidden flex">
+        {/* 左侧：主题预览 */}
+        <div className="flex-1 overflow-auto p-6">
+          <div className="bg-white rounded-lg shadow-sm border p-6 min-h-[600px]">
+            <h2 className="text-lg font-medium text-gray-900 mb-4">主题预览</h2>
+            {ThemeComponent ? <ThemeComponent /> : <div className="text-gray-500">主题组件加载失败</div>}
+          </div>
+        </div>
+
+        {/* 右侧：设计规范 */}
+        <div className="w-[400px] border-l bg-white overflow-auto">
+          <div className="p-4 border-b">
+            <h3 className="font-medium text-gray-900">设计规范</h3>
+            <p className="text-xs text-gray-500 mt-1">{themeId}/DESIGN.md</p>
+          </div>
+          <div className="p-4">
+            {loading ? (
+              <div className="flex items-center justify-center py-10">
+                <div className="animate-spin w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full" />
+              </div>
+            ) : designDoc ? (
+              <pre className="whitespace-pre-wrap font-mono text-sm text-gray-700 leading-relaxed">
+                {designDoc}
+              </pre>
+            ) : (
+              <div className="text-gray-400 text-center py-10">暂无设计文档</div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ==================== 主题列表页面 ====================
+const ThemesListPage = () => {
+  const themes = Object.entries(themeModules).map(([path, mod]) => {
+    const match = path.match(/\.\/themes\/([^/]+)\//)
+    if (match) {
+      const dirName = match[1]
+      const info = getThemeInfo(dirName)
+      return {
+        id: dirName,
+        name: info.name,
+        description: info.description,
+        component: getDefaultComponent(mod),
+      }
+    }
+    return null
+  }).filter(Boolean) as { id: string; name: string; description: string; component: React.ComponentType }[]
+
+  return (
+    <div className="h-full overflow-auto p-8 bg-gray-50">
+      <div className="max-w-6xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-gray-900">主题设计系统</h1>
+          <p className="text-gray-500 mt-2">管理和预览项目中的设计系统主题</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {themes.map(theme => (
+            <NavLink
+              key={theme.id}
+              to={`/theme/${theme.id}`}
+              className="block bg-white rounded-xl shadow-sm border hover:shadow-md hover:border-blue-300 transition-all p-6"
+            >
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Palette className="text-white" size={24} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-lg font-semibold text-gray-900">{theme.name}</h3>
+                  <p className="text-sm text-gray-500 mt-1">{theme.description}</p>
+                  <div className="flex items-center gap-2 mt-3">
+                    <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">{theme.id}</span>
+                  </div>
+                </div>
+                <ChevronRight className="text-gray-400 flex-shrink-0" size={20} />
+              </div>
+            </NavLink>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ==================== 文档详情页面 ====================
+const DocDetailPage = () => {
+  const { docId } = useParams<{ docId: string }>()
+  const [content, setContent] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const loadDoc = async () => {
+      setLoading(true)
+      const docKey = `./docs/${docId}.md`
+      const loader = docModules[docKey]
+      if (loader) {
+        try {
+          const docContent = await loader() as string
+          setContent(docContent)
+        } catch {
+          setContent('无法加载文档内容。')
+        }
+      } else {
+        setContent('文档不存在。')
+      }
+      setLoading(false)
+    }
+    loadDoc()
+  }, [docId])
+
+  return (
+    <div className="h-full flex flex-col bg-white">
+      {/* 文档头部 */}
+      <div className="border-b px-6 py-4">
+        <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
+          <NavLink to="/docs" className="hover:text-gray-900">文档</NavLink>
+          <ChevronRight size={14} />
+          <span className="text-gray-900">{docId}</span>
+        </div>
+        <h1 className="text-xl font-semibold text-gray-900">{docId}</h1>
+      </div>
+
+      {/* 文档内容 */}
+      <div className="flex-1 overflow-auto p-6">
+        <div className="max-w-4xl mx-auto">
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full" />
+            </div>
+          ) : content ? (
+            <pre className="whitespace-pre-wrap font-mono text-sm text-gray-800 leading-relaxed">
+              {content}
+            </pre>
+          ) : (
+            <div className="text-gray-400 text-center py-20">文档加载失败</div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ==================== 文档列表页面 ====================
+const DocsListPage = () => {
+  const docs = Object.entries(docModules).map(([path]) => {
+    const match = path.match(/\.\/docs\/(.+)\.md$/)
+    if (match) {
+      const fileName = match[1]
+      return {
+        id: fileName,
+        name: fileName,
+        path: `/doc/${fileName}`,
+      }
+    }
+    return null
+  }).filter(Boolean) as { id: string; name: string; path: string }[]
+
+  return (
+    <div className="h-full overflow-auto p-8 bg-gray-50">
+      <div className="max-w-4xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-gray-900">项目文档</h1>
+          <p className="text-gray-500 mt-2">浏览和查看项目相关文档</p>
+        </div>
+
+        <div className="space-y-3">
+          {docs.map(doc => (
+            <NavLink
+              key={doc.id}
+              to={doc.path}
+              className="flex items-center gap-4 p-4 bg-white rounded-lg border hover:border-blue-300 hover:shadow-sm transition-all"
+            >
+              <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                <FileText className="text-blue-600" size={20} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-medium text-gray-900">{doc.name}</h3>
+                <p className="text-xs text-gray-500 mt-0.5">{doc.id}.md</p>
+              </div>
+              <ChevronRight className="text-gray-400 flex-shrink-0" size={18} />
+            </NavLink>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ==================== 主应用组件 ====================
 function AppContent() {
   const location = useLocation()
@@ -893,7 +1276,9 @@ function AppContent() {
 
   useEffect(() => {
     const page = pages.find(p => p.path === location.pathname)
-    setDeviceMode(page?.category === 'admin' ? 'pc' : 'mobile')
+    // 主题和文档页面使用 PC 模式
+    const isThemeOrDoc = location.pathname.startsWith('/theme') || location.pathname.startsWith('/doc') || location.pathname === '/themes' || location.pathname === '/docs'
+    setDeviceMode(page?.category === 'admin' || isThemeOrDoc ? 'pc' : 'mobile')
   }, [location.pathname])
 
   // 显示 toast 的回调函数
@@ -947,6 +1332,12 @@ function AppContent() {
                 {pages.map(page => (
                   <Route key={page.path} path={page.path} element={<page.component />} />
                 ))}
+                {/* 主题路由 */}
+                <Route path="/themes" element={<ThemesListPage />} />
+                <Route path="/theme/:themeId" element={<ThemeDetailPage />} />
+                {/* 文档路由 */}
+                <Route path="/docs" element={<DocsListPage />} />
+                <Route path="/doc/:docId" element={<DocDetailPage />} />
               </Routes>
             </div>
           </div>

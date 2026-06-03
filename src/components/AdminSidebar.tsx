@@ -1,6 +1,6 @@
 /**
  * @name AdminSidebar
- * @description SuperIM 后台管理统一侧边栏组件
+ * @description 后台管理统一侧边栏组件
  */
 
 import React from 'react';

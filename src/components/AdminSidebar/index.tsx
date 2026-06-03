@@ -1,6 +1,6 @@
 /**
  * @name AdminSidebar
- * @description SuperIM 后台管理统一侧边栏组件
+ * @description 后台管理统一侧边栏组件
  */
 
 import React from 'react';
@@ -31,22 +31,22 @@ const menuItems: MenuItem[] = [
     key: 'dashboard',
     icon: <LayoutDashboard size={18} />,
     label: '数据概览',
-    path: '/prototypes/superim-admin-dashboard',
+    path: '/prototypes/demo-admin-dashboard',
   },
   {
     key: 'bigscreen',
     icon: <Monitor size={18} />,
     label: '数据大屏',
-    path: '/prototypes/superim-admin-bigscreen',
+    path: '/prototypes/demo-admin-bigscreen',
   },
   {
     key: 'users',
     icon: <Users size={18} />,
     label: '用户管理',
     children: [
-      { key: 'user-list', icon: <Users size={16} />, label: '用户列表', path: '/prototypes/superim-admin-users' },
-      { key: 'online-users', icon: <Users size={16} />, label: '在线用户', path: '/prototypes/superim-admin-online-users' },
-      { key: 'bans', icon: <Users size={16} />, label: '封禁管理', path: '/prototypes/superim-admin-bans' },
+      { key: 'user-list', icon: <Users size={16} />, label: '用户列表', path: '/prototypes/demo-admin-users' },
+      { key: 'online-users', icon: <Users size={16} />, label: '在线用户', path: '/prototypes/demo-admin-online-users' },
+      { key: 'bans', icon: <Users size={16} />, label: '封禁管理', path: '/prototypes/demo-admin-bans' },
     ],
   },
   {
@@ -54,9 +54,9 @@ const menuItems: MenuItem[] = [
     icon: <MessageCircle size={18} />,
     label: '消息管理',
     children: [
-      { key: 'conversations', icon: <MessageCircle size={16} />, label: '会话列表', path: '/prototypes/superim-admin-conversations' },
-      { key: 'message-reports', icon: <MessageCircle size={16} />, label: '举报消息', path: '/prototypes/superim-admin-message-reports' },
-      { key: 'sensitive-words', icon: <MessageCircle size={16} />, label: '敏感词库', path: '/prototypes/superim-admin-sensitive-words' },
+      { key: 'conversations', icon: <MessageCircle size={16} />, label: '会话列表', path: '/prototypes/demo-admin-conversations' },
+      { key: 'message-reports', icon: <MessageCircle size={16} />, label: '举报消息', path: '/prototypes/demo-admin-message-reports' },
+      { key: 'sensitive-words', icon: <MessageCircle size={16} />, label: '敏感词库', path: '/prototypes/demo-admin-sensitive-words' },
     ],
   },
   {
@@ -64,24 +64,24 @@ const menuItems: MenuItem[] = [
     icon: <Globe size={18} />,
     label: '动态管理',
     children: [
-      { key: 'feed-list', icon: <Globe size={16} />, label: '动态列表', path: '/prototypes/superim-admin-feed' },
-      { key: 'comments', icon: <Globe size={16} />, label: '评论管理', path: '/prototypes/superim-admin-comments' },
-      { key: 'feed-reports', icon: <Globe size={16} />, label: '动态举报', path: '/prototypes/superim-admin-feed-reports' },
+      { key: 'feed-list', icon: <Globe size={16} />, label: '动态列表', path: '/prototypes/demo-admin-feed' },
+      { key: 'comments', icon: <Globe size={16} />, label: '评论管理', path: '/prototypes/demo-admin-comments' },
+      { key: 'feed-reports', icon: <Globe size={16} />, label: '动态举报', path: '/prototypes/demo-admin-feed-reports' },
     ],
   },
   {
     key: 'calls',
     icon: <Phone size={18} />,
     label: '通话记录',
-    path: '/prototypes/superim-admin-calls',
+    path: '/prototypes/demo-admin-calls',
   },
   {
     key: 'settings',
     icon: <Settings size={18} />,
     label: '系统设置',
     children: [
-      { key: 'general-settings', icon: <Settings size={16} />, label: '基础配置', path: '/prototypes/superim-admin-settings' },
-      { key: 'versions', icon: <Settings size={16} />, label: '版本管理', path: '/prototypes/superim-admin-versions' },
+      { key: 'general-settings', icon: <Settings size={16} />, label: '基础配置', path: '/prototypes/demo-admin-settings' },
+      { key: 'versions', icon: <Settings size={16} />, label: '版本管理', path: '/prototypes/demo-admin-versions' },
     ],
   },
   {
@@ -89,8 +89,8 @@ const menuItems: MenuItem[] = [
     icon: <Shield size={18} />,
     label: '权限管理',
     children: [
-      { key: 'admins', icon: <Shield size={16} />, label: '管理员列表', path: '/prototypes/superim-admin-admins' },
-      { key: 'roles', icon: <Shield size={16} />, label: '角色管理', path: '/prototypes/superim-admin-roles' },
+      { key: 'admins', icon: <Shield size={16} />, label: '管理员列表', path: '/prototypes/demo-admin-admins' },
+      { key: 'roles', icon: <Shield size={16} />, label: '角色管理', path: '/prototypes/demo-admin-roles' },
     ],
   },
   {
@@ -98,9 +98,9 @@ const menuItems: MenuItem[] = [
     icon: <FileText size={18} />,
     label: '日志管理',
     children: [
-      { key: 'operation-logs', icon: <FileText size={16} />, label: '操作日志', path: '/prototypes/superim-admin-operation-logs' },
-      { key: 'login-logs', icon: <FileText size={16} />, label: '登录日志', path: '/prototypes/superim-admin-login-logs' },
-      { key: 'system-logs', icon: <FileText size={16} />, label: '系统日志', path: '/prototypes/superim-admin-system-logs' },
+      { key: 'operation-logs', icon: <FileText size={16} />, label: '操作日志', path: '/prototypes/demo-admin-operation-logs' },
+      { key: 'login-logs', icon: <FileText size={16} />, label: '登录日志', path: '/prototypes/demo-admin-login-logs' },
+      { key: 'system-logs', icon: <FileText size={16} />, label: '系统日志', path: '/prototypes/demo-admin-system-logs' },
     ],
   },
 ];
