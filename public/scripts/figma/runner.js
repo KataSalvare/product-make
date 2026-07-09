@@ -16,7 +16,7 @@
     }
 
     window.__figmaCaptureLoading = (async () => {
-      const res = await fetch("/src/web%20to%20figma/capture.js");
+      const res = await fetch("/scripts/figma/capture.js");
       if (!res.ok) {
         throw new Error(`Failed to load capture.js: ${res.status}`);
       }

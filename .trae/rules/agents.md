@@ -43,7 +43,7 @@
 
 ## ④ 开发与验收
 
-按 `spec.md` 实现代码，详见 `rules/development-guide.md`。
+按 `spec.md` 实现代码，详见 `rules/prototype-development-guide.md`。
 
 **开发阶段核心产出**：
 - `index.tsx`：入口组件
@@ -64,7 +64,7 @@ node scripts/check-app-ready.mjs /components/[组件目录]
 | 阶段 | 参考文档 |
 |------|----------|
 | 设计 | [`rules/design-guide.md`](../../rules/design-guide.md) |
-| 开发 | [`rules/development-guide.md`](../../rules/development-guide.md) |
+| 开发 | [`rules/prototype-development-guide.md`](../../rules/prototype-development-guide.md) |
 | 调试 | [`rules/debugging-guide.md`](../../rules/debugging-guide.md) |
 | 主题 | [`rules/theme-guide.md`](../../rules/theme-guide.md) |
 | 文档 | [`rules/documentation-guide.md`](../../rules/documentation-guide.md) |

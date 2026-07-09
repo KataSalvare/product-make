@@ -1,7 +1,7 @@
 /**
- * @name 用户注册
+ * @name 用户登录
  *
- * 用户注册页面，提供账号创建表单
+ * 用户登录页面，提供账号登录表单
  */
 
 import { useState } from 'react'
@@ -12,39 +12,28 @@ import { Input } from '../../components/ui/input'
 import { Label } from '../../components/ui/label'
 import './style.css'
 
-export default function RegisterPage() {
+export default function LoginPage() {
   const [form, setForm] = useState({
-    username: '',
     email: '',
     password: '',
-    confirmPassword: '',
+    remember: false,
   })
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     // Demo: 仅控制台输出
-    console.log('注册提交:', form)
+    console.log('登录提交:', form)
   }
 
   return (
     <div className="flex min-h-full items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-2xl">创建账号</CardTitle>
-          <CardDescription>填写以下信息完成注册</CardDescription>
+          <CardTitle className="text-2xl">登录</CardTitle>
+          <CardDescription>欢迎回来，请登录你的账号</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="username">用户名</Label>
-              <Input
-                id="username"
-                placeholder="请输入用户名"
-                value={form.username}
-                onChange={(e) => setForm({ ...form, username: e.target.value })}
-                required
-              />
-            </div>
             <div className="space-y-2">
               <Label htmlFor="email">邮箱</Label>
               <Input
@@ -67,25 +56,26 @@ export default function RegisterPage() {
                 required
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">确认密码</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="请再次输入密码"
-                value={form.confirmPassword}
-                onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
-                required
+            <div className="flex items-center gap-2">
+              <input
+                id="remember"
+                type="checkbox"
+                className="h-4 w-4 rounded border-border"
+                checked={form.remember}
+                onChange={(e) => setForm({ ...form, remember: e.target.checked })}
               />
+              <Label htmlFor="remember" className="text-sm font-normal">
+                记住我
+              </Label>
             </div>
             <Button type="submit" className="w-full">
-              注册
+              登录
             </Button>
           </form>
           <p className="mt-4 text-center text-sm text-muted-foreground">
-            已有账号？
-            <Link to="/login" className="ml-1 font-medium text-primary hover:underline">
-              立即登录
+            还没有账号？
+            <Link to="/register" className="ml-1 font-medium text-primary hover:underline">
+              立即注册
             </Link>
           </p>
         </CardContent>

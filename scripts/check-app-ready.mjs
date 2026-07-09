@@ -123,7 +123,7 @@ async function isServerAlive(url) {
  * 读取开发服务器信息
  * 优先从 .axhub/make/.dev-server-info.json 读取实际运行的端口
  */
-function getServerInfo() {
+/*function getServerInfo() {
   try {
     if (fs.existsSync(CONFIG.devServerInfoPath)) {
       const info = JSON.parse(fs.readFileSync(CONFIG.devServerInfoPath, 'utf8'))
@@ -140,7 +140,7 @@ function getServerInfo() {
   // 如果没有端口信息，返回 null 表示需要等待服务器启动
   return null
 }
-
+ */
 /**
  * 生成服务器首页 URL
  * 使用 localhost 而不是 0.0.0.0，因为浏览器无法访问 0.0.0.0

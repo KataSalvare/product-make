@@ -77,14 +77,11 @@ Object.entries(allModules).forEach(([path, mod]) => {
 
 // 页面路径映射配置
 const frontendPageConfig: Record<string, { path: string; label: string }> = {
-  'demo-me': { path: '/me', label: '我的' },
-  'demo-privacy-settings': { path: '/privacy-settings', label: '隐私设置' },
   'demo-register': { path: '/register', label: '注册' },
+  'demo-login': { path: '/login', label: '登录' },
 }
 
 const adminPageConfig: Record<string, { path: string; label: string }> = {
-  'demo-admin-dashboard': { path: '/admin/dashboard', label: '仪表盘' },
-  'demo-admin-bigscreen': { path: '/admin/bigscreen', label: '数据大屏' },
   'demo-admin-users': { path: '/admin/users', label: '用户管理' },
 }
 
@@ -774,7 +771,7 @@ const TopBar = ({ deviceMode, setDeviceMode, showToast, shortcuts, setShortcuts,
   const copyToFigma = useCallback(async () => {
     setCopying(true)
     try {
-      const response = await fetch('/src/web%20to%20figma/runner.js')
+      const response = await fetch('/scripts/figma/runner.js')
       const scriptText = await response.text()
       const runnerFn = new Function('return ' + scriptText)()
       await runnerFn('#preview-container')
