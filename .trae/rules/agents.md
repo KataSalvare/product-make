@@ -2,100 +2,53 @@
 
 本文档整合原型/组件开发的全流程，作为各阶段规则的总入口与导航。
 
-## 🧭 总览
+## 🧭 核心顺序
 
-┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│  ① 阅读规范  │ → │  ② 需求对齐  │ → │  ③ 原型设计  │ → │  ④ 开发验收  │
-│  与资料准备  │    │   (可选)    │    │  产出 spec   │    │  完成原型    │
-└─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
-
-## ① 阅读规范与资料
-
-按优先级阅读以下资料：
-
-| 优先级 | 资料 | 说明 |
-|--------|------|------|
-| 1 | 用户提供的资料 | 设计稿、PRD、数据表、参考链接等 |
-| 2 | `.trae/rules/agents.md` | 项目简介、默认主题、总文档入口 |
-| 3 | 关联原型/组件 | `src/prototypes/` 或 `src/components/` 中相关实现 |
-| 4 | 主题设计系统 | `src/themes/<theme>/DESIGN.md`、`globals.css` |
-| 5 | 项目文档 | `src/docs/` 中的业务文档 |
-
-## ② 需求对齐（可选）
-
-用户要求时启动，澄清以下事项：
-
-- 页面/组件的核心目标与使用场景
-- 内容范围与数据来源
-- 视觉风格偏好（或指定主题）
-- 交互复杂度与特殊需求
-- 交付时间与优先级
-
-> 确认需求后再进入设计阶段，避免返工。
-
-## ③ 原型/组件设计
-
-产出 `spec.md` 规格文档，详见 `rules/design-guide.md`。
-
-**设计阶段核心产出**：
-- `spec.md`：功能、内容、布局、视觉规范
-- 如需新主题：参考 `rules/theme-guide.md`
-
-## ④ 开发与验收
-
-按 `spec.md` 实现代码，详见 `rules/prototype-development-guide.md`。
-
-**开发阶段核心产出**：
-- `index.tsx`：入口组件
-- `style.css`：样式文件（如需要）
-- 可选子组件目录 `components/`
-
-**验收流程**：
-```bash
-node scripts/check-app-ready.mjs /prototypes/[原型目录]
-# 或
-node scripts/check-app-ready.mjs /components/[组件目录]
+```text
+产品需求确认 -> 设计方案确认 -> 原型实现
 ```
 
-## 📚 规则文档索引
+| 阶段 | 继续前必须确认 | 参考文档 |
+|------|----------------|----------|
+| 产品需求 | 目标用户、核心任务、范围、功能清单、内容来源和验收重点 | `rules/requirements-alignment-guide.md` |
+| 设计方案 | `DESIGN.md` 设计基底、信息架构、交互路径、关键组件取舍和视觉方向 | `rules/requirements-alignment-guide.md` |
+| 原型实现 | 根据已确认的需求和设计方案实现原型 | `rules/prototype-development-guide.md` |
 
-### 阶段规则
+## 额外产物
 
-| 阶段 | 参考文档 |
-|------|----------|
-| 设计 | [`rules/design-guide.md`](../../rules/design-guide.md) |
-| 开发 | [`rules/prototype-development-guide.md`](../../rules/prototype-development-guide.md) |
-| 调试 | [`rules/debugging-guide.md`](../../rules/debugging-guide.md) |
-| 主题 | [`rules/theme-guide.md`](../../rules/theme-guide.md) |
-| 文档 | [`rules/documentation-guide.md`](../../rules/documentation-guide.md) |
-| 记忆沉淀 | [`rules/memory-system-guide.md`](../../rules/memory-system-guide.md) |
-
-### 专项规范
-
-| 规范 | 参考文档 |
-|------|----------|
-| 原型开发 | [`rules/prototype-guide.md`](../../rules/prototype-guide.md) |
-| 组件开发 | [`rules/component-guide.md`](../../rules/component-guide.md) |
-
-### 技能包
-
-| 技能 | 路径 |
-|------|------|
-| 默认资源推荐 | `skills/default-resource-recommendations/` |
-| 第三方技能 | `skills/third-party/` |
+| 产物/场景 | 位置 | 参考文档 |
+|-----------|------|----------|
+| 主题 | `src/themes/<theme-key>/` | `rules/theme-guide.md` |
+| 项目资料和文档 | `src/resources/` | `rules/resource-management-guide.md` |
 
 ## ⚠️ 重要原则
 
-1. **文档与代码同步**
-   - 修改代码时，同步更新 `spec.md`
-   - 修改 `spec.md` 时，同步更新代码实现
+1. **需求与设计是继续工作的门禁**
+   - 产品需求未确认时，禁止继续找视觉参考、拆页面结构、整理 `DESIGN.md` 候选、写设计方案或开发实现；先用简短摘要让用户确认目标用户、核心任务、范围/功能清单、内容来源和验收重点
+   - 设计方案未确认时，禁止继续写规格/计划或开发实现；先确认设计基底、信息架构、交互路径、关键组件取舍和视觉方向
+   - 发现目标、范围、内容来源、验收重点、信息架构、交互路径、视觉方向或设计基底存在多种合理选择时，立即停在对应门禁补充对齐
 
-2. **完整阅读资料**
-   - 必须仔细阅读用户提供的所有文档
-   - 必须查看上下文中提供的相关规则和参考文件
+2. **设计要判断何时收敛、何时发散**
+   - AI 应自行判断当前需要收拢需求还是探索解法：需求不清先收敛；需要改善体验或创新表达时再发散。发散是为了帮助用户选择最终方向
+3. **原型按生产级界面处理**
+   - 本项目中的「原型」默认是可运行、接近正式产品的前端页面，不是黑白灰线框图或低保真草稿；只有用户明确要求时才使用低保真、wireframe、placeholder 等表达
+4. **不要把截图当唯一真相**
+   - 截图用于视觉参考；有代码、组件、设计系统、业务资料或用户说明时，要结合上下文判断
+5. **早展示，早反馈**
+   - 产品需求、设计方案或原型应尽早交给用户确认，不要等到全部完成后才暴露方向问题
+   - 涉及页面意图、组件取舍或多方案比稿时，优先用低成本、快速的 Markdown ASCII Wireframe/Diagram 或 Mermaid 展示方案，先对齐需求
+6. **讲人话，用户不懂技术**
+   - 用用户能理解的方式说明取舍、风险和结果；用户无法执行 CLI 命令，不得省略验收流程
+   - 向用户请求反馈或验收时，提醒用户尽量提供截图、预览链接、页面路径或具体问题位置，便于准确定位和复现
+7. **每次开始思考时，带上** `🐱喵`
 
-3. **自主完成操作**
-   - 不得省略验收流程
-   - 批量任务使用子代理并行执行
+## 项目结构
 
-4. **每次回复结尾带上** `🐱喵`
+```text
+├── src/
+│   ├── common/      # 公共运行时、类型和工具
+│   ├── prototypes/  # 原型页面目录
+│   ├── resources/   # 项目资料、文档和素材
+│   └── themes/      # 主题与设计规范
+└── rules/           # Agent 工作规则
+```

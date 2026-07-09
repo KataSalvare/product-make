@@ -40,10 +40,7 @@ src/
 ├── themes/                # 主题设计系统
 ├── docs/                  # 项目文档
 │   └── *.md               # Markdown 文档
-├── components/            # 公共组件
-└── web to figma/          # Figma 复制功能脚本
-    ├── capture.js         # 页面捕获脚本
-    └── runner.js          # 执行脚本
+└──  components/            # 公共组件
 ```
 
 ## 本地开发

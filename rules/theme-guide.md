@@ -2,240 +2,131 @@
 
 本文档约束"主题"的生成产物与实现方式，供 AI 在用户提供任意形式输入（token、设计规范文档、截图、样式提取结果等）时，稳定产出可用的主题文件与演示页面。
 
-## 🎯 交付物
+## 核心原则
 
-每个主题推荐生成以下文件（根据信息完整度灵活调整）：
+- `DESIGN.md` 是主题事实源：品牌定位、设计原则、色彩、字体、圆角、间距、边框、阴影、组件规则和禁用做法，均优先按它判断。
+- `theme.json` 是运行时与管理端消费的结构化摘要；`assets/tokens.json` 是轻量 token 快照；`style.css` 是演示页可见样式。三者必须与 `DESIGN.md` 保持一致。
+- 用户当前消息或附件的优先级高于已有文件；若用户要求与 `DESIGN.md` 冲突，先更新 `DESIGN.md`，再同步派生文件。
+- 不根据截图、元数据或自动推断结果覆盖明确写在 `DESIGN.md` 中的规则；只能在 `DESIGN.md` 缺失信息时补充合理假设，并在文档或交付说明中写清楚。
+- 主题代码、CSS 和 `theme.json` 中的本地资源引用必须使用主题内相对路径，禁止根路径、本机绝对路径或 `../` 逃逸到其他目录。
+- 主题演示页不得引入与该主题无关的 UI 库，避免污染视觉表达。
 
-```
+## 标准参考主题
+
+当前标准参考主题是 `src/themes/linear/`。新建或重做主题时，参考它的目录结构、`theme.json` 字段组织、`index.tsx` 接入方式和预览资源引用方式。
+
+参考范围：
+
+- `index.tsx`：引入 `./style.css`、读取 `./theme.json`、将 `display` 映射为 `DesignMdBatchShowcase` 配置，并静态 import 本地预览资源。
+- `theme.json`：包含 `schemaVersion`、`source`、`identity`、`tags`、`assets`、`tokens`、`previewImages`、`display`。
+- `style.css`：以 `@import "tailwindcss";` 开头，在 `.dmb-page` 中写入 `--dmb-*` CSS Variables。
+- `assets/`：至少包含 `tokens.json` 和一个稳定预览图，例如 `official-homepage.webp`、`cover.webp` 或 `source-preview.webp`。
+
+不要复制参考主题的品牌内容、视觉风格、文案或临时生成注释。新主题必须用自己的 `DESIGN.md` 派生真实 token、展示字段和预览资源。
+
+## 标准交付物
+
+每个主题目录使用 `kebab-case` 命名，例如 `stripe`、`longcipher-design`：
+
+```text
 src/themes/<theme-key>/
-├── globals.css             # Tailwind CSS 定义（可选，优先使用）
-├── designToken.json        # 主题 Token（可选，兼容传统模式）
-├── DESIGN.md          # 设计规范文档（可选，信息充分时推荐）
-├── index.tsx               # 主题演示页（必需）
-├── components/             # 演示组件 2-3 个（推荐）
-│   ├── Button.tsx
-│   ├── Card.tsx
-│   └── Input.tsx
-└── templates/              # 页面模板 2-3 个（推荐）
-    ├── LoginTemplate.tsx
-    └── DashboardTemplate.tsx
+├── DESIGN.md              # 必需，主题事实依据
+├── theme.json             # 必需，结构化主题元数据与展示配置
+├── assets/
+│   ├── tokens.json        # 必需，轻量 token 快照
+│   └── ...                # 预览图、官网截图、字体、preview.html 等主题私有资源
+├── style.css              # 必需，主题演示页样式变量
+├── tw.css                 # 必需，Tailwind v4 主题片段或最小可用片段
+└── index.tsx              # 必需，主题演示页入口，必须 export default Component
 ```
 
-约束：
-- `<theme-key>` 使用 `kebab-case`（如 `antd`、`my-brand`、`trae-dark`）
-- **二选一原则**：`globals.css` 和 `designToken.json` **只生成一个**，避免维护负担。
-- **优先 Tailwind CSS**：默认生成 `globals.css`（现代化、易维护）。
-- **例外情况**：仅当使用场景明确不支持 Tailwind CSS 时，才生成 `designToken.json`。
-- **禁止干扰性依赖**：主题演示页不得引入与该主题/设计系统无关的 UI 库，以免影响视觉表达。默认只使用原生 HTML + CSS Variables（或该设计系统指定的组件库）。
+## `DESIGN.md` 编写规范
 
-## 1) `globals.css` 规范 (Tailwind CSS)
+`DESIGN.md` 应写成可执行的设计规范，而不是氛围描述。它需要同时面向人类和代码生成 agent，可直接指导后续 UI 生成、审查和派生文件同步。
 
-这是主题的核心定义文件（若生成）。
+信息充分时必须采用接近 getdesign.md 的 9 段式结构：
 
-### 1.1 格式要求
-- 使用 CSS Variables 定义主题变量（`:root` 和 `.dark`）。
-- 支持 Tailwind CSS v4 语法（如 `@theme inline`）。
-- 必须包含基础配色、圆角、字体等定义。
+1. 视觉主题与氛围：品牌/产品背景、适用场景、不适用场景、关键词、页面气质、信息密度和品牌表达边界。
+2. 色彩系统：主色、背景、表面、文本、边框、状态色、CTA 或限制色；每个重要颜色写清 hex 值、语义角色、使用边界和禁用场景。
+3. 字体系统：display/body/mono 角色、字体族、字号层级、行高、字重、字距和 fallback。
+4. 组件规范：按钮、输入框、卡片、导航、表格、标签、弹窗等基础组件；写清尺寸、圆角、边框、状态、hover/focus/active 行为和可复用类名或 token。
+5. 布局与间距：容器宽度、栅格、section 节奏、密度、断点前的默认布局、间距标尺和页面级留白。
+6. 深度、阴影与边框：阴影层级、边框/分割线、ring、elevation、表面叠放规则，以及不允许使用的过重阴影或装饰。
+7. 动效：时长、缓动、transform 模式、出现/退出/hover 规则，明确哪些动效可用、哪些必须避免。
+8. 响应式行为：desktop/tablet/mobile 下的布局变化、导航折叠、元素显隐、图片/表格/卡片重排策略。
+9. Prompt guide：给 LLM 的现成生成指令，包含 3-5 条推荐写法、3-5 条禁止写法和可直接复用的界面生成提示。
 
-示例结构：
-```css
-@import "tailwindcss";
+每一段都应尽量包含可落地数值、语义 token、组件状态或 Do/Don't。缺少来源证据时，可以写明“未采集到明确规则，按保守默认处理”，但不要伪造来源、品牌规则或组件细节。
 
-/* 自定义变体 */
-@custom-variant dark (&:is(.dark *));
+生成或更新 `DESIGN.md` 时，优先使用用户提供的规范、原始 Design.md、官方设计资料和当前主题已有内容。截图和元数据只能用于补缺，不能覆盖明确规则。
 
-:root {
-  /* 基础色变量 */
-  --background: #ffffff;
-  --foreground: #000000;
-  --primary: #3b82f6;
-  /* ... */
-}
+## 派生文件规范
 
-.dark {
-  /* 深色模式变量 */
-  --background: #000000;
-  --foreground: #ffffff;
-  /* ... */
-}
+`theme.json` 必须承载管理端和演示页需要的结构化信息：
 
-@theme inline {
-  /* 映射变量到 Tailwind theme */
-  --color-background: var(--background);
-  --color-primary: var(--primary);
-  /* ... */
-}
-```
+- `identity.slug` 必须与主题目录名一致；`titleZh`、`descriptionZh` 面向管理端展示。
+- `tokens.palette`、`tokens.typography`、`tokens.radius`、`tokens.spacing` 等必须从 `DESIGN.md` 抽取或由用户确认。
+- `display.palette`、`display.typography`、`display.radius`、`display.spacing`、`display.borders`、`display.shadows`、`display.usageGuidance` 应服务于演示页展示，并与 `tokens` 同源。
+- `assets` 和 `previewImages` 只引用当前主题目录内资源，不引用本机绝对路径或其他主题资源。
 
-## 2) `designToken.json` 规范
+`assets/tokens.json` 只保存轻量 token 快照：
 
-### 2.1 必须字段
+- 至少包含 `palette`、`typography`；若 `DESIGN.md` 提供圆角、间距、边框或阴影，也应保留对应字段。
+- 与 `theme.json.tokens` 保持一致，不额外发明另一套命名或语义。
 
-- `name`：主题名称（必需，字符串，用于 UI 展示与演示页标题）
+`style.css` 用于让演示页真实体现主题：
 
-推荐字段：
-- `description`：主题描述（字符串）
-- `token`：Ant Design 风格的 Token 对象（如果存在 `globals.css`，推荐引用变量如 `var(--primary)`）
+- 必须 `@import "tailwindcss";`。
+- 使用 `.dmb-page` 写入 `--dmb-*` CSS Variables，包括 accent、link、muted、background、font、radius、spacing、border 等可见变量。
+- 变量值必须来自 `DESIGN.md` 或 `theme.json.tokens`，不能为了好看临时换色。
 
-### 2.2 何时生成
+`tw.css` 用于保留 Tailwind v4 主题片段：
 
-**仅在以下情况生成 `designToken.json`**：
-- 使用场景明确不支持 Tailwind CSS（如纯 JS 环境、特定框架限制）
-- 用户明确要求使用 JSON Token 格式
-- 需要与不支持 CSS Variables 的组件库集成
+- 若来源提供 Tailwind/CSS 变量，应尽量原样保留并补齐 `@import "tailwindcss";`。
+- 若暂无可用内容，可保持最小可用片段，但不得替代 `DESIGN.md` 成为事实源。
 
-**默认情况下优先生成 `globals.css`**，避免维护两套配置。
+## 演示页规范
 
-## 3) `DESIGN.md` 规范（设计规范文档）
+`index.tsx` 是主题预览入口，必须：
 
-**可选但推荐**的产物，用于系统化记录主题的设计价值、使用约束和实现细节。
+- `export default Component`。
+- 引入 `./style.css`，读取 `./theme.json`，并把 `display` 配置传入 `DesignMdBatchShowcase`。
+- 通过静态 import 引入本地预览资源，例如 `./assets/official-homepage.webp?url`。
+- 展示颜色、字体、圆角、间距、边框/阴影、使用建议和典型场景。
+- 不展示内部采集过程、脚本状态、TODO、占位文案或无关营销内容。
 
-### 3.1 推荐结构
+可以复用 `DesignMdBatchShowcase` 的结构，但主题内容、标签、色板、使用建议和预览图必须来自当前 `DESIGN.md`。
 
-参考 `src/themes/firecrawl/DESIGN.md`，包含：
-- 设计系统价值（品牌定位、核心价值、设计原则）
-- 能力边界（适合/不适合的场景）
-- 色彩/字体/间距/圆角/阴影/图标系统
-- 组件规范（Button、Card、Input 等样式规范）
-- 使用约束（必须遵守、建议做法、禁止做法）
+## 更新工作流
 
-### 3.2 生成策略
-- 信息充分时生成完整文档
-- 信息不足时可省略或生成简化版本
+1. 先读用户要求、当前主题 `DESIGN.md`、`theme.json`、`assets/tokens.json`、`style.css`、`tw.css`、`index.tsx` 和相关资源。
+2. 判断冲突：用户明确修改意图优先；否则以 `DESIGN.md` 为准，修正派生文件。
+3. 修改事实源：新增或修正设计规则时先改 `DESIGN.md`。
+4. 同步派生：更新 `theme.json.tokens/display`、`assets/tokens.json`、`style.css`、`tw.css` 和预览资源引用。
+5. 检查一致性：主色是否来自 `DESIGN.md`，字体角色是否完整，圆角/间距/边框/阴影是否没有丢失，使用建议是否非泛化。
+6. 查找和导入：优先从 `getdesign.md` 和 `styles.refero.design` 定位主题，再用 `collect`、`generate`、`review` 三个脚本串起导入流程。
+7. 网页采集：仅在用户提供网页地址或现有证据不足时读取 `rules/theme-source-capture-guide.md`，把采集结果作为 `DESIGN.md` 的证据来源。
+8. 验收预览：运行主题 ready 检查并打开目标页面做视觉回归，确认字体、颜色、间距、建议项和预览图都能完整渲染。
 
-## 4) `index.tsx`（主题演示页）规范
+输入来源优先级：
 
-主题演示页的目标：在本项目环境中直观看到主题 token 的内容与效果。
+1. 用户当前明确要求、附件、截图和链接。
+2. 当前主题 `DESIGN.md`。
+3. 当前主题 `theme.json`、`assets/tokens.json`、`style.css`、`tw.css`、`index.tsx`。
+4. 官方设计资料或原始 Design.md 来源。
+5. 标准参考主题 `src/themes/linear/` 和同类主题。
 
-### 4.1 基本约束
+## 验收流程
 
-- 文件必须 `export default Component`
-- **按需引入**：
-    - 如果有 `globals.css`，必须 `import './globals.css';`
-    - 如果有 `designToken.json`，导入并使用它。
-    - 如果有 `DESIGN.md`，在演示页中提供查看入口。
-- 演示页应展示主题效果。
-- 默认只使用原生 HTML 元素（div/button/input 等）与 CSS Variables 展示效果。
-
-### 4.2 演示内容优先级
-
-1. **优先自定义演示**：根据当前主题的设计规范，从零创建符合该主题风格的演示页面、组件和模板
-2. **避免照搬已有主题**：不要直接参考或复制其他主题的演示页面，因为它们是按各自设计规范定制的
-
-### 4.3 注入方式
-
-- 若有 `globals.css`：使用 CSS 变量展示（推荐）。
-- 若有 `designToken.json`：通过 `ConfigProvider` 注入。
-- **不会同时存在两者**（避免维护负担）。
-
-## 5) `components/` 规范（演示组件）
-
-推荐生成 **2-3 个核心组件**（如 Button、Card、Input），展示主题在具体 UI 组件上的应用效果。
-
-### 5.1 组件结构
-
-```tsx
-import React from 'react';
-
-interface ComponentSectionProps {
-  tokens: Record<string, any>;
-}
-
-export const ButtonSection: React.FC<ComponentSectionProps> = ({ tokens }) => {
-  return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div>
-        <h1 className="text-3xl font-bold mb-2">按钮 Button</h1>
-        <p className="text-neutral-600">按钮用于开始一个即时操作。</p>
-      </div>
-      <div className="canvas-panel p-8">
-        {/* 展示多种变体、尺寸、状态 */}
-      </div>
-    </div>
-  );
-};
-```
-
-### 5.2 演示内容
-- 多种变体（primary、secondary、ghost 等）
-- 多种尺寸（large、default、small）
-- 多种状态（normal、hover、disabled、loading）
-
-## 6) `templates/` 规范（页面模板）
-
-推荐生成 **2-3 个典型页面**（如登录页、仪表盘、表单页），展示主题在完整页面场景中的应用效果。
-
-### 6.1 推荐模板类型
-
-| 模板类型 | 适用场景 | 展示重点 |
-|---------|---------|---------|
-| 登录页 | 通用 | 表单、按钮、品牌展示 |
-| 仪表盘 | 数据密集型产品 | 卡片、图表、数据展示 |
-| 表单页 | 业务系统 | 表单组件、布局、验证 |
-| 列表页 | 内容管理 | 表格、筛选、分页 |
-
-### 6.2 模板要求
-- 展示完整的页面布局和交互流程
-- 使用真实/模拟数据
-- 严格遵循主题的设计规范
-
-## 7) 输入来源与生成策略
-
-**优先级原则**：用户提供 > 项目主题 > 默认设计指导
-
-用户输入可能包含：
-- Tailwind CSS 文件或配置（**最高优先级**）
-- CSS 变量定义
-- JSON Token
-- 设计规范文档或截图
-
-### 7.1 生成策略（按输入类型）
-
-1.  **用户提供 CSS/Tailwind**：
-    - 必须生成 `globals.css`
-    - **不生成** `designToken.json`（除非明确不支持 TW）
-    - 推荐生成 `DESIGN.md` + 组件 + 模板
-
-2.  **用户提供 JSON Token**：
-    - 必须生成 `designToken.json`
-    - **不生成** `globals.css`（除非用户要求迁移到 TW）
-    - 推荐生成 `DESIGN.md` + 组件 + 模板
-
-3.  **用户提供设计规范文档**：
-    - 必须生成 `DESIGN.md`
-    - **优先生成 `globals.css`**（现代化方案）
-    - 生成符合规范的组件和模板
-
-4.  **截图提取/无明确格式**：
-    - **默认生成 `globals.css`**（推荐）
-    - 尽量生成 `DESIGN.md` + 组件 + 模板
-
-### 7.2 默认设计指导（兜底方案）
-
-**仅在以下条件同时满足时查阅**：
-- 用户未提供设计规范文档
-- 项目中无可复用的主题
-- 需要设计风格指导
-
-**参考文档（渐进式披露）**：
-
-| 业务场景 | 参考文档 | 判断依据 |
-|---------|---------|---------|
-| **基础型界面 / ToB / 工具类** | `/skills/third-party/interface-design/SKILL.md` | • 目标用户：企业员工或专业用户<br>• 使用频率：高频操作<br>• 核心任务：完成工作、处理数据、执行操作 |
-| **风格化页面 / ToC / App / 移动端** | `/skills/third-party/frontend-design/SKILL.md` | • 目标用户：普通消费者或品牌受众<br>• 使用频率：低频浏览或内容消费<br>• 核心任务：获取信息、建立品牌感知、提升视觉吸引力 |
-| **混合场景** | 基础区用 `/skills/third-party/interface-design/SKILL.md`，展示区用 `/skills/third-party/frontend-design/SKILL.md` | 核心功能简洁稳定，展示区域可适度风格化 |
-
-**重要**：不要提前加载设计指导文档，仅在真正需要且无其他参考时查阅。
-
-## 8) 开发后验收流程
-
-### 8.1 运行验收脚本
+基础检查：
 
 ```bash
 node scripts/check-app-ready.mjs /themes/[主题名]
 ```
 
-### 8.2 根据状态处理
+验收重点：
 
-- **状态为 ERROR**：根据错误信息修复。
-- **状态为 READY**：访问预览 URL，检查主题展示效果（颜色、字体、深色模式切换等）。
+- `READY` 后访问目标页面，检查预览图、色板、字体、圆角、间距、边框、阴影和使用建议是否与 `DESIGN.md` 一致。
+- 若出现 `ERROR`，优先修复入口、资源路径、JSON 结构和 CSS 导入。
+- 若出现 `TIMEOUT`，排查 dev server、依赖安装、构建缓存或长任务。
+- 视觉问题按 `DESIGN.md`、用户要求、`rules/requirements-alignment-guide.md` 的顺序判断，不以自动生成结果为准。

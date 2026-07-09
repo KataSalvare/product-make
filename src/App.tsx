@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, NavLink, useLocation, useParams } from 'react-router-dom'
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { Smartphone, Monitor, ChevronRight, ChevronDown, FileText, XIcon, Keyboard, Sun, Moon, Palette } from 'lucide-react'
+import { Smartphone, Monitor, ChevronRight, FileText, XIcon, Keyboard, Sun, Moon, Palette } from 'lucide-react'
 
 // ==================== 主题类型 ====================
 type Theme = 'light' | 'dark'
@@ -101,10 +101,9 @@ const themeDesignDocs = import.meta.glob('./themes/*/DESIGN.md', { query: '?raw'
 // 提取主题信息
 const getThemeInfo = (dirName: string): { name: string; description: string } => {
   const nameMap: Record<string, { name: string; description: string }> = {
-    'antd-new': { name: 'Ant Design', description: '企业级中后台设计系统' },
     'equatorial-minimalism': { name: 'Equatorial Minimalism', description: '非洲即时通讯设计系统' },
   }
-  return nameMap[dirName] || { name: dirName, description: '主题设计系统' }
+  return nameMap[dirName] || { name: dirName, description: '品牌主题设计' }
 }
 
 // ==================== 文档动态加载 ====================
@@ -375,24 +374,9 @@ const Sidebar = ({ theme, projectName, onProjectNameChange }: SidebarProps) => {
   const [tempName, setTempName] = useState(projectName)
   const location = useLocation()
   const [activeTab, setActiveTab] = useState<PageCategory | 'themes' | 'docs'>('frontend')
-  // 默认展开所有后台管理分组
-  const [expandedGroups, setExpandedGroups] = useState<string[]>(['数据概览', '用户管理'])
 
   // 根据当前选中的标签页过滤页面
   const filteredPages = pages.filter(p => p.category === activeTab as PageCategory)
-
-  // 后台页面分组配置
-  // 根据实际存在的路由调整：仪表盘、数据大屏、用户管理
-  const adminGroups: Record<string, PageItem[]> = {
-    '数据概览': filteredPages.filter(p => ['仪表盘', '数据大屏'].includes(p.label)),
-    '用户管理': filteredPages.filter(p => ['用户管理'].includes(p.label)),
-  }
-
-  const toggleGroup = (group: string) => {
-    setExpandedGroups(prev =>
-      prev.includes(group) ? prev.filter(g => g !== group) : [...prev, group]
-    )
-  }
 
   const isActive = (path: string) => location.pathname === path
 
@@ -525,48 +509,23 @@ const Sidebar = ({ theme, projectName, onProjectNameChange }: SidebarProps) => {
         )}
         {activeTab === 'admin' && (
           <div className="space-y-1">
-            {Object.entries(adminGroups).map(([groupName, groupPages]) => (
-              groupPages.length > 0 && (
-                <div key={groupName}>
-                  <button
-                    onClick={() => toggleGroup(groupName)}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
-                      isDark
-                        ? 'text-slate-400 hover:text-white hover:bg-slate-800'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                    }`}
-                  >
-                    <span className="font-medium">{groupName}</span>
-                    {expandedGroups.includes(groupName) ? (
-                      <ChevronDown size={14} />
-                    ) : (
-                      <ChevronRight size={14} />
-                    )}
-                  </button>
-                  {expandedGroups.includes(groupName) && (
-                    <div className="ml-2 mt-1 space-y-1">
-                      {groupPages.map(page => (
-                        <NavLink
-                          key={page.path}
-                          to={page.path}
-                          className={({ isActive: navActive }) =>
-                            `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                              navActive || isActive(page.path)
-                                ? 'bg-blue-600 text-white'
-                                : isDark
-                                  ? 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                                  : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-                            }`
-                          }
-                        >
-                          <Monitor size={14} />
-                          <span>{page.label}</span>
-                        </NavLink>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )
+            {filteredPages.map(page => (
+              <NavLink
+                key={page.path}
+                to={page.path}
+                className={({ isActive: navActive }) =>
+                  `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                    navActive || isActive(page.path)
+                      ? 'bg-blue-600 text-white'
+                      : isDark
+                        ? 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                        : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                  }`
+                }
+              >
+                <Monitor size={16} />
+                <span>{page.label}</span>
+              </NavLink>
             ))}
           </div>
         )}
@@ -1033,6 +992,11 @@ const ThemeDetailPage = () => {
     <div className="h-full flex flex-col bg-gray-50">
       {/* 主题头部 */}
       <div className="bg-white border-b px-6 py-4">
+        <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
+          <NavLink to="/themes" className="hover:text-gray-900">主题列表</NavLink>
+          <ChevronRight size={14} />
+          <span className="text-gray-900">{info.name}</span>
+        </div>
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-semibold text-gray-900">{info.name}</h1>
@@ -1109,7 +1073,7 @@ const ThemesListPage = () => {
           <p className="text-gray-500 mt-2">管理和预览项目中的设计系统主题</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {themes.map(theme => (
             <NavLink
               key={theme.id}
