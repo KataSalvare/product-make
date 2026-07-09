@@ -10,7 +10,7 @@ export type RunCommandOptions = {
   timeoutMs?: number;
   detached?: boolean;
   capture?: boolean;
-  stdio?: any;
+  stdio?: unknown;
 };
 
 export type RunCommandResult = {

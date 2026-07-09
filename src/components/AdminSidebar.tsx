@@ -128,11 +128,13 @@ export default function AdminSidebar() {
 
   // 当路径变化时更新展开的菜单
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setExpandedKeys(prev => {
       const newExpanded = getExpandedKeys();
       // 合并已有的展开状态和新的展开状态
       return Array.from(new Set([...prev, ...newExpanded]));
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPath]);
 
   const toggleExpand = (key: string) => {

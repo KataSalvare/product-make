@@ -1,6 +1,5 @@
 import React from 'react';
 import { Avatar } from '../components/Avatar';
-import { Button } from '../components/Button';
 
 interface Message {
   id: string;

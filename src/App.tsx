@@ -77,12 +77,61 @@ Object.entries(allModules).forEach(([path, mod]) => {
 
 // 页面路径映射配置
 const frontendPageConfig: Record<string, { path: string; label: string }> = {
-  'demo-register': { path: '/register', label: '注册' },
-  'demo-login': { path: '/login', label: '登录' },
+  'superim-splash': { path: '/', label: '启动页' },
+  'superim-login': { path: '/login', label: '登录' },
+  'superim-register': { path: '/register', label: '注册' },
+  'superim-forgotpassword': { path: '/forgot-password', label: '忘记密码' },
+  'superim-chats': { path: '/chats', label: '聊天列表' },
+  'superim-chatroom': { path: '/chatroom', label: '聊天室' },
+  'superim-groupchat': { path: '/group-chat', label: '群聊' },
+  'superim-groupchat-settings': { path: '/group-chat-settings', label: '群聊设置' },
+  'superim-contacts': { path: '/contacts', label: '通讯录' },
+  'superim-contact-selection': { path: '/contact-selection', label: '选择联系人' },
+  'superim-addcontact': { path: '/add-contact', label: '添加联系人' },
+  'superim-feed': { path: '/feed', label: '动态' },
+  'superim-newpost': { path: '/new-post', label: '发布动态' },
+  'superim-postdetail': { path: '/post/:id', label: '动态详情' },
+  'superim-myposts': { path: '/my-posts', label: '我的动态' },
+  'superim-me': { path: '/me', label: '个人中心' },
+  'superim-userprofile': { path: '/user-profile', label: '查看用户资料' },
+  'superim-editprofile': { path: '/edit-profile', label: '编辑资料' },
+  'superim-calls': { path: '/calls', label: '通话记录' },
+  'superim-callscreen': { path: '/call-screen', label: '通话界面' },
+  'superim-security': { path: '/security', label: '安全设置' },
+  'superim-privacy-settings': { path: '/privacy-settings', label: '隐私设置' },
+  'superim-forwardmessage': { path: '/forward-message', label: '转发消息' },
+  'superim-temp-chat': { path: '/temp-chat/:userId', label: '临时会话' },
+  'superim-chat-folders': { path: '/chat-folders', label: '对话文件夹' },
+  'superim-favorites': { path: '/favorites', label: '收藏夹' },
+  'superim-favorite-detail': { path: '/favorite/:id', label: '收藏详情' },
+  'superim-account-switcher': { path: '/account-switcher', label: '账号切换' },
+  'superim-settings': { path: '/settings', label: '设置' },
 }
 
 const adminPageConfig: Record<string, { path: string; label: string }> = {
-  'demo-admin-users': { path: '/admin/users', label: '用户管理' },
+  'superim-admin-login': { path: '/admin/login', label: '管理员登录' },
+  'superim-admin-dashboard': { path: '/admin/dashboard', label: '仪表盘' },
+  'superim-admin-bigscreen': { path: '/admin/bigscreen', label: '数据大屏' },
+  'superim-admin-users': { path: '/admin/users', label: '用户列表' },
+  'superim-admin-user-detail': { path: '/admin/users/:userId', label: '用户详情' },
+  'superim-admin-online-users': { path: '/admin/online-users', label: '在线用户' },
+  'superim-admin-bans': { path: '/admin/bans', label: '封禁管理' },
+  'superim-admin-conversations': { path: '/admin/conversations', label: '会话列表' },
+  'superim-admin-conversation-detail': { path: '/admin/conversations/:convId', label: '会话详情' },
+  'superim-admin-message-reports': { path: '/admin/message-reports', label: '举报消息' },
+  'superim-admin-sensitive-words': { path: '/admin/sensitive-words', label: '敏感词库' },
+  'superim-admin-feed': { path: '/admin/feed', label: '动态列表' },
+  'superim-admin-feed-detail': { path: '/admin/feed/:feedId', label: '动态详情' },
+  'superim-admin-feed-reports': { path: '/admin/feed-reports', label: '动态举报' },
+  'superim-admin-comments': { path: '/admin/comments', label: '评论管理' },
+  'superim-admin-calls': { path: '/admin/calls', label: '通话记录' },
+  'superim-admin-settings': { path: '/admin/settings', label: '基础配置' },
+  'superim-admin-versions': { path: '/admin/versions', label: '版本管理' },
+  'superim-admin-admins': { path: '/admin/admins', label: '管理员列表' },
+  'superim-admin-roles': { path: '/admin/roles', label: '角色管理' },
+  'superim-admin-operation-logs': { path: '/admin/operation-logs', label: '操作日志' },
+  'superim-admin-login-logs': { path: '/admin/login-logs', label: '登录日志' },
+  'superim-admin-system-logs': { path: '/admin/system-logs', label: '系统日志' },
 }
 
 // 提取默认组件
@@ -90,6 +139,14 @@ const getDefaultComponent = (mod: unknown): React.ComponentType => {
   const moduleWithDefault = mod as { default?: React.ComponentType }
   return moduleWithDefault?.default || (() => null)
 }
+
+// 主题预览组件（避免在 render 中动态创建组件）
+/* eslint-disable react-hooks/static-components */
+const ThemePreview = ({ mod }: { mod: unknown }) => {
+  const Component = getDefaultComponent(mod)
+  return <Component />
+}
+/* eslint-enable react-hooks/static-components */
 
 // ==================== Spec 文件动态加载 ====================
 const specGlob = import.meta.glob('./prototypes/*/spec.md', { query: '?raw', import: 'default' })
@@ -375,17 +432,33 @@ const Sidebar = ({ theme, projectName, onProjectNameChange }: SidebarProps) => {
   const [tempName, setTempName] = useState(projectName)
   const location = useLocation()
   const [activeTab, setActiveTab] = useState<PageCategory | 'themes' | 'docs'>('frontend')
-  // 默认展开所有后台管理分组
-  const [expandedGroups, setExpandedGroups] = useState<string[]>(['数据概览', '用户管理'])
+  // 默认展开所有分组
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(['启动/认证', '即时通讯', '通讯录', '社交动态', '个人中心', '通话', '收藏夹', '数据概览', '用户管理', '消息管理', '动态管理', '通话记录', '系统设置', '权限管理', '日志管理'])
 
   // 根据当前选中的标签页过滤页面
   const filteredPages = pages.filter(p => p.category === activeTab as PageCategory)
 
-  // 后台页面分组配置
-  // 根据实际存在的路由调整：仪表盘、数据大屏、用户管理
+  // 前端页面分组配置
+  const frontendGroups: Record<string, PageItem[]> = {
+    '启动/认证': filteredPages.filter(p => ['启动页', '登录', '注册', '忘记密码'].includes(p.label)),
+    '即时通讯': filteredPages.filter(p => ['聊天列表', '聊天室', '群聊', '群聊设置', '转发消息', '临时会话', '对话文件夹'].includes(p.label)),
+    '通讯录': filteredPages.filter(p => ['通讯录', '选择联系人', '添加联系人'].includes(p.label)),
+    '社交动态': filteredPages.filter(p => ['动态', '发布动态', '动态详情', '我的动态'].includes(p.label)),
+    '收藏夹': filteredPages.filter(p => ['收藏夹', '收藏详情'].includes(p.label)),
+    '个人中心': filteredPages.filter(p => ['个人中心', '查看用户资料', '编辑资料', '安全设置', '隐私设置', '账号切换', '设置'].includes(p.label)),
+    '通话': filteredPages.filter(p => ['通话记录', '通话界面'].includes(p.label)),
+  }
+
+  // 后台页面分组配置（与 AdminSidebar 导航结构保持一致）
   const adminGroups: Record<string, PageItem[]> = {
     '数据概览': filteredPages.filter(p => ['仪表盘', '数据大屏'].includes(p.label)),
-    '用户管理': filteredPages.filter(p => ['用户管理'].includes(p.label)),
+    '用户管理': filteredPages.filter(p => ['用户列表', '用户详情', '在线用户', '封禁管理'].includes(p.label)),
+    '消息管理': filteredPages.filter(p => ['会话列表', '会话详情', '举报消息', '敏感词库'].includes(p.label)),
+    '动态管理': filteredPages.filter(p => ['动态列表', '动态详情', '评论管理', '动态举报'].includes(p.label)),
+    '通话记录': filteredPages.filter(p => p.label === '通话记录'),
+    '系统设置': filteredPages.filter(p => ['基础配置', '版本管理'].includes(p.label)),
+    '权限管理': filteredPages.filter(p => ['管理员列表', '角色管理'].includes(p.label)),
+    '日志管理': filteredPages.filter(p => ['操作日志', '登录日志', '系统日志'].includes(p.label)),
   }
 
   const toggleGroup = (group: string) => {
@@ -503,12 +576,60 @@ const Sidebar = ({ theme, projectName, onProjectNameChange }: SidebarProps) => {
       <nav className="flex-1 overflow-y-auto p-2">
         {activeTab === 'frontend' && (
           <div className="space-y-1">
-            {filteredPages.map(page => (
+            {Object.entries(frontendGroups).map(([groupName, groupPages]) => (
+              groupPages.length > 0 && (
+                <div key={groupName}>
+                  <button
+                    onClick={() => toggleGroup(groupName)}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
+                      isDark
+                        ? 'text-slate-400 hover:text-white hover:bg-slate-800'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                    }`}
+                  >
+                    <span className="font-medium">{groupName}</span>
+                    {expandedGroups.includes(groupName) ? (
+                      <ChevronDown size={14} />
+                    ) : (
+                      <ChevronRight size={14} />
+                    )}
+                  </button>
+                  {expandedGroups.includes(groupName) && (
+                    <div className="ml-2 mt-1 space-y-1">
+                      {groupPages.map(page => (
+                        <NavLink
+                          key={page.path}
+                          to={page.path}
+                          className={({ isActive: navActive }) =>
+                            `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                              navActive || isActive(page.path)
+                                ? 'bg-blue-600 text-white'
+                                : isDark
+                                  ? 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                  : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                            }`
+                          }
+                        >
+                          <Smartphone size={16} />
+                          <span>{page.label}</span>
+                        </NavLink>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            ))}
+          </div>
+        )}
+        {activeTab === 'admin' && (
+          <div className="space-y-1">
+            {/* 管理员登录 - 不分组，置顶展示 */}
+            {filteredPages.filter(p => p.label === '管理员登录').map(page => (
               <NavLink
                 key={page.path}
                 to={page.path}
                 className={({ isActive: navActive }) =>
-                  `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                  `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors mb-2 ${
                     navActive || isActive(page.path)
                       ? 'bg-blue-600 text-white'
                       : isDark
@@ -517,14 +638,11 @@ const Sidebar = ({ theme, projectName, onProjectNameChange }: SidebarProps) => {
                   }`
                 }
               >
-                <Smartphone size={16} />
+                <Monitor size={16} />
                 <span>{page.label}</span>
               </NavLink>
             ))}
-          </div>
-        )}
-        {activeTab === 'admin' && (
-          <div className="space-y-1">
+            {/* 分组导航 */}
             {Object.entries(adminGroups).map(([groupName, groupPages]) => (
               groupPages.length > 0 && (
                 <div key={groupName}>
@@ -599,6 +717,7 @@ const ShortcutSettingsModal: React.FC<{
 
   useEffect(() => {
     if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setEditingShortcuts(shortcuts)
     }
     isShortcutModalOpen = isOpen
@@ -1004,7 +1123,6 @@ const ThemeDetailPage = () => {
     const match = path.match(/\.\/themes\/([^/]+)\//)
     return match && match[1] === themeId
   })
-  const ThemeComponent = themeEntry ? getDefaultComponent(themeEntry[1]) : null
 
   // 加载设计文档
   useEffect(() => {
@@ -1055,7 +1173,7 @@ const ThemeDetailPage = () => {
         <div className="flex-1 overflow-auto p-6">
           <div className="bg-white rounded-lg shadow-sm border p-6 min-h-[600px]">
             <h2 className="text-lg font-medium text-gray-900 mb-4">主题预览</h2>
-            {ThemeComponent ? <ThemeComponent /> : <div className="text-gray-500">主题组件加载失败</div>}
+            {themeEntry ? <ThemePreview mod={themeEntry[1]} /> : <div className="text-gray-500">主题组件加载失败</div>}
           </div>
         </div>
 
@@ -1275,6 +1393,7 @@ function AppContent() {
     const page = pages.find(p => p.path === location.pathname)
     // 主题和文档页面使用 PC 模式
     const isThemeOrDoc = location.pathname.startsWith('/theme') || location.pathname.startsWith('/doc') || location.pathname === '/themes' || location.pathname === '/docs'
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDeviceMode(page?.category === 'admin' || isThemeOrDoc ? 'pc' : 'mobile')
   }, [location.pathname])
 

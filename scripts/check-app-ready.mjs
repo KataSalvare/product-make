@@ -66,6 +66,9 @@ const CONFIG = {
   skipBuild                         // 是否跳过构建校验
 }
 
+// 从 Vite stdout 解析到的服务器信息（作为 .dev-server-info.json 的备用）
+let detectedServerInfo = null
+
 /* ================= 工具函数 ================= */
 function jsonExit(payload, code = 0) {
   process.stdout.write(JSON.stringify(payload, null, 2))
@@ -123,7 +126,7 @@ async function isServerAlive(url) {
  * 读取开发服务器信息
  * 优先从 .axhub/make/.dev-server-info.json 读取实际运行的端口
  */
-/*function getServerInfo() {
+function getServerInfo() {
   try {
     if (fs.existsSync(CONFIG.devServerInfoPath)) {
       const info = JSON.parse(fs.readFileSync(CONFIG.devServerInfoPath, 'utf8'))
@@ -137,10 +140,14 @@ async function isServerAlive(url) {
     logs.push(`Failed to read .axhub/make/.dev-server-info.json: ${err.message}`)
   }
 
+  // 如果从 stdout 解析到了服务器信息，直接返回
+  if (detectedServerInfo) {
+    return detectedServerInfo
+  }
+
   // 如果没有端口信息，返回 null 表示需要等待服务器启动
   return null
 }
- */
 /**
  * 生成服务器首页 URL
  * 使用 localhost 而不是 0.0.0.0，因为浏览器无法访问 0.0.0.0
@@ -190,7 +197,18 @@ function startOrAttachVite() {
   child.stdout.on('data', (data) => {
     const text = decodeOutput(data).trim()
     if (text) logs.push(text)
-    
+
+    // 解析 Vite stdout 中的 Local URL（去掉 ANSI 转义码），例如 "➜  Local:   http://localhost:5176/"
+    const cleanText = text.replace(/\u001b\[[0-9;]*m/g, '')
+    const localMatch = cleanText.match(/Local:\s+(http:\/\/[^:]+):(\d+)\/?/)
+    if (localMatch) {
+      detectedServerInfo = {
+        host: localMatch[1].replace(/^https?:\/\//, ''),
+        port: parseInt(localMatch[2], 10),
+        localIP: localMatch[1].replace(/^https?:\/\//, '')
+      }
+    }
+
     // 检测构建错误
     if (/error/i.test(text) || /failed to compile/i.test(text)) {
       errors.push(text)

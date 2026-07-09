@@ -248,10 +248,9 @@ const EquatorialMinimalismTheme: React.FC = () => {
 };
 
 // Helper Components
-const ColorSwatch: React.FC<{ name: string; color: string; textColor: string }> = ({
+const ColorSwatch: React.FC<{ name: string; color: string; textColor?: string }> = ({
   name,
   color,
-  textColor,
 }) => (
   <div className="rounded-lg overflow-hidden shadow-ambient-sm">
     <div className="h-20" style={{ backgroundColor: `var(${color.replace('var(', '').replace(')', '')})` }} />
