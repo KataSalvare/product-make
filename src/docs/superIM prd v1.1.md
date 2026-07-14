@@ -267,7 +267,7 @@
 | /temp-chat/:userId | 顶部 Temp Chat 标签、倒计时条、右上角更多操作菜单、消息列表、添加好友按钮；消息长按菜单提供 Reply / Copy / Forward / Select / Delete（无 Pin、无 Save to Favorites），Select 进入多选模式，复选框统一左对齐，底部批量 Forward、顶部批量 Delete | 临时会话页面 |
 | /chat-folders | 文件夹列表、拖拽排序、新建/编辑抽屉、聊天选择器 | 文件夹管理 |
 | /chats | 文件夹 Tab（All / Work / Family，默认 All）、账号切换浮标、会话列表（含 Saved Messages 普通项）、置顶且未读时时间药丸徽章点亮；会话时间按规则展示（当日 12 小时制 / 本周周内 / 当年月日 / 往年月日年） | 首页改动 |
-| /me | 参考 Telegram Settings 风格重构：个人信息卡片（可进入 Edit Profile）、多账号时平铺展示其他已绑定账号及未读消息、底部提供 Manage Accounts 入口跳转账号管理页、My Posts / My Favorites / Chat Folders / Settings / Help Center / About / Terms of Service 平铺列表 | 个人中心重构 |
+| /me | 参考 Telegram Settings 风格重构：个人信息卡片（可进入 Edit Profile）、多账号时平铺展示其他已绑定账号及未读消息、底部提供 Manage Accounts 入口跳转账号管理页、My Posts / Saved Messages / Chat Folders / Settings / Help Center / About / Terms of Service 平铺列表 | 个人中心重构 |
 | /settings | Account（Edit Profile / Security / Privacy）、Preferences（Notifications / Sound & Vibration / Language）、Log Out | 新增设置二级页 |
 | /security | Change Password / Biometric Lock / Contact Methods / Sessions / Data / Delete Account | 安全设置页 |
 | /favorites | 自聊式 Saved Messages 界面、消息气泡列表、底部输入框发笔记、消息按时间正序展示（新消息在底部追加并自动滚动到底部）、长按菜单（Reply / Forward / Copy / Delete / Select）、多选批量操作、搜索、右上角更多菜单切换 Chat Mode / Message Mode（默认 Chat Mode） | 收藏夹首页 |
