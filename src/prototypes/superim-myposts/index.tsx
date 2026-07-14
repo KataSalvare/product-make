@@ -6,6 +6,7 @@
  */
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import '../../themes/equatorial-minimalism/globals.css';
 import './style.css';
 
@@ -68,7 +69,8 @@ const mockMyPosts: Post[] = [
 ];
 
 const MyPostsPage: React.FC = () => {
-  const [posts, setPosts] = useState(mockMyPosts);
+  const navigate = useNavigate();
+  const [posts, setPosts] = useState<Post[]>(mockMyPosts);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const getInitials = () => 'JD';
@@ -97,13 +99,18 @@ const MyPostsPage: React.FC = () => {
     <div className="h-full bg-[var(--surface)] flex flex-col">
       {/* Header */}
       <header className="bg-[var(--surface-container-low)] border-b border-[var(--outline-variant)] px-4 py-3 sticky top-0 z-20">
-        <div className="flex items-center gap-3">
-          <button className="p-2 -ml-2 hover:bg-[var(--surface-container)] rounded-full transition-colors">
-            <svg className="w-6 h-6 text-[var(--on-surface)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <h1 className="text-headline-md text-[var(--primary)]">My Posts</h1>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate(-1)}
+              className="p-2 -ml-2 hover:bg-[var(--surface-container)] rounded-full transition-colors"
+            >
+              <svg className="w-6 h-6 text-[var(--on-surface)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <h1 className="text-headline-md text-[var(--primary)]">My Posts</h1>
+          </div>
         </div>
       </header>
 

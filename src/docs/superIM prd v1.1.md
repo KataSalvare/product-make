@@ -26,8 +26,8 @@
 | 临时会话 | 添加临时会话入口 | 集成到 contacts / addcontact | 搜索用户后发起临时对话 |
 | 临时会话 | 聊天列表展示 | /chats | 临时会话在列表中显示 Temp 标签 |
 | 对话文件夹 | 文件夹管理 | /chat-folders | 新增/编辑/删除文件夹 |
-| 收藏夹 | 收藏夹首页 | /favorites | 按类型筛选收藏内容 |
-| 收藏夹 | 收藏详情 | /favorite/:id | 查看单条收藏并转发 |
+| 收藏夹 | Saved Messages 首页 | /favorites | 以自聊形式查看/发送/管理收藏 |
+| 收藏夹 | 收藏详情 | /favorite/:id | 查看单条收藏气泡并转发 |
 | 多账号 | 账号切换面板 | /account-switcher | 切换/添加/管理多账号 |
 | 多账号 | 账号消息中心 | 集成到 chats | 展示各账号未读消息 |
 | 个人中心 | 设置二级页 | /settings | 聚合账号、偏好、登出、注销等设置项 |
@@ -36,7 +36,7 @@
 
 | 页面 | 改动内容 |
 |------|----------|
-| /chats | 顶部增加文件夹 Tab 切换；账号切换入口；会话列表展示临时会话并带 Temp 标签 |
+| /chats | 顶部增加文件夹 Tab 切换；账号切换入口；会话列表展示临时会话并带 Temp 标签；置顶聊天时间以药丸徽章展示 |
 | /contacts | 搜索结果增加「临时会话」入口 |
 | /addcontact | 用户卡片的「临时会话」改为图标按钮；点击后弹出规则确认弹窗 |
 | /userprofile | 参考 Telegram 风格重构：分享/屏蔽/举报收入右上角更多菜单；Media/Files/Links/Groups 做成 Tab 切换；优化 Message/Mute/Call/Video 图标按钮；非联系人展示「Add to Contacts」按钮；Media/Files/Links 数据来自与该用户的聊天消息，Groups 来自共同群聊 |
@@ -162,25 +162,75 @@
 
 **验收标准**
 
-1. Given 用户在聊天中长按消息  
-   When 选择「收藏」  
-   Then 该消息加入收藏夹，按类型（文本/图片/视频/链接/文件）归类。
+1. Given 用户在临时会话中长按消息  
+   When 选择「Save to Favorites」  
+   Then 该消息加入收藏夹，并在页面显示 Toast「Saved to Favorites」。
 
-2. Given 用户在收藏夹页  
+2. Given 用户在转发选择器  
+   When 选择「Saved Messages」  
+   Then 消息被收藏到 /favorites。
+
+3. Given 用户在收藏夹页  
    When 右键（或长按）某条收藏  
-   Then 弹出操作菜单，提供 Forward / Multi-select / Delete。
+   Then 弹出操作菜单，提供 Reply / Forward / Copy / Delete / Select。
 
-3. Given 用户在操作菜单中选择「Multi-select」  
+4. Given 用户在收藏夹页  
+   When 在底部输入框输入文字并发送  
+   Then 新增一条文本收藏（发给自己的笔记）。
+
+5. Given 用户在操作菜单中选择「Select」  
    When 进入多选模式并选择多条收藏  
    Then 底部出现批量操作栏，支持批量 Forward 和批量 Delete。
 
-4. Given 用户选择多条收藏并点击批量 Delete  
+6. Given 用户选择多条收藏并点击批量 Delete  
    When 确认删除  
    Then 已选收藏从列表移除。
 
-5. Given 收藏夹内容较多  
-   When 用户切换类型 Tab  
-   Then 仅展示该类型收藏。
+7. Given 收藏夹内容较多  
+   When 用户使用搜索  
+   Then 仅展示匹配内容/来源的收藏消息。
+
+8. Given 用户在收藏夹页底部输入框发送笔记  
+   When 消息发送成功  
+   Then 新消息追加到收藏夹列表底部，并自动滚动到底部。
+
+9. Given 用户在收藏夹页  
+   When 点击右上角更多按钮  
+   Then 展开视图切换菜单，可选择「Chat Mode」或「Message Mode」，默认 Chat Mode。
+
+10. Given 用户切换到 Message Mode  
+    When 查看收藏夹  
+    Then 消息以列表行形式展示来源头像、名称、内容摘要与时间。
+
+---
+
+### US-04b 聊天消息多选
+
+**As a** 用户  
+**I want to** 在单聊/群聊中多选消息并批量转发或删除  
+**So that** 提高消息管理效率
+
+**验收标准**
+
+1. Given 用户在 /chatroom 或 /groupchat 长按消息  
+   When 选择「Select」  
+   Then 进入多选模式，所有消息左侧显示圆形复选框并统一左对齐。
+
+2. Given 用户已进入多选模式  
+   When 点击消息复选框  
+   Then 切换该消息选中状态，顶部标题显示已选数量。
+
+3. Given 用户已选中一条或多条消息  
+   When 点击底部「Forward」按钮  
+   Then 跳转 /forward-message 转发已选消息。
+
+4. Given 用户已选中一条或多条消息  
+   When 点击顶部「Delete」按钮并确认  
+   Then 已选消息从列表移除并退出多选模式。
+
+5. Given 用户处于多选模式  
+   When 点击顶部关闭按钮  
+   Then 退出多选模式并清空已选状态。
 
 ---
 
@@ -214,17 +264,20 @@
 
 | 页面/区域 | 子项 | 说明 |
 | --- | --- | --- |
-| /temp-chat/:userId | 顶部 Temp Chat 标签、倒计时条、右上角更多操作菜单、消息列表、添加好友按钮 | 临时会话页面 |
+| /temp-chat/:userId | 顶部 Temp Chat 标签、倒计时条、右上角更多操作菜单、消息列表、添加好友按钮；消息长按菜单提供 Reply / Copy / Forward / Select / Delete（无 Pin、无 Save to Favorites），Select 进入多选模式，复选框统一左对齐，底部批量 Forward、顶部批量 Delete | 临时会话页面 |
 | /chat-folders | 文件夹列表、拖拽排序、新建/编辑抽屉、聊天选择器 | 文件夹管理 |
-| /chats | 文件夹 Tab（All / Work / Family，默认 All）、账号切换浮标、会话列表 | 首页改动 |
+| /chats | 文件夹 Tab（All / Work / Family，默认 All）、账号切换浮标、会话列表（含 Saved Messages 普通项）、置顶且未读时时间药丸徽章点亮；会话时间按规则展示（当日 12 小时制 / 本周周内 / 当年月日 / 往年月日年） | 首页改动 |
 | /me | 参考 Telegram Settings 风格重构：个人信息卡片（可进入 Edit Profile）、多账号时平铺展示其他已绑定账号及未读消息、底部提供 Manage Accounts 入口跳转账号管理页、My Posts / My Favorites / Chat Folders / Settings / Help Center / About / Terms of Service 平铺列表 | 个人中心重构 |
 | /settings | Account（Edit Profile / Security / Privacy）、Preferences（Notifications / Sound & Vibration / Language）、Log Out | 新增设置二级页 |
 | /security | Change Password / Biometric Lock / Contact Methods / Sessions / Data / Delete Account | 安全设置页 |
-| /favorites | 类型 Tab、收藏列表、搜索框、右键/长按菜单（Forward / Multi-select / Delete）、多选批量操作 | 收藏夹首页 |
-| /favorite/:id | 收藏内容预览、转发按钮、删除按钮 | 收藏详情 |
+| /favorites | 自聊式 Saved Messages 界面、消息气泡列表、底部输入框发笔记、消息按时间正序展示（新消息在底部追加并自动滚动到底部）、长按菜单（Reply / Forward / Copy / Delete / Select）、多选批量操作、搜索、右上角更多菜单切换 Chat Mode / Message Mode（默认 Chat Mode） | 收藏夹首页 |
+| /favorite/:id | 单条收藏消息气泡预览、转发/删除按钮 | 收藏详情 |
 | /account-switcher | 当前账号卡片、其他账号列表（未读红点）、添加账号（最多 3 个，两步登录：Phone/Email + 密码） | 账号管理 |
 | /userprofile | Telegram 风格布局、右上角更多菜单（Share/Block/Report）、Quick Actions（Message/Mute/Call/Video）、非联系人 Add to Contacts、信息卡片、Media/Files/Links/Groups Tab 切换 | 用户主页改动 |
-| /chatroom / /groupchat | 消息长按菜单增加「收藏」 | 聊天页改动 |
+| /chatroom / /groupchat | 消息长按菜单提供 Reply / Copy / Forward / Pin / Select / Delete；Select 进入多选模式，复选框统一左对齐，底部批量 Forward、顶部批量 Delete | 聊天页改动 |
+| /chatroom / /groupchat / /temp-chat / /favorites | 底部发送操作栏统一：附件按钮、带表情的输入框、语音/发送按钮、回复预览；图标按钮与输入框垂直居中对齐 | 聊天输入栏样式统一 |
+| /forward-message | 转发选择器参考 Telegram：底部悬浮胶囊切换 Chats/Contacts、搜索框下方文件夹筛选（All/Work/Family）、不展示待转发内容、群聊项名称右侧 Group 标签无成员数、不显示最近活跃时间、顶部 Saved Messages | 转发页重构 |
+| 二级页面导航条 | sticky top-0 z-20，px-4 py-3，text-headline-md text-[var(--primary)] 标题左对齐，左侧返回按钮（arrow icon + navigate(-1)），保留原有右侧操作按钮 | 全局导航统一 |
 
 ---
 
@@ -240,16 +293,21 @@
 ## 5. 验收清单
 
 - [ ] 5 个模块对应页面全部完成并通过 `check-app-ready.mjs` 验收。
-- [ ] /chats 顶部文件夹 Tab 默认「All」并展示全部会话，另有 2 个自定义文件夹。
+- [ ] /chats 顶部文件夹 Tab 默认「All」并展示全部会话，另有 2 个自定义文件夹；Saved Messages 作为普通会话项展示（非固定置顶），点击跳转 `/favorites`。
+- [ ] /chats 会话时间按规则展示：当日为 12 小时制（如 11:00 PM）、本周内为周几缩写（如 SAT）、本年内为月份日期（如 JUN 1）、往年为月.日.年（如 10.1.24）；置顶且存在未读时，时间与图钉以药丸徽章点亮展示，无未读时恢复灰色普通状态。
 - [ ] /chat-folders 支持拖拽排序。
 - [ ] /me 参考 Telegram Settings 风格重构：个人信息卡片（点击进入 Edit Profile）、多账号时平铺展示其他已绑定账号及未读消息、底部提供 Manage Accounts 入口、平铺 My Posts / My Favorites / Chat Folders / Settings / Help Center / About / Terms of Service。
 - [ ] /settings（新增）聚合 Account（Edit Profile / Security / Privacy）、Preferences（Notifications / Sound & Vibration / Language）、Log Out。
 - [ ] /security 新增「Delete Account」入口及二次确认弹窗；个人中心相关二级/三级页面返回按钮可返回上一页。
 - [ ] /userprofile 参考 Telegram 风格重构：分享/屏蔽/举报收入右上角更多菜单；Media/Files/Links/Groups Tab 切换；Message/Mute/Call/Video 图标按钮；非联系人展示 Add to Contacts 按钮。
 - [ ] /addcontact 临时会话入口为图标按钮，点击后展示规则确认弹窗。
-- [ ] /temp-chat 顶部仅保留 Temp Chat 标签，倒计时文案不重复显示。
-- [ ] 聊天消息长按菜单包含「收藏」选项。
-- [ ] 收藏夹支持按类型筛选、搜索、右键/长按菜单（Forward / Multi-select / Delete）。
-- [ ] 收藏夹多选模式支持批量 Forward 与批量 Delete。
+- [ ] /temp-chat 顶部仅保留 Temp Chat 标签，倒计时文案不重复显示；消息长按菜单提供 Reply / Copy / Forward / Select / Delete（无 Pin、无 Save to Favorites），Select 进入多选模式后复选框统一左对齐，支持底部批量 Forward 与顶部批量 Delete。
+- [ ] 收藏夹改为 Telegram Saved Messages 自聊式界面，支持底部输入框发送笔记；新消息追加到列表底部并自动滚动到底部。
+- [ ] /chatroom / /groupchat 消息长按菜单提供 Reply / Copy / Forward / Pin / Select / Delete，Select 进入多选模式后复选框统一左对齐，支持底部批量 Forward 与顶部批量 Delete。
+- [ ] /chatroom / /groupchat / /temp-chat / /favorites 底部发送操作栏样式统一，包含附件按钮、带表情的输入框、语音/发送按钮、回复预览；图标按钮与输入框垂直居中对齐。
+- [ ] 转发选择器顶部包含 Saved Messages 目标；/forward-message 参考 Telegram 重构：底部悬浮胶囊切换 Chats/Contacts、搜索框下方文件夹筛选（All/Work/Family）、不展示待转发内容、群聊项名称右侧 Group 标签无成员数、不显示最近活跃时间。
+- [ ] 所有前端二级页面导航条统一：sticky top-0 z-20，px-4 py-3，标题 text-headline-md text-[var(--primary)] 左对齐，左侧返回按钮使用 arrow icon + navigate(-1)，保留原有右侧操作按钮。
+- [ ] 收藏夹消息长按菜单提供 Reply / Forward / Copy / Delete / Select，多选模式支持批量 Forward 与批量 Delete。
+- [ ] /favorites 右上角更多菜单支持切换 Chat Mode / Message Mode，默认 Chat Mode。
 - [ ] 多账号面板可切换并展示未读红点；最多支持 3 个账号；添加账号流程与登录一致（Phone/Email + 密码两步）。
 - [ ] App.tsx 路径映射与前端分组已更新。

@@ -15,7 +15,7 @@ interface ChatItem {
   name: string;
   avatar: string;
   lastMessage: string;
-  timestamp: string;
+  timestamp: Date;
   unreadCount: number;
   isOnline: boolean;
   isPinned: boolean;
@@ -24,15 +24,30 @@ interface ChatItem {
   mentionedMe?: boolean;
   isMuted?: boolean;
   isTemp?: boolean;
+  isSavedMessages?: boolean;
 }
 
+const now = new Date();
+
 const mockChats: ChatItem[] = [
+  {
+    id: 'saved-messages',
+    name: 'Saved Messages',
+    avatar: '',
+    lastMessage: 'My notes and saved messages',
+    timestamp: new Date(now.getTime() - 30 * 60 * 1000),
+    unreadCount: 0,
+    isOnline: false,
+    isPinned: false,
+    isGroup: false,
+    isSavedMessages: true,
+  },
   {
     id: '1',
     name: 'Amara Okafor',
     avatar: '',
     lastMessage: 'Thanks for the help with the project!',
-    timestamp: '10:42 AM',
+    timestamp: new Date(now.getTime() - 2 * 60 * 60 * 1000),
     unreadCount: 3,
     isOnline: true,
     isPinned: true,
@@ -43,7 +58,7 @@ const mockChats: ChatItem[] = [
     name: 'Design Team',
     avatar: '',
     lastMessage: 'Zara: Check out this design I just finished!',
-    timestamp: '9:30 AM',
+    timestamp: new Date(now.getTime() - 4 * 60 * 60 * 1000),
     unreadCount: 12,
     isOnline: false,
     isPinned: true,
@@ -55,7 +70,7 @@ const mockChats: ChatItem[] = [
     name: 'Chioma Nnamdi',
     avatar: '',
     lastMessage: 'Are we still meeting tomorrow?',
-    timestamp: 'Yesterday',
+    timestamp: new Date(now.getTime() - 24 * 60 * 60 * 1000),
     unreadCount: 0,
     isOnline: true,
     isPinned: false,
@@ -67,7 +82,7 @@ const mockChats: ChatItem[] = [
     name: 'Family Group',
     avatar: '',
     lastMessage: 'Mama: Dinner is ready!',
-    timestamp: 'Yesterday',
+    timestamp: new Date(now.getTime() - 26 * 60 * 60 * 1000),
     unreadCount: 0,
     isOnline: false,
     isPinned: false,
@@ -78,7 +93,7 @@ const mockChats: ChatItem[] = [
     name: 'Oluwaseun Adeyemi',
     avatar: '',
     lastMessage: 'Sent you the files',
-    timestamp: 'Monday',
+    timestamp: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000),
     unreadCount: 0,
     isOnline: false,
     isPinned: false,
@@ -89,7 +104,7 @@ const mockChats: ChatItem[] = [
     name: 'Tech Support',
     avatar: '',
     lastMessage: 'Your ticket has been resolved',
-    timestamp: 'Monday',
+    timestamp: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
     unreadCount: 0,
     isOnline: false,
     isPinned: false,
@@ -100,9 +115,20 @@ const mockChats: ChatItem[] = [
     name: 'Amina Ibrahim',
     avatar: '',
     lastMessage: 'Happy birthday! 🎉',
-    timestamp: 'Sunday',
+    timestamp: new Date(now.getFullYear(), now.getMonth() - 1, 15, 10, 30),
     unreadCount: 0,
     isOnline: true,
+    isPinned: false,
+    isGroup: false,
+  },
+  {
+    id: '8',
+    name: 'Uncle Obi',
+    avatar: '',
+    lastMessage: 'Merry Christmas!',
+    timestamp: new Date(now.getFullYear() - 1, 11, 25, 9, 0),
+    unreadCount: 0,
+    isOnline: false,
     isPinned: false,
     isGroup: false,
   },
@@ -111,7 +137,7 @@ const mockChats: ChatItem[] = [
     name: 'Unknown User',
     avatar: '',
     lastMessage: 'Hi! I saw your post about the event.',
-    timestamp: '11:20 AM',
+    timestamp: new Date(now.getTime() - 60 * 60 * 1000),
     unreadCount: 1,
     isOnline: false,
     isPinned: false,
@@ -196,9 +222,53 @@ const ChatsPage: React.FC = () => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
+  const isSameDay = (a: Date, b: Date): boolean =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+
+  const getWeekStart = (date: Date): Date => {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    const day = d.getDay();
+    d.setDate(d.getDate() - day);
+    return d;
+  };
+
+  const isSameWeek = (a: Date, b: Date): boolean =>
+    getWeekStart(a).getTime() === getWeekStart(b).getTime();
+
+  const formatChatTime = (date: Date): string => {
+    const now = new Date();
+
+    if (isSameDay(date, now)) {
+      return date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      });
+    }
+
+    const sameYear = date.getFullYear() === now.getFullYear();
+
+    if (sameYear && isSameWeek(date, now)) {
+      return date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+    }
+
+    if (sameYear) {
+      return date
+        .toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        .toUpperCase();
+    }
+
+    return `${date.getMonth() + 1}.${date.getDate()}.${date.getFullYear().toString().slice(-2)}`;
+  };
+
   const handleChatClick = useCallback((chat: ChatItem) => {
     if (mouseDragRef.current?.dragging) return;
-    if (chat.isTemp) {
+    if (chat.isSavedMessages) {
+      navigate('/favorites');
+    } else if (chat.isTemp) {
       navigate(`/temp-chat/${chat.id}`);
     } else if (chat.isGroup) {
       navigate('/group-chat');
@@ -343,61 +413,83 @@ const ChatsPage: React.FC = () => {
       >
         {/* Avatar */}
         <div className="relative flex-shrink-0">
-          <div className="w-14 h-14 bg-[var(--primary-container)] rounded-full flex items-center justify-center text-[var(--on-primary-container)] font-semibold text-lg">
-            {getInitials(chat.name)}
-          </div>
-          {chat.isOnline && (
-            <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-[var(--secondary)] border-2 border-[var(--surface)] rounded-full" />
+          {chat.isSavedMessages ? (
+            <div className="w-12 h-12 bg-[var(--secondary-container)] rounded-full flex items-center justify-center flex-shrink-0">
+              <svg className="w-6 h-6 text-[var(--on-secondary-container)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+              </svg>
+            </div>
+          ) : (
+            <div className="w-12 h-12 bg-[var(--primary-container)] rounded-full flex items-center justify-center text-[var(--on-primary-container)] font-semibold text-sm">
+              {getInitials(chat.name)}
+            </div>
+          )}
+          {chat.isOnline && !chat.isSavedMessages && (
+            <div className="absolute bottom-0 right-0 w-3 h-3 bg-[var(--secondary)] border-2 border-[var(--surface)] rounded-full" />
           )}
         </div>
 
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-0.5">
-            <h3 className="font-semibold text-[var(--on-surface)] truncate">
+            <h3 className="font-semibold text-body-md text-[var(--on-surface)] truncate">
               {chat.name}
               {chat.isTemp && (
-                <span className="ml-2 text-label-xs px-1.5 py-0.5 rounded bg-[var(--secondary-container)] text-[var(--on-secondary-container)]">Temp</span>
+                <span className="ml-2 text-label-xs px-1.5 py-0.5 rounded bg-[var(--secondary-container)] text-[var(--on-secondary-container)] align-middle">Temp</span>
               )}
               {chat.isGroup && (
-                <span className="ml-2 text-label-sm text-[var(--on-surface-variant)]">Group</span>
+                <span className="ml-2 text-label-sm text-[var(--on-surface-variant)] align-middle">Group</span>
               )}
             </h3>
-            <span className="text-label-sm text-[var(--on-surface-variant)] whitespace-nowrap ml-2">{chat.timestamp}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            {chat.draft ? (
-              <p className="text-body-md text-[var(--secondary)] truncate">
-                Draft: {chat.draft}
-              </p>
-            ) : chat.mentionedMe ? (
-              <p className="text-body-md truncate">
-                <span className="text-[var(--error)] font-semibold">[@You] </span>
-                <span className="text-[var(--on-surface-variant)]">{chat.lastMessage}</span>
-              </p>
+            {/* Time / Pinned Time */}
+            {chat.isPinned && chat.unreadCount > 0 ? (
+              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--secondary)] text-[var(--on-secondary)] ml-2 flex-shrink-0">
+                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M16 12V4H17V2H7V4H8V12L6 14V16H11.2V22H12.8V16H18V14L16 12Z" />
+                </svg>
+                <span className="text-label-xs whitespace-nowrap">{formatChatTime(chat.timestamp)}</span>
+              </div>
+            ) : chat.isPinned ? (
+              <div className="flex items-center gap-1 text-[var(--on-surface-variant)] ml-2 flex-shrink-0">
+                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M16 12V4H17V2H7V4H8V12L6 14V16H11.2V22H12.8V16H18V14L16 12Z" />
+                </svg>
+                <span className="text-label-sm whitespace-nowrap">{formatChatTime(chat.timestamp)}</span>
+              </div>
             ) : (
-              <p className="text-body-md text-[var(--on-surface-variant)] truncate">{chat.lastMessage}</p>
+              <span className="text-label-sm text-[var(--on-surface-variant)] whitespace-nowrap ml-2 flex-shrink-0">{formatChatTime(chat.timestamp)}</span>
             )}
-            {chat.isPinned && (
-              <svg className="w-4 h-4 text-[var(--secondary)] flex-shrink-0 ml-1" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M16 12V4H17V2H7V4H8V12L6 14V16H11.2V22H12.8V16H18V14L16 12Z" />
-              </svg>
-            )}
-            {chat.isMuted && (
-              <svg className="w-4 h-4 text-[var(--on-surface-variant)] flex-shrink-0 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
-              </svg>
-            )}
+          </div>
+          <div className="flex items-center justify-between min-w-0">
+            <div className="flex items-center gap-1 min-w-0">
+              {chat.draft ? (
+                <p className="text-body-sm text-[var(--secondary)] truncate">
+                  Draft: {chat.draft}
+                </p>
+              ) : chat.mentionedMe ? (
+                <p className="text-body-sm truncate">
+                  <span className="text-[var(--error)] font-semibold">[@You] </span>
+                  <span className="text-[var(--on-surface-variant)]">{chat.lastMessage}</span>
+                </p>
+              ) : (
+                <p className="text-body-sm text-[var(--on-surface-variant)] truncate">{chat.lastMessage}</p>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5 ml-2 flex-shrink-0">
+              {chat.isMuted && (
+                <svg className="w-4 h-4 text-[var(--on-surface-variant)] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                </svg>
+              )}
+              {chat.unreadCount > 0 && (
+                <div className={`rounded-full flex items-center justify-center flex-shrink-0 min-w-[20px] h-5 px-1 ${chat.mentionedMe ? 'bg-[var(--error)]' : 'bg-[var(--secondary)]'}`}>
+                  <span className={`text-label-xs ${chat.mentionedMe ? 'text-[var(--on-error)]' : 'text-[var(--on-secondary)]'}`}>{chat.unreadCount > 99 ? '99+' : chat.unreadCount}</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-
-        {/* Unread Badge */}
-        {chat.unreadCount > 0 && (
-          <div className={`rounded-full flex items-center justify-center flex-shrink-0 min-w-[24px] h-6 px-1.5 ${chat.mentionedMe ? 'bg-[var(--error)]' : 'bg-[var(--secondary)]'}`}>
-            <span className={`text-label-xs ${chat.mentionedMe ? 'text-[var(--on-error)]' : 'text-[var(--on-secondary)]'}`}>{chat.unreadCount > 99 ? '99+' : chat.unreadCount}</span>
-          </div>
-        )}
       </div>
     </div>
   );

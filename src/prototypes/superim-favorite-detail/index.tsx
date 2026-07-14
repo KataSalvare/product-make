@@ -1,6 +1,6 @@
 /**
  * @name FavoriteDetail Page
- * @description View a single saved favorite and forward or delete it
+ * @description View a single saved message bubble and forward or delete it
  * @mode axure
  */
 
@@ -22,6 +22,7 @@ interface Favorite {
   url?: string;
   fileName?: string;
   fileSize?: string;
+  isFromMe?: boolean;
 }
 
 const mockFavorites: Favorite[] = [
@@ -30,7 +31,7 @@ const mockFavorites: Favorite[] = [
     type: 'text',
     source: 'Design Team',
     content: 'Beautiful sunset at the beach today! Nothing beats the view from Lagos coast.',
-    time: 'Today',
+    time: 'Today, 10:30 AM',
   },
   {
     id: '2',
@@ -38,7 +39,7 @@ const mockFavorites: Favorite[] = [
     source: 'Amara Okafor',
     content: 'Photo',
     preview: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&h=300&fit=crop',
-    time: 'Yesterday',
+    time: 'Yesterday, 4:15 PM',
   },
   {
     id: '3',
@@ -46,7 +47,7 @@ const mockFavorites: Favorite[] = [
     source: 'Family Group',
     content: 'Birthday party highlights',
     preview: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=400&h=300&fit=crop',
-    time: 'Monday',
+    time: 'Monday, 8:00 PM',
   },
   {
     id: '4',
@@ -55,7 +56,7 @@ const mockFavorites: Favorite[] = [
     content: 'https://react.dev/learn',
     title: 'React – Learn',
     url: 'https://react.dev/learn',
-    time: 'Sunday',
+    time: 'Sunday, 11:20 AM',
   },
   {
     id: '5',
@@ -66,29 +67,7 @@ const mockFavorites: Favorite[] = [
     fileSize: '2.4 MB',
     time: 'Last week',
   },
-  {
-    id: '6',
-    type: 'text',
-    source: 'Oluwaseun Adeyemi',
-    content: 'Meeting notes: launch date confirmed for Aug 15.',
-    time: 'Last week',
-  },
 ];
-
-const typeIcon = (type: FavoriteType) => {
-  switch (type) {
-    case 'text':
-      return 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z';
-    case 'image':
-      return 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z';
-    case 'video':
-      return 'M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z';
-    case 'link':
-      return 'M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1';
-    case 'file':
-      return 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z';
-  }
-};
 
 const FavoriteDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -98,12 +77,59 @@ const FavoriteDetailPage: React.FC = () => {
   const favorite = useMemo(() => mockFavorites.find((item) => item.id === id) || mockFavorites[0], [id]);
 
   const handleForward = () => {
-    navigate('/forward-message');
+    navigate(`/forward-message?favoriteId=${favorite.id}`);
   };
 
   const handleDelete = () => {
     setShowDeleteConfirm(false);
     navigate('/favorites');
+  };
+
+  const renderContent = () => {
+    switch (favorite.type) {
+      case 'image':
+        return favorite.preview ? (
+          <img src={favorite.preview} alt="Saved" className="w-full max-w-[280px] h-auto rounded-xl object-cover" />
+        ) : null;
+      case 'video':
+        return favorite.preview ? (
+          <div className="relative w-full max-w-[280px] rounded-xl overflow-hidden">
+            <img src={favorite.preview} alt="Video thumbnail" className="w-full h-auto object-cover" />
+            <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+              <div className="w-14 h-14 bg-white/90 rounded-full flex items-center justify-center">
+                <svg className="w-7 h-7 text-[var(--primary)] ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        ) : null;
+      case 'link':
+        return (
+          <a
+            href={favorite.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[var(--primary)] underline break-all text-body-lg"
+          >
+            {favorite.title || favorite.url}
+          </a>
+        );
+      case 'file':
+        return (
+          <div className="flex items-center gap-3">
+            <svg className="w-8 h-8 text-[var(--on-surface-variant)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <div>
+              <p className="text-body-lg text-[var(--on-surface)]">{favorite.fileName}</p>
+              <p className="text-body-md text-[var(--on-surface-variant)]">{favorite.fileSize}</p>
+            </div>
+          </div>
+        );
+      default:
+        return <p className="text-body-lg text-[var(--on-surface)] whitespace-pre-wrap">{favorite.content}</p>;
+    }
   };
 
   return (
@@ -113,14 +139,14 @@ const FavoriteDetailPage: React.FC = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate('/favorites')}
+              onClick={() => navigate(-1)}
               className="p-2 -ml-2 hover:bg-[var(--surface-container)] rounded-full transition-colors"
             >
               <svg className="w-6 h-6 text-[var(--on-surface)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
-            <h1 className="text-headline-md text-[var(--primary)]">Favorite Detail</h1>
+            <h1 className="text-headline-md text-[var(--primary)]">Saved Message</h1>
           </div>
           <button
             onClick={() => setShowDeleteConfirm(true)}
@@ -135,57 +161,14 @@ const FavoriteDetailPage: React.FC = () => {
       </header>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="bg-[var(--surface-container-lowest)] rounded-2xl p-5 shadow-ambient-sm border border-[var(--outline-variant)]/50">
-          <div className="flex items-start gap-3 mb-5">
-            <div className="w-12 h-12 bg-[var(--secondary-container)] rounded-xl flex items-center justify-center text-[var(--secondary)] flex-shrink-0">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={typeIcon(favorite.type)} />
-              </svg>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-label-md text-[var(--secondary)] uppercase">{favorite.source}</p>
-              <p className="text-label-sm text-[var(--on-surface-variant)] mt-1">{favorite.time}</p>
-            </div>
-          </div>
-
-          {favorite.type === 'image' && favorite.preview ? (
-            <img src={favorite.preview} alt="Favorite" className="w-full h-auto rounded-xl mb-4" />
-          ) : favorite.type === 'video' && favorite.preview ? (
-            <div className="relative w-full rounded-xl overflow-hidden mb-4">
-              <img src={favorite.preview} alt="Video thumbnail" className="w-full h-auto object-cover" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-14 h-14 bg-white/90 rounded-full flex items-center justify-center">
-                  <svg className="w-7 h-7 text-[var(--primary)] ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-          ) : null}
-
-          <div className="bg-[var(--surface-container-low)] rounded-xl p-4">
-            {favorite.type === 'link' ? (
-              <a
-                href={favorite.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-body-lg text-[var(--primary)] underline break-all"
-              >
-                {favorite.title || favorite.url}
-              </a>
-            ) : (
-              <p className="text-body-lg text-[var(--on-surface)] whitespace-pre-wrap">{favorite.content}</p>
-            )}
-            {favorite.type === 'file' && (
-              <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[var(--outline-variant)]/50">
-                <svg className="w-5 h-5 text-[var(--on-surface-variant)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <span className="text-body-md text-[var(--on-surface)]">{favorite.fileName}</span>
-                <span className="text-label-sm text-[var(--on-surface-variant)] ml-auto">{favorite.fileSize}</span>
-              </div>
-            )}
+      <div className="flex-1 overflow-y-auto p-4 flex flex-col items-center">
+        {!favorite.isFromMe && (
+          <span className="text-label-sm text-[var(--secondary)] mb-1 self-start">{favorite.source}</span>
+        )}
+        <div className={`w-full max-w-[320px] ${favorite.isFromMe ? 'self-end' : 'self-start'}`}>
+          <div className={`rounded-2xl p-4 shadow-ambient-sm ${favorite.isFromMe ? 'bg-[var(--primary-container)] rounded-br-none' : 'bg-[var(--surface-container-lowest)] rounded-bl-none'}`}>
+            {renderContent()}
+            <p className="text-label-xs text-[var(--on-surface-variant)] mt-2 text-right">{favorite.time}</p>
           </div>
         </div>
       </div>
@@ -203,14 +186,12 @@ const FavoriteDetailPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Delete Confirmation */}
+      {/* Delete Confirm */}
       {showDeleteConfirm && (
         <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
           <div className="bg-[var(--surface-container-lowest)] rounded-2xl w-full max-w-[320px] p-6">
-            <h3 className="text-title-md font-semibold text-[var(--on-surface)] mb-2">Delete Favorite</h3>
-            <p className="text-body-md text-[var(--on-surface-variant)] mb-6">
-              Are you sure you want to remove this item from your favorites?
-            </p>
+            <h3 className="text-title-md font-semibold text-[var(--on-surface)] mb-2">Delete Message</h3>
+            <p className="text-body-md text-[var(--on-surface-variant)] mb-6">Are you sure you want to delete this saved message?</p>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowDeleteConfirm(false)}

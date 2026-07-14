@@ -79,7 +79,7 @@ const mockMessages: Message[] = [
   { id: '10', text: '', timestamp: '10:42 AM', sender: 'You', senderAvatar: 'ME', isMe: true, type: 'video', mediaUrl: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=400&h=300&fit=crop' },
 ];
 
-type MessageAction = 'reply' | 'copy' | 'forward' | 'pin' | 'favorite' | 'delete';
+type MessageAction = 'reply' | 'copy' | 'forward' | 'pin' | 'select' | 'delete';
 
 interface MessageMenuItem {
   action: MessageAction;
@@ -93,7 +93,7 @@ const getMessageMenuItems = (isPinned: boolean): MessageMenuItem[] => [
   { action: 'copy', label: 'Copy', icon: 'M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z' },
   { action: 'forward', label: 'Forward', icon: 'M13 5l7 7-7 7M5 5l7 7-7 7' },
   { action: 'pin', label: isPinned ? 'Unpin' : 'Pin', icon: 'M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z' },
-  { action: 'favorite', label: 'Favorite', icon: 'M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z' },
+  { action: 'select', label: 'Select', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' },
   { action: 'delete', label: 'Delete', icon: 'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16', danger: true },
 ];
 
@@ -130,6 +130,9 @@ const GroupChatPage: React.FC = () => {
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [showMentionPopup, setShowMentionPopup] = useState(false);
   const [mentionQuery, setMentionQuery] = useState('');
+  const [toast] = useState<string | null>(null);
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
+  const [selectedMessageIds, setSelectedMessageIds] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -298,8 +301,37 @@ const GroupChatPage: React.FC = () => {
     }
   };
 
+  const toggleMessageSelection = (messageId: string) => {
+    setSelectedMessageIds(prev =>
+      prev.includes(messageId) ? prev.filter(id => id !== messageId) : [...prev, messageId]
+    );
+  };
+
+  const exitMultiSelectMode = () => {
+    setIsMultiSelectMode(false);
+    setSelectedMessageIds([]);
+  };
+
+  const handleMultiForward = () => {
+    if (selectedMessageIds.length === 0) return;
+    exitMultiSelectMode();
+    navigate('/forward-message');
+  };
+
+  const handleMultiDelete = () => {
+    if (selectedMessageIds.length === 0) return;
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmMultiDelete = () => {
+    setMessages(prev => prev.filter(m => !selectedMessageIds.includes(m.id)));
+    setShowDeleteConfirm(false);
+    setDeleteForEveryone(false);
+    exitMultiSelectMode();
+  };
+
   const handleMessageLongPress = (message: Message, e: React.MouseEvent | React.TouchEvent) => {
-    if (message.isSystem) return; // Don't show menu for system messages
+    if (message.isSystem || isMultiSelectMode) return;
     e.preventDefault();
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
@@ -333,17 +365,16 @@ const GroupChatPage: React.FC = () => {
         navigator.clipboard.writeText(selectedMessage.text);
         break;
       case 'forward':
-        // Navigate to forward message page or show forward dialog
-        console.log('Forward message:', selectedMessage);
+        navigate('/forward-message');
         break;
       case 'pin':
         setMessages(prev => prev.map(m => 
           m.id === selectedMessage.id ? { ...m, isPinned: !m.isPinned } : m
         ));
         break;
-      case 'favorite':
-        // Add message to favorites
-        console.log('Add to favorites:', selectedMessage);
+      case 'select':
+        setIsMultiSelectMode(true);
+        setSelectedMessageIds([selectedMessage.id]);
         break;
       case 'delete':
         setShowDeleteConfirm(true);
@@ -368,127 +399,256 @@ const GroupChatPage: React.FC = () => {
     setSelectedMessage(null);
   };
 
-  const cancelReply = () => {
-    setReplyingTo(null);
-  };
+  const emojis = [
+    '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣',
+    '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰',
+    '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜',
+    '🤪', '🤨', '🧐', '🤓', '😎', '🥸', '🤩', '🥳',
+    '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️',
+    '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤',
+    '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱',
+    '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫',
+    '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍',
+    '👍', '👎', '👏', '🙌', '🤝', '✌️', '🤞', '🤟',
+    '🔥', '⭐', '✨', '💫', '💥', '💯', '💢', '💬',
+  ];
 
-  const emojis = ['😀', '😂', '🥰', '😎', '🤔', '👍', '❤️', '🎉', '🔥', '👏', '😊', '😉', '🤗', '😴', '😭', '😡'];
+  const isDeleteMulti = isMultiSelectMode && selectedMessageIds.length > 0 && !selectedMessage;
+
+  const renderCheckbox = (messageId: string) => (
+    <button
+      onClick={() => toggleMessageSelection(messageId)}
+      className={`self-center w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+        selectedMessageIds.includes(messageId)
+          ? 'bg-[var(--primary)] border-[var(--primary)]'
+          : 'border-[var(--outline)]'
+      }`}
+    >
+      {selectedMessageIds.includes(messageId) && (
+        <svg className="w-4 h-4 text-[var(--on-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+        </svg>
+      )}
+    </button>
+  );
+
+  const renderMessageBubble = (message: Message) => {
+    const bubbleContent = () => {
+      if (message.type === 'image' && message.mediaUrl) {
+        return (
+          <div className="relative">
+            <img src={message.mediaUrl} alt="Shared image" className="w-full max-w-[280px] h-auto rounded-lg" />
+            {message.text && <p className="px-3 py-2 text-body-md text-[var(--on-surface)]">{renderMessageText(message.text)}</p>}
+          </div>
+        );
+      }
+      if (message.type === 'video' && message.mediaUrl) {
+        return (
+          <div className="relative">
+            <div className="relative w-full max-w-[280px] aspect-video bg-black rounded-lg overflow-hidden">
+              <img src={message.mediaUrl} alt="Video thumbnail" className="w-full h-full object-cover opacity-80" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6 text-[var(--primary)] ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </div>
+              </div>
+              <div className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-black/60 rounded text-label-xs text-white">
+                0:15
+              </div>
+            </div>
+            {message.text && <p className="px-3 py-2 text-body-md text-[var(--on-surface)]">{renderMessageText(message.text)}</p>}
+          </div>
+        );
+      }
+      if (message.type === 'location' && message.location) {
+        return (
+          <div className="w-full max-w-[280px]">
+            <div className="rounded-lg overflow-hidden">
+              <div className="h-24 bg-gradient-to-br from-[var(--primary)]/20 to-[var(--secondary)]/20 relative">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <svg className="w-8 h-8 text-[var(--primary)]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                  </svg>
+                </div>
+              </div>
+              <div className="p-3 bg-[var(--surface-container)]">
+                <p className="text-body-md font-medium text-[var(--on-surface)]">{message.location.name}</p>
+                <p className="text-body-sm text-[var(--on-surface-variant)] mt-0.5">{message.location.address}</p>
+              </div>
+            </div>
+            {message.text && <p className="text-body-md mt-2 text-[var(--on-surface)]">{renderMessageText(message.text)}</p>}
+          </div>
+        );
+      }
+      return <p className="text-body-md">{renderMessageText(message.text)}</p>;
+    };
+
+    const paddingClass = message.type === 'image' || message.type === 'video' ? 'p-0' : 'px-4 py-2.5';
+    const shapeClass = message.isMe
+      ? (message.replyTo ? 'rounded-b-2xl rounded-tl-2xl rounded-tr-sm' : 'rounded-2xl rounded-tr-sm')
+      : (message.replyTo ? 'rounded-b-2xl rounded-tr-2xl rounded-tl-sm' : 'rounded-2xl rounded-tl-sm');
+
+    return (
+      <div
+        className={`bg-[var(--surface-container-lowest)] text-[var(--on-surface)] overflow-hidden cursor-pointer active:scale-[0.98] transition-transform ${shapeClass} ${paddingClass}`}
+        onContextMenu={(e) => handleMessageLongPress(message, e)}
+        onTouchStart={(e) => {
+          const timer = setTimeout(() => handleMessageLongPress(message, e), 500);
+          const clearTimer = () => {
+            clearTimeout(timer);
+            document.removeEventListener('touchend', clearTimer);
+          };
+          document.addEventListener('touchend', clearTimer);
+        }}
+        onClick={() => isMultiSelectMode && toggleMessageSelection(message.id)}
+      >
+        {bubbleContent()}
+      </div>
+    );
+  };
 
   return (
     <div className="h-full bg-[var(--surface-container-low)] flex flex-col">
       {/* Header */}
       <header className="bg-[var(--surface-container-low)] border-b border-[var(--outline-variant)] px-4 py-3 z-20">
-        <div className="flex items-center gap-3">
-          <button className="p-2 -ml-2 hover:bg-[var(--surface-container)] rounded-full transition-colors">
-            <svg className="w-6 h-6 text-[var(--on-surface)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <div className="w-10 h-10 bg-[var(--secondary)] rounded-xl flex items-center justify-center text-[var(--on-secondary)] font-semibold">
-            DT
-          </div>
-          <div className="flex-1">
-            <h1 className="text-body-lg font-semibold text-[var(--on-surface)]">{mockGroup.name}</h1>
-            <p className="text-label-sm text-[var(--on-surface-variant)]">{mockGroup.memberCount} members</p>
-          </div>
-          {/* Group Menu Button */}
-          <div className="relative">
-            <button 
-              onClick={() => setShowChatMenu(!showChatMenu)}
-              className="p-2 hover:bg-[var(--surface-container)] rounded-full transition-colors"
+        {isMultiSelectMode ? (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={exitMultiSelectMode}
+                className="p-2 -ml-2 hover:bg-[var(--surface-container)] rounded-full transition-colors"
+              >
+                <svg className="w-6 h-6 text-[var(--on-surface)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              <h1 className="text-body-lg font-semibold text-[var(--on-surface)]">{selectedMessageIds.length} Selected</h1>
+            </div>
+            <button
+              onClick={handleMultiDelete}
+              disabled={selectedMessageIds.length === 0}
+              className={`p-2 rounded-full transition-colors ${selectedMessageIds.length > 0 ? 'text-[var(--error)] hover:bg-[var(--error-container)]' : 'text-[var(--outline)]'}`}
             >
-              <svg className="w-6 h-6 text-[var(--on-surface)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
             </button>
-
-            {/* Group Menu Dropdown */}
-            {showChatMenu && (
-              <div 
-                ref={chatMenuRef}
-                className="absolute right-0 top-full mt-2 w-64 bg-[var(--surface-container-low)] rounded-xl shadow-ambient-lg py-2 z-50"
-              >
-                {/* Mute Notifications */}
-                <button
-                  onClick={() => {
-                    setGroupSettings(prev => ({ ...prev, muteNotifications: !prev.muteNotifications }));
-                    setShowChatMenu(false);
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--surface-container)] transition-colors text-[var(--on-surface)]"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    {groupSettings.muteNotifications ? (
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                    ) : (
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                    )}
-                  </svg>
-                  <span className="text-body-sm">{groupSettings.muteNotifications ? 'Unmute Notifications' : 'Mute Notifications'}</span>
-                </button>
-
-                <div className="h-px bg-[var(--outline-variant)] mx-4 my-1" />
-
-                {/* Auto Delete */}
-                <button
-                  onClick={() => {
-                    setShowChatMenu(false);
-                    setShowAutoDeleteMenu(true);
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--surface-container)] transition-colors text-[var(--on-surface)]"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <div className="flex-1 text-left">
-                    <span className="text-body-sm block">Auto Delete</span>
-                    <span className="text-label-xs text-[var(--on-surface-variant)]">
-                      {autoDeleteOptions.find(opt => opt.value === groupSettings.autoDeleteTimer)?.label || 'Off'}
-                    </span>
-                  </div>
-                  <svg className="w-4 h-4 text-[var(--on-surface-variant)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-
-                <div className="h-px bg-[var(--outline-variant)] mx-4 my-1" />
-
-                {/* Group Info */}
-                <button
-                  onClick={() => {
-                    setShowChatMenu(false);
-                    console.log('Navigate to group settings');
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--surface-container)] transition-colors text-[var(--on-surface)]"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span className="text-body-sm">Group Info</span>
-                </button>
-
-                <div className="h-px bg-[var(--outline-variant)] mx-4 my-1" />
-
-                {/* Leave Group */}
-                <button
-                  onClick={() => {
-                    setShowLeaveConfirm(true);
-                    setShowChatMenu(false);
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--surface-container)] transition-colors text-[var(--error)]"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                  <span className="text-body-sm">Leave Group</span>
-                </button>
-              </div>
-            )}
           </div>
-        </div>
+        ) : (
+          <div className="flex items-center gap-3">
+            <button className="p-2 -ml-2 hover:bg-[var(--surface-container)] rounded-full transition-colors">
+              <svg className="w-6 h-6 text-[var(--on-surface)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <div className="w-10 h-10 bg-[var(--secondary)] rounded-xl flex items-center justify-center text-[var(--on-secondary)] font-semibold">
+              DT
+            </div>
+            <div className="flex-1">
+              <h1 className="text-body-lg font-semibold text-[var(--on-surface)]">{mockGroup.name}</h1>
+              <p className="text-label-sm text-[var(--on-surface-variant)]">{mockGroup.memberCount} members</p>
+            </div>
+            {/* Group Menu Button */}
+            <div className="relative">
+              <button 
+                onClick={() => setShowChatMenu(!showChatMenu)}
+                className="p-2 hover:bg-[var(--surface-container)] rounded-full transition-colors"
+              >
+                <svg className="w-6 h-6 text-[var(--on-surface)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                </svg>
+              </button>
+
+              {/* Group Menu Dropdown */}
+              {showChatMenu && (
+                <div 
+                  ref={chatMenuRef}
+                  className="absolute right-0 top-full mt-2 w-64 bg-[var(--surface-container-low)] rounded-xl shadow-ambient-lg py-2 z-50"
+                >
+                  {/* Mute Notifications */}
+                  <button
+                    onClick={() => {
+                      setGroupSettings(prev => ({ ...prev, muteNotifications: !prev.muteNotifications }));
+                      setShowChatMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--surface-container)] transition-colors text-[var(--on-surface)]"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      {groupSettings.muteNotifications ? (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                      ) : (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                      )}
+                    </svg>
+                    <span className="text-body-sm">{groupSettings.muteNotifications ? 'Unmute Notifications' : 'Mute Notifications'}</span>
+                  </button>
+
+                  <div className="h-px bg-[var(--outline-variant)] mx-4 my-1" />
+
+                  {/* Auto Delete */}
+                  <button
+                    onClick={() => {
+                      setShowChatMenu(false);
+                      setShowAutoDeleteMenu(true);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--surface-container)] transition-colors text-[var(--on-surface)]"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div className="flex-1 text-left">
+                      <span className="text-body-sm block">Auto Delete</span>
+                      <span className="text-label-xs text-[var(--on-surface-variant)]">
+                        {autoDeleteOptions.find(opt => opt.value === groupSettings.autoDeleteTimer)?.label || 'Off'}
+                      </span>
+                    </div>
+                    <svg className="w-4 h-4 text-[var(--on-surface-variant)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+
+                  <div className="h-px bg-[var(--outline-variant)] mx-4 my-1" />
+
+                  {/* Group Info */}
+                  <button
+                    onClick={() => {
+                      setShowChatMenu(false);
+                      console.log('Navigate to group settings');
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--surface-container)] transition-colors text-[var(--on-surface)]"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-body-sm">Group Info</span>
+                  </button>
+
+                  <div className="h-px bg-[var(--outline-variant)] mx-4 my-1" />
+
+                  {/* Leave Group */}
+                  <button
+                    onClick={() => {
+                      setShowLeaveConfirm(true);
+                      setShowChatMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--surface-container)] transition-colors text-[var(--error)]"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    <span className="text-body-sm">Leave Group</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Pinned Messages */}
-      {messages.some(m => m.isPinned) && (
+      {!isMultiSelectMode && messages.some(m => m.isPinned) && (
         <div className="mx-4 mt-3 p-3 bg-[var(--secondary-container)] rounded-xl">
           <div className="flex items-start gap-2">
             <svg className="w-4 h-4 text-[var(--secondary)] flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 24 24">
@@ -505,7 +665,7 @@ const GroupChatPage: React.FC = () => {
       )}
 
       {/* Announcement */}
-      {showAnnouncement && (
+      {!isMultiSelectMode && showAnnouncement && (
         <div className="mx-4 mt-3 p-3 bg-[var(--secondary-container)] rounded-xl flex items-start gap-2">
           <svg className="w-5 h-5 text-[var(--secondary)] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
@@ -530,84 +690,33 @@ const GroupChatPage: React.FC = () => {
                 </span>
               </div>
             ) : message.isMe ? (
-              <div className="flex justify-end gap-2">
-                <div className="max-w-[70%]">
-                  {/* Reply Preview */}
-                  {message.replyTo && (
-                    <div className="mb-1 px-3 py-1.5 bg-[var(--surface-container-lowest)] rounded-t-xl border-l-2 border-[var(--primary)]/30">
-                      <p className="text-label-xs text-[var(--on-surface-variant)]">{message.replyTo.sender}</p>
-                      <p className="text-body-sm text-[var(--on-surface)]/80 line-clamp-1">{message.replyTo.text}</p>
-                    </div>
-                  )}
-                  <div
-                    className={`bg-[var(--surface-container-lowest)] text-[var(--on-surface)] overflow-hidden cursor-pointer active:scale-[0.98] transition-transform ${message.replyTo ? 'rounded-b-2xl rounded-tl-2xl rounded-tr-sm' : 'rounded-2xl rounded-tr-sm'} ${message.type === 'image' || message.type === 'video' ? 'p-0' : 'px-4 py-2.5'}`}
-                    onContextMenu={(e) => handleMessageLongPress(message, e)}
-                    onTouchStart={(e) => {
-                      const timer = setTimeout(() => handleMessageLongPress(message, e), 500);
-                      const clearTimer = () => {
-                        clearTimeout(timer);
-                        document.removeEventListener('touchend', clearTimer);
-                      };
-                      document.addEventListener('touchend', clearTimer);
-                    }}
-                  >
-                    {message.type === 'image' && message.mediaUrl ? (
-                      <div className="relative">
-                        <img src={message.mediaUrl} alt="Shared image" className="w-full max-w-[280px] h-auto rounded-lg" />
-                        {message.text && <p className="px-3 py-2 text-body-md text-[var(--on-surface)]">{renderMessageText(message.text)}</p>}
+              <div className="flex gap-2">
+                {isMultiSelectMode && renderCheckbox(message.id)}
+                <div className="flex-1 flex justify-end">
+                  <div className="max-w-[70%]">
+                    {/* Reply Preview */}
+                    {message.replyTo && (
+                      <div className="mb-1 px-3 py-1.5 bg-[var(--surface-container-lowest)] rounded-t-xl border-l-2 border-[var(--primary)]/30">
+                        <p className="text-label-xs text-[var(--on-surface-variant)]">{message.replyTo.sender}</p>
+                        <p className="text-body-sm text-[var(--on-surface)]/80 line-clamp-1">{message.replyTo.text}</p>
                       </div>
-                    ) : message.type === 'video' && message.mediaUrl ? (
-                      <div className="relative">
-                        <div className="relative w-full max-w-[280px] aspect-video bg-black rounded-lg overflow-hidden">
-                          <img src={message.mediaUrl} alt="Video thumbnail" className="w-full h-full object-cover opacity-80" />
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center">
-                              <svg className="w-6 h-6 text-[var(--primary)] ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M8 5v14l11-7z" />
-                              </svg>
-                            </div>
-                          </div>
-                          <div className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-black/60 rounded text-label-xs text-white">
-                            0:15
-                          </div>
-                        </div>
-                        {message.text && <p className="px-3 py-2 text-body-md text-[var(--on-surface)]">{renderMessageText(message.text)}</p>}
-                      </div>
-                    ) : message.type === 'location' && message.location ? (
-                      <div className="w-full max-w-[280px]">
-                        {/* Location Card - Telegram Style */}
-                        <div className="rounded-lg overflow-hidden">
-                          {/* Map Preview Area */}
-                          <div className="h-24 bg-gradient-to-br from-[var(--primary)]/20 to-[var(--secondary)]/20 relative">
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <svg className="w-8 h-8 text-[var(--primary)]" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-                              </svg>
-                            </div>
-                          </div>
-                          {/* Location Info */}
-                          <div className="p-3 bg-[var(--surface-container)]">
-                            <p className="text-body-md font-medium text-[var(--on-surface)]">{message.location.name}</p>
-                            <p className="text-body-sm text-[var(--on-surface-variant)] mt-0.5">{message.location.address}</p>
-                          </div>
-                        </div>
-                        {message.text && <p className="text-body-md mt-2 text-[var(--on-surface)]">{renderMessageText(message.text)}</p>}
-                      </div>
-                    ) : (
-                      <p className="text-body-md">{renderMessageText(message.text)}</p>
                     )}
+                    {renderMessageBubble(message)}
+                    <span className="text-label-xs text-[var(--on-surface-variant)] mt-1 block text-right">{message.timestamp}</span>
                   </div>
-                  <span className="text-label-xs text-[var(--on-surface-variant)] mt-1 block text-right">{message.timestamp}</span>
                 </div>
               </div>
             ) : (
               <div className="flex gap-2">
-                <button
-                  onClick={() => navigate(`/user-profile?isContact=false&name=${encodeURIComponent(message.sender)}`)}
-                  className="w-8 h-8 bg-[var(--primary-container)] rounded-full flex items-center justify-center text-[var(--on-primary-container)] text-xs font-semibold flex-shrink-0 hover:opacity-90 transition-opacity"
-                >
-                  {message.senderAvatar}
-                </button>
+                {isMultiSelectMode && renderCheckbox(message.id)}
+                {!isMultiSelectMode && (
+                  <button
+                    onClick={() => navigate(`/user-profile?isContact=false&name=${encodeURIComponent(message.sender)}`)}
+                    className="w-8 h-8 self-start bg-[var(--primary-container)] rounded-full flex items-center justify-center text-[var(--on-primary-container)] text-xs font-semibold flex-shrink-0 hover:opacity-90 transition-opacity"
+                  >
+                    {message.senderAvatar}
+                  </button>
+                )}
                 <div className="max-w-[70%]">
                   <button
                     onClick={() => navigate(`/user-profile?isContact=false&name=${encodeURIComponent(message.sender)}`)}
@@ -622,64 +731,7 @@ const GroupChatPage: React.FC = () => {
                       <p className="text-body-sm text-[var(--on-surface)]/80 line-clamp-1">{message.replyTo.text}</p>
                     </div>
                   )}
-                  <div
-                    className={`bg-[var(--surface-container-lowest)] text-[var(--on-surface)] overflow-hidden cursor-pointer active:scale-[0.98] transition-transform ${message.replyTo ? 'rounded-b-2xl rounded-tr-2xl rounded-tl-sm' : 'rounded-2xl rounded-tl-sm'} mt-0.5 ${message.type === 'image' || message.type === 'video' ? 'p-0' : 'px-4 py-2.5'}`}
-                    onContextMenu={(e) => handleMessageLongPress(message, e)}
-                    onTouchStart={(e) => {
-                      const timer = setTimeout(() => handleMessageLongPress(message, e), 500);
-                      const clearTimer = () => {
-                        clearTimeout(timer);
-                        document.removeEventListener('touchend', clearTimer);
-                      };
-                      document.addEventListener('touchend', clearTimer);
-                    }}
-                  >
-                    {message.type === 'image' && message.mediaUrl ? (
-                      <div className="relative">
-                        <img src={message.mediaUrl} alt="Shared image" className="w-full max-w-[280px] h-auto rounded-lg" />
-                        {message.text && <p className="px-3 py-2 text-body-md text-[var(--on-surface)]">{renderMessageText(message.text)}</p>}
-                      </div>
-                    ) : message.type === 'video' && message.mediaUrl ? (
-                      <div className="relative">
-                        <div className="relative w-full max-w-[280px] aspect-video bg-black rounded-lg overflow-hidden">
-                          <img src={message.mediaUrl} alt="Video thumbnail" className="w-full h-full object-cover opacity-80" />
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center">
-                              <svg className="w-6 h-6 text-[var(--primary)] ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M8 5v14l11-7z" />
-                              </svg>
-                            </div>
-                          </div>
-                          <div className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-black/60 rounded text-label-xs text-white">
-                            0:15
-                          </div>
-                        </div>
-                        {message.text && <p className="px-3 py-2 text-body-md text-[var(--on-surface)]">{renderMessageText(message.text)}</p>}
-                      </div>
-                    ) : message.type === 'location' && message.location ? (
-                      <div className="w-full max-w-[280px]">
-                        {/* Location Card - Telegram Style */}
-                        <div className="bg-[var(--surface-container)] rounded-lg overflow-hidden">
-                          {/* Map Preview Area */}
-                          <div className="h-24 bg-gradient-to-br from-[var(--primary)]/20 to-[var(--secondary)]/20 relative">
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <svg className="w-8 h-8 text-[var(--primary)]" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-                              </svg>
-                            </div>
-                          </div>
-                          {/* Location Info */}
-                          <div className="p-3">
-                            <p className="text-body-md font-medium text-[var(--on-surface)]">{message.location.name}</p>
-                            <p className="text-body-sm text-[var(--on-surface-variant)] mt-0.5">{message.location.address}</p>
-                          </div>
-                        </div>
-                        {message.text && <p className="text-body-md mt-2">{renderMessageText(message.text)}</p>}
-                      </div>
-                    ) : (
-                      <p className="text-body-md">{renderMessageText(message.text)}</p>
-                    )}
-                  </div>
+                  {renderMessageBubble(message)}
                   <span className="text-label-xs text-[var(--on-surface-variant)] mt-1 block">{message.timestamp}</span>
                 </div>
               </div>
@@ -690,24 +742,37 @@ const GroupChatPage: React.FC = () => {
       </div>
 
       {/* Emoji Picker */}
-      {showEmojiPicker && (
-        <div className="bg-[var(--surface-container)] border-t border-[var(--outline-variant)] px-4 py-3">
-          <div className="grid grid-cols-8 gap-2">
-            {emojis.map((emoji, index) => (
-              <button
-                key={index}
-                onClick={() => handleEmojiClick(emoji)}
-                className="w-10 h-10 flex items-center justify-center text-2xl hover:bg-[var(--surface-container-high)] rounded-lg transition-colors"
-              >
-                {emoji}
-              </button>
-            ))}
+      {!isMultiSelectMode && showEmojiPicker && (
+        <div className="bg-[var(--surface-container)] border-t border-[var(--outline-variant)] animate-in slide-in-from-bottom duration-200">
+          <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--outline-variant)]">
+            <span className="text-label-sm text-[var(--on-surface-variant)]">Emoji</span>
+            <button
+              onClick={() => setShowEmojiPicker(false)}
+              className="p-1 hover:bg-[var(--surface-container-high)] rounded-full transition-colors"
+            >
+              <svg className="w-5 h-5 text-[var(--on-surface-variant)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div className="p-3 max-h-48 overflow-y-auto">
+            <div className="grid grid-cols-8 gap-2">
+              {emojis.map((emoji, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleEmojiClick(emoji)}
+                  className="aspect-square flex items-center justify-center text-2xl hover:bg-[var(--surface-container-high)] rounded-lg transition-colors"
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
 
       {/* Voice Recording Bar */}
-      {isRecording && (
+      {!isMultiSelectMode && isRecording && (
         <div className="bg-[var(--error-container)] border-t border-[var(--outline-variant)] px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -733,37 +798,29 @@ const GroupChatPage: React.FC = () => {
         </div>
       )}
 
-      {/* Reply Preview Bar */}
-      {replyingTo && (
-        <div className="bg-[var(--surface-container)] border-t border-[var(--outline-variant)] px-4 py-2">
-          <div className="flex items-start gap-2">
-            <div className="flex-1 border-l-2 border-[var(--secondary)] pl-3">
-              <p className="text-label-xs text-[var(--secondary)]">{replyingTo.sender}</p>
-              <p className="text-body-sm text-[var(--on-surface)] line-clamp-1">{replyingTo.text}</p>
-            </div>
-            <button 
-              onClick={cancelReply}
-              className="p-1 hover:bg-[var(--surface-container-high)] rounded-full transition-colors"
-            >
-              <svg className="w-5 h-5 text-[var(--on-surface-variant)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Input Bar */}
-      {!isRecording && (
-        <div className="bg-[var(--surface-container)] border-t border-[var(--outline-variant)] px-3 py-2">
+      {!isMultiSelectMode && !isRecording && (
+        <div className="bg-[var(--surface-container-low)] border-t border-[var(--outline-variant)] px-3 py-2.5">
+          {replyingTo && (
+            <div className="flex items-center justify-between px-1 py-2 mb-2">
+              <div className="flex-1 min-w-0 border-l-2 border-[var(--secondary)] pl-3">
+                <p className="text-label-sm text-[var(--on-surface-variant)] line-clamp-1">{replyingTo.sender}: {replyingTo.text}</p>
+              </div>
+              <button onClick={() => setReplyingTo(null)} className="p-1 hover:bg-[var(--surface-container-high)] rounded-full ml-2">
+                <svg className="w-4 h-4 text-[var(--on-surface-variant)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          )}
           <div className="flex items-center gap-2">
-            {/* Voice Toggle */}
+            {/* Attachment */}
             <button
-              onClick={() => setIsRecording(true)}
-              className="p-2 text-[var(--on-surface-variant)] hover:text-[var(--on-surface)] transition-colors"
+              onClick={() => setShowAttachMenu(!showAttachMenu)}
+              className={`h-11 w-11 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${showAttachMenu ? 'bg-[var(--primary)] text-[var(--on-primary)]' : 'text-[var(--on-surface-variant)] hover:bg-[var(--surface-container)]'}`}
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+                <path d="m21.44 11.05-9.19 9.19a6.003 6.003 0 0 1-8.49-8.49l9.19-9.19a4.002 4.002 0 0 1 5.66 5.66l-9.2 9.19a2.001 2.001 0 0 1-2.83-2.83l8.49-8.48" />
               </svg>
             </button>
 
@@ -776,41 +833,63 @@ const GroupChatPage: React.FC = () => {
                 onKeyDown={handleKeyPress}
                 placeholder="Message..."
                 rows={1}
-                className="w-full bg-[var(--surface-container-lowest)] text-[var(--on-surface)] placeholder:text-[var(--on-surface-variant)]/50 resize-none focus:outline-none rounded-2xl px-4 py-2.5 pr-10 text-body-md border border-[var(--outline-variant)] focus:border-[var(--primary)]/30 transition-colors"
-                style={{ minHeight: '40px', maxHeight: '100px' }}
+                className="w-full min-h-[44px] max-h-[120px] bg-[var(--surface-container-lowest)] text-[var(--on-surface)] placeholder:text-[var(--on-surface-variant)]/50 resize-none focus:outline-none rounded-2xl px-4 py-2.5 pr-10 text-body-md border border-[var(--outline-variant)] focus:border-[var(--primary)]/30 transition-colors"
               />
               {/* Emoji Button (inside input) */}
               <button
                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                className={`absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full transition-colors ${showEmojiPicker ? 'text-[var(--primary)]' : 'text-[var(--on-surface-variant)]/60 hover:text-[var(--on-surface-variant)]'}`}
+                className={`absolute right-2 top-1/2 -translate-y-1/2 transition-colors ${showEmojiPicker ? 'text-[var(--primary)]' : 'text-[var(--on-surface-variant)]/70 hover:text-[var(--on-surface-variant)]'}`}
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+                  <line x1="9" y1="9" x2="9.01" y2="9" />
+                  <line x1="15" y1="9" x2="15.01" y2="9" />
                 </svg>
               </button>
             </div>
 
-            {/* Plus / Send Button */}
+            {/* Voice / Send */}
             {inputText.trim() ? (
               <button
                 onClick={handleSend}
-                className="p-2 text-[var(--primary)] hover:text-[var(--primary)]/80 transition-colors"
+                className="h-11 w-11 rounded-full bg-[var(--primary)] text-[var(--on-primary)] flex items-center justify-center flex-shrink-0 hover:opacity-90 active:scale-95 transition-all shadow-ambient-sm"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2.01z" />
                 </svg>
               </button>
             ) : (
               <button
-                onClick={() => setShowAttachMenu(!showAttachMenu)}
-                className={`p-2 rounded-full transition-all ${showAttachMenu ? 'bg-[var(--primary)] text-[var(--on-primary)] rotate-45' : 'text-[var(--on-surface-variant)] hover:text-[var(--on-surface)]'}`}
+                onClick={() => setIsRecording(true)}
+                className="h-11 w-11 rounded-full text-[var(--on-surface-variant)] hover:bg-[var(--surface-container)] flex items-center justify-center flex-shrink-0 transition-colors"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                  <line x1="12" y1="19" x2="12" y2="22" />
+                  <line x1="8" y1="22" x2="16" y2="22" />
                 </svg>
               </button>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Multi-select Bottom Action Bar */}
+      {isMultiSelectMode && (
+        <div className="bg-[var(--surface-container-low)] border-t border-[var(--outline-variant)] px-4 py-3">
+          <button
+            onClick={handleMultiForward}
+            disabled={selectedMessageIds.length === 0}
+            className={`w-full py-3 rounded-xl text-body-md font-semibold transition-colors ${
+              selectedMessageIds.length > 0
+                ? 'bg-[var(--primary)] text-[var(--on-primary)] hover:opacity-90 active:scale-[0.98]'
+                : 'bg-[var(--surface-container)] text-[var(--outline)] cursor-not-allowed'
+            }`}
+          >
+            Forward {selectedMessageIds.length > 0 && `(${selectedMessageIds.length})`}
+          </button>
         </div>
       )}
 
@@ -837,16 +916,20 @@ const GroupChatPage: React.FC = () => {
       )}
 
       {/* Delete Confirmation Dialog */}
-      {showDeleteConfirm && selectedMessage && (
+      {showDeleteConfirm && (
         <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-[var(--surface-container-lowest)] rounded-2xl mx-4 w-full max-w-[320px] p-6">
-            <h3 className="text-title-md font-semibold text-[var(--on-surface)] mb-2">Delete Message</h3>
+            <h3 className="text-title-md font-semibold text-[var(--on-surface)] mb-2">
+              {isDeleteMulti ? `Delete ${selectedMessageIds.length} Messages` : 'Delete Message'}
+            </h3>
             <p className="text-body-md text-[var(--on-surface-variant)] mb-4">
-              Are you sure you want to delete this message?
+              {isDeleteMulti
+                ? 'Are you sure you want to delete these messages?'
+                : 'Are you sure you want to delete this message?'}
             </p>
             
             {/* Delete for everyone option - only for my messages */}
-            {selectedMessage.isMe && (
+            {((selectedMessage && selectedMessage.isMe) || isDeleteMulti) && (
               <label className="flex items-center gap-3 mb-6 cursor-pointer">
                 <input
                   type="checkbox"
@@ -866,7 +949,7 @@ const GroupChatPage: React.FC = () => {
                 Cancel
               </button>
               <button
-                onClick={handleConfirmDelete}
+                onClick={isDeleteMulti ? handleConfirmMultiDelete : handleConfirmDelete}
                 className="flex-1 py-3 px-4 rounded-xl bg-[var(--error)] text-[var(--on-error)] text-label-lg font-medium hover:opacity-90 transition-colors"
               >
                 Delete
@@ -1017,8 +1100,15 @@ const GroupChatPage: React.FC = () => {
         }}
       />
 
+      {/* Toast */}
+      {toast && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[60] px-4 py-2 rounded-lg bg-[var(--inverse-surface)] text-[var(--inverse-on-surface)] text-body-sm font-medium shadow-ambient-lg pointer-events-auto">
+          {toast}
+        </div>
+      )}
+
       {/* Attach Menu - WeChat Style Bottom Sheet */}
-      {showAttachMenu && (
+      {!isMultiSelectMode && showAttachMenu && (
         <div className="absolute inset-0 z-50">
           {/* Overlay */}
           <div

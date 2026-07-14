@@ -6,6 +6,7 @@
  */
 
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import '../../themes/equatorial-minimalism/globals.css';
 import './style.css';
 
@@ -33,6 +34,7 @@ const mockContacts: Contact[] = [
 ];
 
 const ContactSelectionPage: React.FC = () => {
+  const navigate = useNavigate();
   const [contacts, setContacts] = useState<Contact[]>(mockContacts);
   const [searchQuery, setSearchQuery] = useState('');
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -74,14 +76,19 @@ const ContactSelectionPage: React.FC = () => {
   return (
     <div className="h-full bg-[var(--surface)]">
       {/* Header */}
-      <header className="bg-[var(--surface-container-low)] border-b border-[var(--outline-variant)] px-4 py-3 sticky top-0 z-10">
-        <div className="flex items-center gap-3">
-          <button className="p-2 -ml-2 hover:bg-[var(--surface-container)] rounded-full transition-colors">
-            <svg className="w-6 h-6 text-[var(--on-surface)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <h1 className="text-headline-md text-[var(--primary)] flex-1">Add Members</h1>
+      <header className="bg-[var(--surface-container-low)] border-b border-[var(--outline-variant)] px-4 py-3 sticky top-0 z-20">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate(-1)}
+              className="p-2 -ml-2 hover:bg-[var(--surface-container)] rounded-full transition-colors"
+            >
+              <svg className="w-6 h-6 text-[var(--on-surface)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <h1 className="text-headline-md text-[var(--primary)]">Add Members</h1>
+          </div>
           {selectedContacts.length > 0 && (
             <button
               onClick={() => setShowConfirmDialog(true)}
