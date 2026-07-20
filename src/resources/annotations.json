@@ -1,0 +1,208 @@
+{
+  "annotations": [
+    {
+      "id": "anno-login2-form",
+      "pagePath": "/login2",
+      "number": 1,
+      "title": "登录表单",
+      "content": "支持邮箱/用户名和密码登录，包含表单验证和输入高亮反馈。",
+      "category": "interaction",
+      "selector": ".demo-login-form",
+      "position": "top-left",
+      "createdAt": 13
+    },
+    {
+      "id": "anno-login2-submit",
+      "pagePath": "/login2",
+      "number": 2,
+      "title": "登录提交",
+      "content": "点击后弹出设备确认弹窗，验证登录环境安全性后再放行。",
+      "category": "business",
+      "selector": ".demo-login-submit",
+      "position": "top-left",
+      "createdAt": 14
+    },
+    {
+      "id": "anno-login2-confirm",
+      "pagePath": "/login2",
+      "number": 3,
+      "title": "确认登录弹窗",
+      "content": "检测到新设备登录时展示，包含设备信息和登录地点，用户确认后完成登录。",
+      "category": "state",
+      "selector": ".demo-login-confirm-overlay",
+      "position": "top-left",
+      "createdAt": 15
+    },
+    {
+      "id": "anno-1784268666495",
+      "pagePath": "/login2",
+      "number": 4,
+      "title": "11",
+      "content": "11",
+      "category": "interaction",
+      "selector": "div.h-full.overflow-y-auto.overscroll-contain > div.relative.min-h-full.bg-gradient-to-br.from-\\[\\#7c5cff\\].via-\\[\\#6b4df7\\].to-\\[\\#a855f7\\].flex.items-center.justify-center.p-6 > div.demo-login-confirm-overlay.absolute.inset-0.z-50.flex.items-center.justify-center.bg-black\\/50.p-6:nth-of-type(2) > div.demo-login-confirm-modal.w-full.max-w-\\[360px\\].bg-white.rounded-2xl.shadow-2xl.p-6 > div.demo-login-confirm-info.space-y-3.mb-6:nth-of-type(1) > div.demo-login-confirm-device.flex.items-center.justify-between.text-sm:nth-of-type(1) > span.font-medium.text-gray-900:nth-of-type(2)",
+      "position": "top-left",
+      "createdAt": 1784268666495
+    },
+    {
+      "id": "anno-home-banner-cta",
+      "pagePath": "/home",
+      "number": 1,
+      "title": "Banner 主行动按钮",
+      "content": "首屏核心转化入口，点击后跳转至当期运营活动详情页。",
+      "category": "interaction",
+      "selector": "button#demo-home-banner-cta",
+      "position": "top-left",
+      "createdAt": 1
+    },
+    {
+      "id": "anno-home-search",
+      "pagePath": "/home",
+      "number": 2,
+      "title": "全局搜索入口",
+      "content": "点击唤起搜索面板，支持关键词搜索商品、活动或功能。",
+      "category": "interaction",
+      "selector": "button#demo-home-search",
+      "position": "top-right",
+      "createdAt": 2
+    },
+    {
+      "id": "anno-home-recommend",
+      "pagePath": "/home",
+      "number": 3,
+      "title": "个性化推荐",
+      "content": "基于用户行为和偏好的推荐内容，点击卡片查看详情或参与活动。",
+      "category": "business",
+      "selector": "button#demo-home-recommend-more",
+      "position": "top-left",
+      "createdAt": 3
+    },
+    {
+      "id": "anno-profile-avatar",
+      "pagePath": "/profile",
+      "number": 1,
+      "title": "用户头像",
+      "content": "展示用户头像，后续可支持点击上传或更换头像。",
+      "category": "interaction",
+      "selector": "div#demo-profile-avatar",
+      "position": "top-left",
+      "createdAt": 4
+    },
+    {
+      "id": "anno-profile-edit",
+      "pagePath": "/profile",
+      "number": 2,
+      "title": "编辑资料",
+      "content": "点击打开编辑资料弹窗，可修改昵称和简介并实时保存。",
+      "category": "interaction",
+      "selector": "button#demo-profile-edit",
+      "position": "top-right",
+      "createdAt": 5
+    },
+    {
+      "id": "anno-profile-menu",
+      "pagePath": "/profile",
+      "number": 3,
+      "title": "功能菜单",
+      "content": "聚合订单、地址、安全、帮助、设置等常用功能入口，按使用频率排序。",
+      "category": "business",
+      "selector": "section#demo-profile-menu",
+      "position": "top-left",
+      "createdAt": 6
+    },
+    {
+      "id": "anno-admin-revenue",
+      "pagePath": "/admin/dashboard",
+      "number": 1,
+      "title": "今日营收指标",
+      "content": "展示今日营收金额及较昨日环比变化，帮助运营快速掌握核心收入情况。",
+      "category": "state",
+      "selector": "div#stat-revenue",
+      "position": "top-left",
+      "createdAt": 7
+    },
+    {
+      "id": "anno-admin-chart",
+      "pagePath": "/admin/dashboard",
+      "number": 2,
+      "title": "营收趋势图表",
+      "content": "近 7 天营收趋势可视化，帮助识别数据波动和异常。",
+      "category": "state",
+      "selector": "section#demo-admin-chart",
+      "position": "top-left",
+      "createdAt": 8
+    },
+    {
+      "id": "anno-admin-notice",
+      "pagePath": "/admin/dashboard",
+      "number": 3,
+      "title": "系统公告",
+      "content": "展示系统维护、规则更新、数据备份等运营公告，点击查看详情弹窗。",
+      "category": "interaction",
+      "selector": "section#demo-admin-notices",
+      "position": "top-left",
+      "createdAt": 9
+    },
+    {
+      "id": "anno-1784270809338",
+      "pagePath": "/admin/dashboard",
+      "number": 4,
+      "title": "2342",
+      "content": "2342",
+      "category": "interaction",
+      "selector": "div#demo-admin-dashboard > div.absolute.inset-0.z-50.flex.items-center.justify-center.bg-black\\/50.p-6:nth-of-type(2) > div.w-full.max-w-\\[420px\\].bg-white.rounded-2xl.shadow-2xl.p-6 > div.flex.items-center.justify-between.mb-4 > h2.text-lg.font-bold.text-gray-900",
+      "position": "top-right",
+      "createdAt": 1784270809338
+    },
+    {
+      "id": "anno-orders-filter",
+      "pagePath": "/admin/orders",
+      "number": 1,
+      "title": "状态筛选",
+      "content": "支持按全部、已支付、待支付、退款中筛选订单，快速定位目标数据。",
+      "category": "interaction",
+      "selector": "section#demo-admin-orders-filters",
+      "position": "top-left",
+      "createdAt": 10
+    },
+    {
+      "id": "anno-orders-table",
+      "pagePath": "/admin/orders",
+      "number": 2,
+      "title": "订单列表",
+      "content": "展示订单号、客户、商品、金额、状态、下单时间等核心字段。",
+      "category": "business",
+      "selector": "section#demo-admin-orders-table",
+      "position": "top-left",
+      "createdAt": 11
+    },
+    {
+      "id": "anno-orders-pagination",
+      "pagePath": "/admin/orders",
+      "number": 3,
+      "title": "分页控制",
+      "content": "分页浏览订单数据，支持上一页、下一页及指定页码跳转。",
+      "category": "interaction",
+      "selector": "section#demo-admin-orders-pagination",
+      "position": "top-left",
+      "createdAt": 12
+    }
+  ],
+  "categories": [
+    {
+      "key": "interaction",
+      "label": "交互说明",
+      "color": "#3b82f6"
+    },
+    {
+      "key": "business",
+      "label": "业务逻辑",
+      "color": "#f97316"
+    },
+    {
+      "key": "state",
+      "label": "状态说明",
+      "color": "#10b981"
+    }
+  ]
+}

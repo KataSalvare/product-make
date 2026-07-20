@@ -70,6 +70,61 @@ export default function MyApp() {
 
 参考实现：`src/prototypes/ref-app-home/index.tsx`。
 
+## 弹窗（Modal/Overlay）开发规范
+
+原型页面中的弹窗（含遮罩）必须使用**手写 `div` overlay 方式**，禁止使用 `@/components/ui/dialog` 等基于 Portal 的弹窗组件。原因如下：
+
+- 弹窗作为页面 DOM 的子节点，元素选择器（`.selector` 或 `#id`）才能正确选中弹窗内的元素进行批注
+- `data-overlay` 属性让批注层正确识别 overlay，控制弹窗内外元素的标注可见性
+- `absolute` 定位相对于页面容器，不会因 Portal 导致层级或定位参考系错乱
+
+统一模板：
+
+```tsx
+const [showModal, setShowModal] = useState(false)
+
+return (
+  <div className="relative w-full min-h-full ...">
+    {/* 页面内容 */}
+
+    {/* 弹窗 */}
+    {showModal && (
+      <div
+        className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 p-6"
+        data-overlay="<唯一标识>"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) setShowModal(false)
+        }}
+      >
+        <div className="w-full max-w-[xxxpx] bg-white rounded-2xl shadow-2xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-gray-900">{/* 弹窗标题 */}</h2>
+            <button
+              onClick={() => setShowModal(false)}
+              className="p-1 rounded-lg hover:bg-gray-100 text-gray-400"
+            >
+              <X size={18} />
+            </button>
+          </div>
+          {/* 弹窗内容 */}
+        </div>
+      </div>
+    )}
+  </div>
+)
+```
+
+关键规则：
+
+1. 页面外层容器必须有 `relative` 类名，确保 `absolute inset-0` 的弹窗遮罩覆盖整个页面。
+2. 遮罩 `div` 必须包含 `data-overlay="<唯一标识>"` 属性，值在整个项目内唯一（如 `feature-detail`、`profile-edit`、`notice-detail`、`order-detail`）。
+3. 点击遮罩关闭弹窗通过 `onClick` 判断 `e.target === e.currentTarget` 实现。
+4. 弹窗卡片容器使用 `rounded-2xl shadow-2xl`、`max-w-[xxxpx]` 统一外观。
+5. 顶部关闭按钮使用 `lucide-react` 的 `X` 图标。
+6. 多个弹窗（如列表中的多个条目）使用单个 `useState` 跟踪当前打开项，而非为每个条目创建独立的 Dialog 组件。
+
+参考实现：`src/prototypes/demo-login 20-22-24-906/index.tsx`、`src/prototypes/demo-home/index.tsx`、`src/prototypes/demo-admin-orders/index.tsx`。
+
 ## 依赖与样式
 
 - React 与 Hooks 直接从 `react` 导入。

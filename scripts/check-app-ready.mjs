@@ -123,7 +123,7 @@ async function isServerAlive(url) {
  * 读取开发服务器信息
  * 优先从 .axhub/make/.dev-server-info.json 读取实际运行的端口
  */
-/*function getServerInfo() {
+function getServerInfo() {
   try {
     if (fs.existsSync(CONFIG.devServerInfoPath)) {
       const info = JSON.parse(fs.readFileSync(CONFIG.devServerInfoPath, 'utf8'))
@@ -140,7 +140,6 @@ async function isServerAlive(url) {
   // 如果没有端口信息，返回 null 表示需要等待服务器启动
   return null
 }
- */
 /**
  * 生成服务器首页 URL
  * 使用 localhost 而不是 0.0.0.0，因为浏览器无法访问 0.0.0.0
@@ -190,7 +189,23 @@ function startOrAttachVite() {
   child.stdout.on('data', (data) => {
     const text = decodeOutput(data).trim()
     if (text) logs.push(text)
-    
+
+    // 解析 Vite 启动地址并写入 server info 文件
+    const localMatch = text.match(/Local:\s+http:\/\/([^:]+):(\d+)\//)
+    if (localMatch) {
+      const [, host, port] = localMatch
+      try {
+        fs.mkdirSync(path.dirname(CONFIG.devServerInfoPath), { recursive: true })
+        fs.writeFileSync(
+          CONFIG.devServerInfoPath,
+          JSON.stringify({ host, port: Number(port), localIP: host }),
+          'utf8'
+        )
+      } catch (err) {
+        logs.push(`Failed to write dev server info: ${err.message}`)
+      }
+    }
+
     // 检测构建错误
     if (/error/i.test(text) || /failed to compile/i.test(text)) {
       errors.push(text)
