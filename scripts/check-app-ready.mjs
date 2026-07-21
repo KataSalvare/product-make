@@ -58,7 +58,7 @@ const pagePath = args.find(arg => !arg.startsWith('--')) || '/';
 
 const CONFIG = {
   devCommand: ['run', 'dev'],       // 启动 Vite 的命令参数
-  devServerInfoPath: path.resolve(__dirname, '../.axhub/make/.dev-server-info.json'), // 开发服务器信息文件
+  devServerInfoPath: path.resolve(__dirname, '../.pm/.dev-server-info.json'), // 开发服务器信息文件
   pagePath,                         // 目标页面路径（从命令行参数获取）
   pollIntervalMs: 500,              // 页面轮询间隔
   stableCheckMs: 1000,              // 错误稳定判断时间
@@ -121,7 +121,7 @@ async function isServerAlive(url) {
 
 /**
  * 读取开发服务器信息
- * 优先从 .axhub/make/.dev-server-info.json 读取实际运行的端口
+ * 优先从 .pm/.dev-server-info.json 读取实际运行的端口
  */
 function getServerInfo() {
   try {
@@ -134,7 +134,7 @@ function getServerInfo() {
       }
     }
   } catch (err) {
-    logs.push(`Failed to read .axhub/make/.dev-server-info.json: ${err.message}`)
+    logs.push(`Failed to read .pm/.dev-server-info.json: ${err.message}`)
   }
 
   // 如果没有端口信息，返回 null 表示需要等待服务器启动
@@ -535,7 +535,7 @@ async function runTypeCheck() {
 }
 
 /**
- * 扫描并更新 .axhub/make/entries.json
+ * 扫描并更新 .pm/entries.json
  * 确保新创建的目录被包含在入口列表中
  */
 async function scanEntries() {
@@ -582,7 +582,7 @@ async function runBuildCheck(entryKey) {
   const originalEntryKey = String(entryKey ?? '').trim()
   logs.push(`Starting build check for entry: ${originalEntryKey || '(auto)'}`)
   
-  // 先扫描入口，确保 .axhub/make/entries.json 是最新的
+  // 先扫描入口，确保 .pm/entries.json 是最新的
   const scanResult = await scanEntries()
   if (!scanResult.success) {
     return {
@@ -670,7 +670,7 @@ async function runBuildCheck(entryKey) {
 
 function resolveDefaultEntryKey() {
   try {
-    const entriesPath = path.resolve(APP_ROOT, '.axhub/make/entries.json')
+    const entriesPath = path.resolve(APP_ROOT, '.pm/entries.json')
     if (!fs.existsSync(entriesPath)) return null
     const raw = JSON.parse(fs.readFileSync(entriesPath, 'utf8'))
     const jsEntries = raw && typeof raw === 'object' ? (raw.js || {}) : {}
@@ -712,7 +712,7 @@ async function main() {
       // 启动服务器并等待
       const viteProcess = startOrAttachVite()
       
-      // 等待 .axhub/make/.dev-server-info.json 文件生成
+      // 等待 .pm/.dev-server-info.json 文件生成
       const maxWait = 10000 // 10秒
       const startTime = Date.now()
       let newServerInfo = null

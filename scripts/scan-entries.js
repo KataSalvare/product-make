@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * 扫描项目入口文件并生成 .axhub/make/entries.json
+ * 扫描项目入口文件并生成 .pm/entries.json
  */
 import fs from 'node:fs'
 import path from 'node:path'
@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const APP_ROOT = path.resolve(__dirname, '..')
-const OUTPUT_DIR = path.resolve(APP_ROOT, '.axhub/make')
+const OUTPUT_DIR = path.resolve(APP_ROOT, '.pm')
 const OUTPUT_PATH = path.resolve(OUTPUT_DIR, 'entries.json')
 
 const ENTRY_DIRS = [

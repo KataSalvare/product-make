@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, NavLink, useLocation, useParams } from 'react-router-dom'
 import React, { useState, useCallback, useEffect, useMemo } from 'react'
-import { Smartphone, Monitor, ChevronRight, FileText, XIcon, Keyboard, Sun, Moon, Palette, MousePointer, Trash2, Save, Eye, EyeOff, Pencil, Search } from 'lucide-react'
+import { Smartphone, Monitor, ChevronRight, FileText, XIcon, Keyboard, Sun, Moon, Palette, MousePointer, Trash2, Save, Eye, EyeOff, Pencil, Search, Sparkles, Layers, LayoutTemplate } from 'lucide-react'
 import AnnotationLayer from './components/AnnotationLayer'
 import AnnotationModal from './components/AnnotationModal'
 import DocDrawer from './components/DocDrawer'
@@ -103,7 +103,7 @@ const getDefaultComponent = (mod: unknown): React.ComponentType => {
 }
 
 // ==================== 主题动态加载 ====================
-const themeModules = import.meta.glob('./themes/*/index.tsx', { eager: true })
+const themeModules = import.meta.glob('./themes/*/index.tsx')
 const themeDesignDocs = import.meta.glob('./themes/*/DESIGN.md', { query: '?raw', import: 'default' })
 
 // 提取主题信息
@@ -275,8 +275,8 @@ interface ThemeNavProps {
 const ThemeNav = ({ isDark, searchQuery = '', collapsed = false }: ThemeNavProps) => {
   const location = useLocation()
 
-  // 动态生成主题列表
-  const themes = Object.entries(themeModules).map(([path, mod]) => {
+  // 从路径生成主题列表（组件按需懒加载）
+  const themes = Object.keys(themeModules).map((path) => {
     const match = path.match(/\.\/themes\/([^/]+)\//)
     if (match) {
       const dirName = match[1]
@@ -285,11 +285,10 @@ const ThemeNav = ({ isDark, searchQuery = '', collapsed = false }: ThemeNavProps
         id: dirName,
         name: info.name,
         description: info.description,
-        component: getDefaultComponent(mod),
       }
     }
     return null
-  }).filter(Boolean) as { id: string; name: string; description: string; component: React.ComponentType }[]
+  }).filter(Boolean) as { id: string; name: string; description: string }[]
 
   const query = searchQuery.trim().toLowerCase()
   const filteredThemes = query
@@ -1171,40 +1170,142 @@ const TopBar = ({
 }
 
 
+// ==================== 首页介绍 & 引导 ====================
+const HomePage = () => {
+  return (
+    <div className="h-full w-full overflow-auto p-8 bg-gray-50">
+      <div className="max-w-4xl mx-auto">
+        <div className="mb-10 text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg mb-6">
+            <Sparkles className="text-white" size={32} />
+          </div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-3">欢迎使用原型工具</h1>
+          <p className="text-gray-500 text-lg">快速预览原型、管理设计系统主题、查看项目文档</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+          <div className="block bg-white rounded-xl shadow-sm border p-6">
+            <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center mb-4">
+              <Smartphone className="text-blue-600" size={24} />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">原型页面</h3>
+            <p className="text-sm text-gray-500">在左侧菜单选择原型页面，右侧预览区即可查看效果</p>
+          </div>
+          <div className="block bg-white rounded-xl shadow-sm border p-6">
+            <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center mb-4">
+              <Palette className="text-blue-600" size={24} />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">设计系统主题</h3>
+            <p className="text-sm text-gray-500">切换到「主题」标签，浏览项目中已有的设计系统主题</p>
+          </div>
+          <div className="block bg-white rounded-xl shadow-sm border p-6">
+            <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center mb-4">
+              <FileText className="text-blue-600" size={24} />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">项目文档</h3>
+            <p className="text-sm text-gray-500">切换到「文档」标签，查看规格、PRD 等项目文档</p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+            <LayoutTemplate size={20} className="text-blue-600" />
+            快速开始
+          </h2>
+
+          <div className="space-y-6">
+            <section>
+              <h3 className="text-base font-semibold text-gray-900 mb-2">1、如何查看原型页面</h3>
+              <p className="text-sm text-gray-600 leading-relaxed">
+                在左侧边栏选择「原型」分类，点击页面名称即可在右侧预览区查看效果。前端页面默认以移动端尺寸展示，后台页面默认以 PC 尺寸展示。
+              </p>
+            </section>
+
+            <section>
+              <h3 className="text-base font-semibold text-gray-900 mb-2">2、如何创建原型页面</h3>
+              <p className="text-sm text-gray-600 leading-relaxed">
+                将需求直接告诉 AI 即可。AI 会先阅读项目规则（如 <code className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-700">rules/prototype-development-guide.md</code>），确认目标用户、核心任务和范围后，引导你完成原型创建，无需手动操作文件。
+              </p>
+            </section>
+
+            <section>
+              <h3 className="text-base font-semibold text-gray-900 mb-2">3、如何使用批注功能</h3>
+              <p className="text-sm text-gray-600 leading-relaxed">
+                点击顶部工具栏的「启用批注」进入编辑模式，选择页面元素后可添加批注、选择分类并保存到草稿。批注列表可在右侧文档面板的「批注」标签中查看，保存后会写入本地文件。
+              </p>
+            </section>
+
+            <section>
+              <h3 className="text-base font-semibold text-gray-900 mb-2">4、复制到 Figma 如何使用</h3>
+              <p className="text-sm text-gray-600 leading-relaxed">
+                打开任意原型页面后，点击顶部工具栏的「复制到 Figma」按钮，系统会将当前页面内容转换为 Figma 可识别的 HTML 结构，前往 Figma 粘贴成设计稿。批注层不会被复制。
+              </p>
+            </section>
+
+            <section>
+              <h3 className="text-base font-semibold text-gray-900 mb-2">5、快捷键如何配置</h3>
+              <p className="text-sm text-gray-600 leading-relaxed">
+                点击顶部工具栏的「快捷键」按钮，在弹窗中可查看和修改各项快捷键。默认配置：复制到 Figma 为 Ctrl+Cmd+C，查看文档为 Ctrl+Cmd+E，批注选择元素为 Ctrl+Cmd+S（Windows 为 Ctrl+Alt+S）。
+              </p>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ==================== 主题详情页面 ====================
 const ThemeDetailPage = () => {
   const { themeId } = useParams<{ themeId: string }>()
+  const [ThemeComponent, setThemeComponent] = useState<React.ComponentType | null>(null)
   const [designDoc, setDesignDoc] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // 获取主题组件（使用 useMemo 避免每次 render 重新创建组件类型）
-  const ThemeComponent = useMemo(() => {
-    const themeEntry = Object.entries(themeModules).find(([path]) => {
-      const match = path.match(/\.\/themes\/([^/]+)\//)
-      return match && match[1] === themeId
-    })
-    return themeEntry ? getDefaultComponent(themeEntry[1]) : null
-  }, [themeId])
-
-  // 加载设计文档
+  // 按需加载主题组件和设计文档
   useEffect(() => {
-    const loadDesignDoc = async () => {
+    const loadTheme = async () => {
       setLoading(true)
+
+      // 查找主题路径
+      const themePath = Object.keys(themeModules).find(path => {
+        const match = path.match(/\.\/themes\/([^/]+)\//)
+        return match && match[1] === themeId
+      })
+
+      // 并行加载组件和文档
+      const tasks: Promise<void>[] = []
+
+      // 加载组件
+      if (themePath) {
+        tasks.push(
+          themeModules[themePath]().then(mod => {
+            setThemeComponent(() => getDefaultComponent(mod))
+          })
+        )
+      } else {
+        setThemeComponent(null)
+      }
+
+      // 加载设计文档
       const docKey = `./themes/${themeId}/DESIGN.md`
       const loader = themeDesignDocs[docKey]
       if (loader) {
-        try {
-          const content = await loader() as string
-          setDesignDoc(content)
-        } catch {
-          setDesignDoc('无法加载设计文档。')
-        }
+        tasks.push(
+          loader().then((content) => {
+            setDesignDoc(content as string)
+          }).catch(() => {
+            setDesignDoc('无法加载设计文档。')
+          })
+        )
       } else {
         setDesignDoc('暂无设计文档。')
       }
+
+      await Promise.all(tasks)
       setLoading(false)
     }
-    loadDesignDoc()
+    loadTheme()
   }, [themeId])
 
   const info = themeId ? getThemeInfo(themeId) : { name: '未知主题', description: '' }
@@ -1271,7 +1372,7 @@ const ThemeDetailPage = () => {
 
 // ==================== 主题列表页面 ====================
 const ThemesListPage = () => {
-  const themes = Object.entries(themeModules).map(([path, mod]) => {
+  const themes = Object.keys(themeModules).map((path) => {
     const match = path.match(/\.\/themes\/([^/]+)\//)
     if (match) {
       const dirName = match[1]
@@ -1280,11 +1381,10 @@ const ThemesListPage = () => {
         id: dirName,
         name: info.name,
         description: info.description,
-        component: getDefaultComponent(mod),
       }
     }
     return null
-  }).filter(Boolean) as { id: string; name: string; description: string; component: React.ComponentType }[]
+  }).filter(Boolean) as { id: string; name: string; description: string }[]
 
   return (
     <div className="h-full overflow-auto p-8 bg-gray-50">
@@ -1545,6 +1645,7 @@ function AppContent() {
   const inferredDeviceMode = useMemo<'mobile' | 'pc'>(() => {
     const page = pages.find((p) => p.path === location.pathname)
     const isThemeOrDoc =
+      location.pathname === '/' ||
       location.pathname.startsWith('/theme') ||
       location.pathname.startsWith('/doc') ||
       location.pathname === '/themes' ||
@@ -1782,6 +1883,8 @@ function AppContent() {
                 >
                   <div className={`${deviceMode === 'mobile' ? 'h-full overflow-y-auto overscroll-contain' : 'w-full h-full overflow-auto'}`}>
                     <Routes>
+                      {/* 首页 / 默认引导 */}
+                      <Route path="/" element={<HomePage />} />
                       {pages.map(page => (
                         <Route key={page.path} path={page.path} element={<page.component />} />
                       ))}
