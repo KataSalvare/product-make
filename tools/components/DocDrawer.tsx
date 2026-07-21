@@ -26,10 +26,10 @@ interface DocDrawerProps {
   onSelectAnnotation: (id: string, clientX: number, clientY: number) => void
 }
 
-const specGlob = import.meta.glob('../prototypes/*/spec.md', { query: '?raw', import: 'default' })
+const specGlob = import.meta.glob('../../src/prototypes/*/spec.md', { query: '?raw', import: 'default' })
 
 function getSpecKey(dirName: string): string {
-  return `../prototypes/${dirName}/spec.md`
+  return `../../src/prototypes/${dirName}/spec.md`
 }
 
 export default function DocDrawer({

@@ -8,8 +8,9 @@
 
 - 目标目录下的 `spec.md`、`index.tsx`、`style.css`（如有）
 - 相关主题文件：`DESIGN.md`、`designToken.json`、`globals.css`（如有）
-- 验收规则：`rules/development-guide.md`
+- 验收规则：`rules/prototype-development-guide.md`
 - 涉及视觉或布局问题时，额外参考 `rules/design-guide.md`
+- 涉及目录归属、alias 或分层问题时，额外参考 `rules/architecture-guide.md`
 
 ### 1.1 视觉问题的设计规范优先级
 

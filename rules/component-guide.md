@@ -4,8 +4,31 @@
 
 ## 📁 目录结构
 
+本项目有三种组件，位置不同：
+
+### 1. 通用 UI 组件
+
 ```
-src/components/<name>/
+src/components/ui/<name>.tsx
+```
+
+- 使用 `kebab-case` 文件名，如 `button.tsx`、`input.tsx`
+- 来自 shadcn/ui 或项目自己维护的基础组件
+- 可被 `src/` 和 `tools/` 共同使用
+
+### 2. 工具层组件
+
+```
+tools/components/<name>.tsx
+```
+
+- 仅供原型预览工具使用，如 `DocDrawer.tsx`、`AnnotationLayer.tsx`、`AnnotationModal.tsx`
+- 与业务原型无关，不放入 `src/`
+
+### 3. 业务/复合组件（不推荐随意新建）
+
+```
+src/components/<Name>/
 ├── index.tsx          # 必需：入口组件
 ├── spec.md            # 必需：规格文档
 ├── style.css          # 可选：样式文件
@@ -15,6 +38,7 @@ src/components/<name>/
 
 - `<name>` 使用 `PascalCase`，如 `AdminSidebar`、`DataTable`
 - 与原型目录区分：组件目录使用大驼峰命名
+- 优先在原型目录内部使用 `components/` 子目录，而不是直接新建 `src/components/<Name>/`
 
 ## 📝 规格文档（spec.md）
 
@@ -103,9 +127,15 @@ Input.displayName = 'Input'
 
 ## ♻️ 复用原则
 
-- 优先使用现有主题组件：`src/themes/<theme>/components/`
-- 优先使用 shadcn/ui 组件：`src/components/ui/`
-- 避免重复造轮子
+按以下优先级选择组件来源：
+
+1. **通用 UI 组件**：`src/components/ui/`（shadcn/ui 基础组件）
+2. **主题组件**：`src/themes/<theme>/components/`（主题特定组件）
+3. **工具组件**：`tools/components/`（仅用于预览工具内部）
+4. **原型内部组件**：`src/prototypes/<name>/components/`（原型专属组件）
+5. **新建业务组件**：最后才考虑 `src/components/<Name>/`
+
+避免重复造轮子；新建组件前先确认以上位置是否已有可用实现。
 
 ## ✅ 验收清单
 

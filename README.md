@@ -43,16 +43,57 @@
 ## 项目结构
 
 ```
-src/
-├── App.tsx                 # 主应用组件，包含路由和全局状态
-├── main.tsx               # 应用入口
-├── index.css              # 全局样式
-├── prototypes/            # 页面原型组件
-├── themes/                # 主题设计系统
-├── docs/                  # 项目文档
-│   └── *.md               # Markdown 文档
-└──  components/            # 公共组件
+src/                        # 内容层：只放业务/原型相关内容
+├── main.tsx                # 应用入口
+├── index.css               # 全局样式
+├── prototypes/             # 页面原型组件（前端原型 + 后台原型）
+├── themes/                 # 主题设计系统
+├── docs/                   # 项目文档（Markdown）
+├── workspace/              # 4 个 Tab 内容页面
+│   ├── HomePage.tsx        # 默认首页/引导页
+│   ├── ThemeDetailPage.tsx # 主题详情
+│   ├── ThemesListPage.tsx  # 主题列表
+│   ├── DocDetailPage.tsx   # 文档详情
+│   └── DocsListPage.tsx    # 文档列表
+├── content/                # 项目内容配置
+│   └── annotations/        # 批注默认分类与示例数据
+│       ├── categories.ts
+│       └── defaults.ts
+├── common/                 # 内容层共享组件（如 DesignMdBatchShowcase）
+├── components/ui/          # 通用 UI 组件（Button、Input 等）
+└── lib/                    # 通用工具函数
+    └── utils.ts            # cn 等 UI 工具函数
+
+tools/                      # 工具层：原型预览工具实现
+├── App.tsx                 # 主应用组件，负责路由、全局状态和布局编排
+├── shell/                  # 界面外壳
+│   ├── Sidebar.tsx         # 左侧边栏（4 个 Tab 导航）
+│   ├── Topbar.tsx          # 顶部工具栏
+│   └── TooltipButton.tsx   # 工具提示按钮
+├── tools/                  # 工具功能实现
+│   ├── AnnotationController.tsx   # 批注状态、渲染与交互
+│   └── ShortcutsDialog.tsx        # 快捷键设置弹窗
+├── components/             # 工具组件
+│   ├── DocDrawer.tsx
+│   ├── AnnotationLayer.tsx
+│   ├── AnnotationModal.tsx
+│   └── AnnotationPanel.tsx
+├── hooks/                  # 工具层 Hooks
+│   └── useAnnotations.ts
+├── config/                 # 工具层配置与动态导入
+│   ├── pages.ts
+│   ├── themes.ts
+│   └── docs.ts
+└── lib/                    # 工具函数
+    ├── shortcuts.ts        # 主题、快捷键、项目名称 localStorage 读写
+    └── annotations.ts      # 批注类型与工具函数
 ```
+
+> **架构说明**：
+> - `src/` 只放**内容层**（原型、主题、文档、页面、内容配置、通用 UI）
+> - `tools/` 只放**工具层**（预览外壳、批注、快捷键、复制到 Figma、配置读取等）
+> - 两层通过 alias 隔离：`@/...` 指向 `src/`，`@tools/...` 指向 `tools/`
+> - 迭代功能时，一看 import 路径就知道改动发生在内容层还是工具层
 
 ## 本地开发
 
