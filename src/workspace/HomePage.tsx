@@ -9,7 +9,10 @@ export const HomePage: React.FC = () => {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg mb-6">
             <Sparkles className="text-white" size={32} />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-3">欢迎使用原型工具</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-3">
+            欢迎使用原型工具
+            <span className="ml-3 text-xs font-normal text-gray-400 align-middle">v2.0 · by Kata</span>
+          </h1>
           <p className="text-gray-500 text-lg">快速预览原型、管理设计系统主题、查看项目文档</p>
         </div>
 

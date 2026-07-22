@@ -81,41 +81,47 @@ export default function DocDrawer({
 
   if (!isOpen || !currentPage) return null
 
+  const panelClass = isDark ? 'tool-panel-dark' : 'tool-panel-light'
+  const borderClass = isDark ? 'border-[#ffffff]/8' : 'border-[#1c1c1c]/8'
+  const textPrimary = isDark ? 'text-[#f5f2ed]' : 'text-[#1c1c1c]'
+  const textSecondary = isDark ? 'text-[#a0a0a0]' : 'text-[#6b6b6b]'
+  const textMuted = isDark ? 'text-[#808080]' : 'text-[#a0a0a0]'
+  const hoverSurface = isDark ? 'hover:bg-[#333333]' : 'hover:bg-[#efe9e0]'
+
   return (
     <div
       className={[
-        'flex flex-col border-l shadow-xl',
-        isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-gray-200',
+        'flex flex-col border-l z-[1000] animate-tool-slide-right',
         // 移动端：从右侧滑出的固定抽屉，无遮罩，方便快速切换
-        'fixed inset-y-0 right-0 z-[1000] w-[320px]',
+        'fixed inset-y-0 right-0 w-[320px]',
         // PC：作为布局的一部分并排显示，原型完整可见
         'lg:static lg:w-[420px] lg:flex-shrink-0',
+        panelClass,
+        borderClass,
       ].join(' ')}
     >
       {/* 头部 */}
-      <div className={`flex items-center justify-between px-4 py-3 border-b flex-shrink-0 ${isDark ? 'border-slate-800' : 'border-gray-200'}`}>
-        <div>
-          <h2 className={`text-base font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>{currentPage.label}</h2>
-          <p className={`text-xs mt-0.5 ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>{currentPage.dirName}</p>
+      <div className={`flex items-center justify-between px-5 py-4 border-b ${borderClass}`}>
+        <div className="min-w-0">
+          <h2 className={`text-sm font-bold truncate ${textPrimary}`}>{currentPage.label}</h2>
+          <p className={`text-xs mt-0.5 truncate ${textMuted}`}>{currentPage.dirName}</p>
         </div>
         <button
           onClick={onClose}
-          className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-slate-800 text-slate-400' : 'hover:bg-gray-100 text-gray-600'}`}
+          className={`p-2 rounded-xl transition-all duration-200 ${textSecondary} ${hoverSurface}`}
         >
           <XIcon size={18} />
         </button>
       </div>
 
       {/* Tab 切换 */}
-      <div className={`flex border-b flex-shrink-0 ${isDark ? 'border-slate-800' : 'border-gray-200'}`}>
+      <div className={`flex border-b ${borderClass}`}>
         <button
           onClick={() => setDocTab('spec')}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors ${
+          className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold transition-all duration-200 ${
             docTab === 'spec'
-              ? 'text-blue-600 border-b-2 border-blue-600'
-              : isDark
-                ? 'text-slate-400 hover:text-white'
-                : 'text-gray-500 hover:text-gray-900'
+              ? 'tool-accent border-b-2 border-current'
+              : `${textSecondary} ${hoverSurface}`
           }`}
         >
           <FileText size={15} />
@@ -123,36 +129,34 @@ export default function DocDrawer({
         </button>
         <button
           onClick={() => setDocTab('annotations')}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors ${
+          className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold transition-all duration-200 ${
             docTab === 'annotations'
-              ? 'text-blue-600 border-b-2 border-blue-600'
-              : isDark
-                ? 'text-slate-400 hover:text-white'
-                : 'text-gray-500 hover:text-gray-900'
+              ? 'tool-accent border-b-2 border-current'
+              : `${textSecondary} ${hoverSurface}`
           }`}
         >
           <MapPin size={15} />
           标注说明
-          <span className={`text-xs px-1.5 py-0.5 rounded-full ${isDark ? 'bg-slate-800 text-slate-400' : 'bg-gray-100 text-gray-500'}`}>
+          <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${isDark ? 'bg-[#ffffff]/10 text-[#a0a0a0]' : 'bg-[#1c1c1c]/6 text-[#6b6b6b]'}`}>
             {annotations.length}
           </span>
         </button>
       </div>
 
       {/* 内容 */}
-      <div className={`flex-1 overflow-hidden ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
+      <div className="flex-1 overflow-hidden">
         {docTab === 'spec' ? (
-          <div className="h-full overflow-y-auto px-5 py-4">
+          <div className="h-full overflow-y-auto px-5 py-5">
             {docLoading ? (
               <div className="flex items-center justify-center py-20">
-                <div className="animate-spin w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full" />
+                <div className="animate-spin w-6 h-6 border-2 border-current border-t-transparent rounded-full tool-accent" />
               </div>
             ) : docContent ? (
-              <pre className={`whitespace-pre-wrap font-mono text-sm leading-relaxed ${isDark ? 'text-slate-300' : 'text-gray-800'}`}>
+              <pre className={`whitespace-pre-wrap font-mono text-sm leading-relaxed ${textSecondary}`}>
                 {docContent}
               </pre>
             ) : (
-              <div className={`text-center py-20 ${isDark ? 'text-slate-500' : 'text-gray-400'}`}>加载失败</div>
+              <div className={`text-center py-20 ${textMuted}`}>加载失败</div>
             )}
           </div>
         ) : (

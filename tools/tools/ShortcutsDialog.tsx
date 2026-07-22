@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Keyboard, XIcon } from 'lucide-react'
+import { Keyboard, XIcon, RotateCcw } from 'lucide-react'
 import {
   DEFAULT_SHORTCUTS,
   formatShortcut,
@@ -33,6 +33,18 @@ export const ShortcutsDialog: React.FC<ShortcutsDialogProps> = ({
   useEffect(() => {
     setShortcutModalOpen(isOpen)
   }, [isOpen])
+
+  useEffect(() => {
+    if (!isOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation()
+        onClose()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown, true)
+    return () => window.removeEventListener('keydown', handleKeyDown, true)
+  }, [isOpen, onClose])
 
   useEffect(() => {
     if (!recordingKey) return
@@ -69,75 +81,112 @@ export const ShortcutsDialog: React.FC<ShortcutsDialogProps> = ({
     selectElement: '批注选择元素',
   }
 
+  const textPrimary = isDark ? 'text-[#f5f2ed]' : 'text-[#1c1c1c]'
+  const textSecondary = isDark ? 'text-[#a0a0a0]' : 'text-[#6b6b6b]'
+  const textMuted = isDark ? 'text-[#808080]' : 'text-[#a0a0a0]'
+  const borderClass = isDark ? 'border-[#ffffff]/8' : 'border-[#1c1c1c]/8'
+  const surfaceClass = isDark ? 'bg-[#262626]' : 'bg-[#f7f3ed]'
+  const hoverSurface = isDark ? 'hover:bg-[#333333]' : 'hover:bg-[#efe9e0]'
+
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className={`relative rounded-xl shadow-2xl w-[480px] max-w-[90vw] overflow-hidden ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
-        <div className={`flex items-center justify-between px-6 py-4 border-b ${isDark ? 'border-slate-800' : 'border-gray-200'}`}>
-          <div className="flex items-center gap-3">
-            <Keyboard className="text-blue-600" size={24} />
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center animate-tool-fade-in">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div
+        className={[
+          'relative rounded-2xl shadow-2xl w-[520px] max-w-[92vw] max-h-[90vh] flex flex-col overflow-hidden animate-tool-enter border',
+          isDark ? 'bg-[#262626] border-[#ffffff]/12' : 'bg-[#f7f3ed] border-[#1c1c1c]/8',
+        ].join(' ')}
+      >
+        {/* 头部 */}
+        <div className={`flex items-center justify-between px-6 py-5 border-b ${borderClass}`}>
+          <div className="flex items-center gap-3.5">
+            <div className={`flex items-center justify-center w-10 h-10 rounded-xl ${isDark ? 'bg-[#ffffff]/8' : 'bg-[#1c1c1c]/6'}`}>
+              <Keyboard className="tool-accent" size={22} />
+            </div>
             <div>
-              <h2 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>快捷键设置</h2>
-              <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>
+              <h2 className={`text-base font-bold ${textPrimary}`}>快捷键设置</h2>
+              <p className={`text-xs mt-0.5 ${textMuted}`}>
                 检测到系统: {os === 'mac' ? 'macOS' : os === 'windows' ? 'Windows' : os === 'linux' ? 'Linux' : '未知'}
               </p>
             </div>
           </div>
-          <button onClick={onClose} className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-slate-800 text-slate-400' : 'hover:bg-gray-100 text-gray-600'}`}>
-            <XIcon size={20} />
+          <button
+            onClick={onClose}
+            className={`p-2 rounded-xl transition-all duration-200 ${textSecondary} ${hoverSurface}`}
+          >
+            <XIcon size={18} />
           </button>
         </div>
 
-        <div className="p-6 space-y-4">
+        {/* 快捷键列表 */}
+        <div className="p-6 space-y-3 overflow-y-auto">
           {(Object.keys(shortcutLabels) as Array<keyof ShortcutConfig>).map((key) => (
-            <div key={key} className={`flex items-center justify-between p-4 rounded-lg ${isDark ? 'bg-slate-800' : 'bg-gray-50'}`}>
-              <span className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>{shortcutLabels[key]}</span>
+            <div
+              key={key}
+              className={`flex items-center justify-between p-4 rounded-xl border transition-all duration-200 ${
+                recordingKey === key
+                  ? 'border-current tool-accent bg-current/[0.04]'
+                  : `${borderClass} ${isDark ? 'bg-[#333333]' : 'bg-white'}`
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <span className={`w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold ${isDark ? 'bg-[#ffffff]/8 text-[#f5f2ed]' : 'bg-[#1c1c1c]/6 text-[#1c1c1c]'}`}>
+                  {shortcutLabels[key].charAt(0)}
+                </span>
+                <span className={`text-sm font-semibold ${textPrimary}`}>{shortcutLabels[key]}</span>
+              </div>
               <button
                 onClick={() => setRecordingKey(recordingKey === key ? null : key)}
-                className={`px-4 py-2 rounded-lg font-mono text-sm transition-colors ${
+                className={[
+                  'px-4 py-2 rounded-xl font-mono text-xs font-semibold transition-all duration-200 min-w-[140px] text-center',
                   recordingKey === key
-                    ? 'bg-blue-100 text-blue-700 ring-2 ring-blue-500 animate-pulse'
-                    : isDark
-                      ? 'bg-slate-700 text-slate-300 border border-slate-600 hover:bg-slate-600'
-                      : 'bg-white border hover:bg-gray-50'
-                }`}
+                    ? 'tool-accent-bg text-white shadow-sm animate-pulse'
+                    : `${isDark ? 'bg-[#252525] text-[#f5f2ed] border-[#ffffff]/10' : 'bg-white text-[#1c1c1c] border-[#1c1c1c]/10'} border hover:opacity-80`,
+                ].join(' ')}
               >
                 {recordingKey === key ? '按下快捷键...' : formatShortcut(editingShortcuts[key])}
               </button>
             </div>
           ))}
 
-          <div className={`text-sm p-3 rounded-lg ${isDark ? 'bg-blue-900/30 text-slate-300' : 'bg-blue-50 text-gray-500'}`}>
-            <p className={`font-medium mb-1 ${isDark ? 'text-blue-400' : 'text-blue-700'}`}>提示</p>
-            <p>• 快捷键必须包含 Ctrl (Windows) 或 ⌘ (Mac)</p>
-            <p>• 可组合 Shift、Alt 等修饰键</p>
-            <p>• 点击按钮后按下新的快捷键即可设置</p>
+          {/* 提示 */}
+          <div className={`mt-4 p-4 rounded-xl border ${isDark ? 'bg-[#f4a261]/5 border-[#f4a261]/15' : 'bg-[#d65a31]/5 border-[#d65a31]/12'}`}>
+            <p className={`text-xs font-bold mb-2 tool-accent`}>提示</p>
+            <div className={`text-xs space-y-1 ${textSecondary}`}>
+              <p>• 快捷键必须包含 Ctrl (Windows) 或 ⌘ (Mac)</p>
+              <p>• 可组合 Shift、Alt 等修饰键</p>
+              <p>• 点击按钮后按下新的快捷键即可设置</p>
+            </div>
           </div>
         </div>
 
-        <div className={`flex items-center justify-end gap-3 px-6 py-4 border-t ${isDark ? 'border-slate-800 bg-slate-900' : 'border-gray-200 bg-gray-50'}`}>
+        {/* 底部操作 */}
+        <div className={`flex items-center justify-between px-6 py-4 border-t ${borderClass} ${surfaceClass}`}>
           <button
             onClick={() => setEditingShortcuts(DEFAULT_SHORTCUTS)}
-            className={`px-4 py-2 rounded-lg transition-colors ${isDark ? 'text-slate-300 hover:bg-slate-800' : 'text-gray-600 hover:bg-gray-200'}`}
+            className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl transition-all duration-200 ${textSecondary} ${hoverSurface}`}
           >
+            <RotateCcw size={13} />
             恢复默认
           </button>
-          <button
-            onClick={onClose}
-            className={`px-4 py-2 rounded-lg transition-colors ${isDark ? 'text-slate-300 hover:bg-slate-800' : 'text-gray-600 hover:bg-gray-200'}`}
-          >
-            取消
-          </button>
-          <button
-            onClick={() => {
-              onSave(editingShortcuts)
-              saveShortcuts(editingShortcuts)
-              onClose()
-            }}
-            className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors"
-          >
-            保存
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onClose}
+              className={`px-4 py-2 text-xs font-semibold rounded-xl transition-all duration-200 ${textSecondary} ${hoverSurface}`}
+            >
+              取消
+            </button>
+            <button
+              onClick={() => {
+                onSave(editingShortcuts)
+                saveShortcuts(editingShortcuts)
+                onClose()
+              }}
+              className="px-5 py-2 text-xs font-bold rounded-xl transition-all duration-200 tool-accent-bg text-white hover:opacity-90 shadow-sm"
+            >
+              保存
+            </button>
+          </div>
         </div>
       </div>
     </div>

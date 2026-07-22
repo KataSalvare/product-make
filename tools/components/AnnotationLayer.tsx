@@ -40,7 +40,6 @@ export default function AnnotationLayer({
 
   const isDark = theme === 'dark'
 
-  // 根据 selector 计算所有标记位置与可见性（支持弹窗/抽屉显示隐藏时同步更新）
   const recomputePositions = useCallback(() => {
     if (!previewContainer) return
     const nextPositions: Record<string, { left: number; top: number }> = {}
@@ -52,7 +51,6 @@ export default function AnnotationLayer({
         if (el) {
           nextPositions[annotation.id] = getElementPosition(el, previewContainer, annotation.position)
           const visible = isElementVisible(el, previewContainer)
-          // 若存在顶层 overlay，只展示位于该 overlay 内部的批注；否则隐藏位于任何 overlay 内部的批注
           if (activeOverlay) {
             nextVisible[annotation.id] = visible && activeOverlay.contains(el)
           } else {
@@ -72,7 +70,6 @@ export default function AnnotationLayer({
     queueMicrotask(() => recomputePositions())
   }, [recomputePositions])
 
-  // 监听 DOM 变化，在弹窗/抽屉展开或收起时重新计算可见性
   useEffect(() => {
     if (!previewContainer) return
     const observer = new MutationObserver(() => {
@@ -87,7 +84,6 @@ export default function AnnotationLayer({
     return () => observer.disconnect()
   }, [previewContainer, recomputePositions])
 
-  // 弹窗打开时高亮对应元素（仅当元素可见时才高亮）
   useEffect(() => {
     queueMicrotask(() => {
       if (!previewContainer || !highlightedId) {
@@ -104,8 +100,6 @@ export default function AnnotationLayer({
     })
   }, [highlightedId, annotations, previewContainer])
 
-  // 选择模式下，层覆盖在预览内容上方，e.target 可能是层本身。
-  // 用 elementsFromPoint 取鼠标位置下、previewContainer 内的真实元素。
   const getElementAtPoint = useCallback(
     (clientX: number, clientY: number): HTMLElement | null => {
       if (!previewContainer || !layerRef.current) return null
@@ -121,7 +115,6 @@ export default function AnnotationLayer({
     [previewContainer]
   )
 
-  // 元素选择模式：高亮并点击元素
   const handleMouseMove = useCallback(
     (e: React.MouseEvent) => {
       if (!selecting || !previewContainer) return
@@ -150,7 +143,6 @@ export default function AnnotationLayer({
     [selecting, previewContainer, getElementAtPoint, onSelectElement]
   )
 
-  // 按 selector 聚合标记，同元素多个标记时扇形偏移
   const annotationsBySelector = useMemo(() => {
     const map: Record<string, Annotation[]> = {}
     annotations.forEach((a) => {
@@ -173,10 +165,9 @@ export default function AnnotationLayer({
         selecting ? 'cursor-pointer' : 'pointer-events-none',
       ].join(' ')}
     >
-      {/* 元素悬停高亮（选择模式） */}
       {selecting && hoveredElement && (
         <div
-          className="absolute pointer-events-none rounded-md ring-2 ring-blue-500 ring-offset-2 bg-blue-500/10 transition-all"
+          className="absolute pointer-events-none rounded-xl ring-2 ring-[#c4785a] dark:ring-[#c49378] ring-offset-2 ring-offset-transparent bg-[#c4785a]/8 dark:bg-[#c49378]/8 transition-all duration-150"
           style={(() => {
             const rect = hoveredElement.getBoundingClientRect()
             const containerRect = previewContainer.getBoundingClientRect()
@@ -190,10 +181,9 @@ export default function AnnotationLayer({
         />
       )}
 
-      {/* 弹窗打开时高亮对应元素 */}
       {highlightedElement && (
         <div
-          className="absolute pointer-events-none rounded-md ring-2 ring-blue-500 ring-offset-2 bg-blue-500/10 animate-pulse"
+          className="absolute pointer-events-none rounded-xl ring-2 ring-[#c4785a] dark:ring-[#c49378] ring-offset-2 ring-offset-transparent bg-[#c4785a]/10 dark:bg-[#c49378]/10 animate-pulse"
           style={(() => {
             const rect = highlightedElement.getBoundingClientRect()
             const containerRect = previewContainer.getBoundingClientRect()
@@ -207,9 +197,7 @@ export default function AnnotationLayer({
         />
       )}
 
-      {/* 标记点：同一元素聚合为一个标记，仅显示当前可见的标记 */}
       {Object.entries(annotationsBySelector).map(([, group]) => {
-        // 按分类顺序取第一个作为代表
         const order = new Map(categories.map((c, i) => [c.key, i]))
         const sorted = [...group].sort(
           (a, b) => (order.get(a.category) ?? Infinity) - (order.get(b.category) ?? Infinity)
@@ -237,10 +225,10 @@ export default function AnnotationLayer({
               transform: 'translate(-50%, -50%)',
             }}
             className={[
-              'absolute flex items-center justify-center w-5 h-5 rounded-full text-white text-[10px] font-bold shadow-md',
-              'select-none transition-transform duration-150',
-              selecting ? 'pointer-events-none opacity-60' : 'pointer-events-auto cursor-pointer',
-              isSelected || isHighlighted ? 'ring-[3px] ring-white/60 scale-110' : 'hover:scale-110',
+              'absolute flex items-center justify-center w-6 h-6 rounded-full text-white text-[11px] font-bold',
+              'select-none transition-all duration-200 ease-out',
+              selecting ? 'pointer-events-none opacity-50' : 'pointer-events-auto cursor-pointer hover:scale-110',
+              isSelected || isHighlighted ? 'ring-[3px] ring-white/70 dark:ring-black/50 scale-110 annotation-glow' : 'shadow-lg hover:shadow-xl',
             ].join(' ')}
             title={group.length > 1 ? `${group.length} 条批注` : annotation.title}
           >
@@ -249,14 +237,13 @@ export default function AnnotationLayer({
         )
       })}
 
-      {/* 选择模式提示 */}
       {selecting && (
-        <div className={`absolute top-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full text-sm font-medium shadow-lg pointer-events-none ${isDark ? 'bg-slate-800 text-white' : 'bg-white text-gray-900'}`}>
+        <div className={`absolute top-5 left-1/2 -translate-x-1/2 px-5 py-2.5 rounded-2xl text-sm font-medium shadow-xl pointer-events-none animate-tool-enter border ${isDark ? 'bg-[#262626] text-[#f5f2ed] border-[#ffffff]/10' : 'bg-[#f7f3ed] text-[#1c1c1c] border-[#1c1c1c]/8'}`}>
           点击页面元素添加批注
         </div>
       )}
       {selecting && hoveredSelector && (
-        <div className={`absolute bottom-4 left-1/2 -translate-x-1/2 max-w-[80%] px-3 py-1.5 rounded-lg text-xs font-mono truncate shadow-lg pointer-events-none ${isDark ? 'bg-slate-800 text-slate-300' : 'bg-white text-gray-600'}`}>
+        <div className={`absolute bottom-5 left-1/2 -translate-x-1/2 max-w-[80%] px-4 py-2 rounded-xl text-xs font-mono truncate shadow-xl pointer-events-none animate-tool-enter border ${isDark ? 'bg-[#262626] text-[#a0a0a0] border-[#ffffff]/10' : 'bg-[#f7f3ed] text-[#6b6b6b] border-[#1c1c1c]/8'}`}>
           {hoveredSelector}
         </div>
       )}

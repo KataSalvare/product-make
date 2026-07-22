@@ -161,3 +161,175 @@
   background: rgba(245, 158, 11, 0.1);
   pointer-events: none;
 }
+
+/* ============================================================
+   工具层设计系统 —— Precision Workshop
+   ============================================================ */
+
+@utility tool-backdrop-light {
+  background-color: #faf7f2;
+  background-image:
+    radial-gradient(at 0% 0%, rgba(196, 120, 90, 0.04) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(42, 157, 143, 0.03) 0px, transparent 50%);
+}
+
+@utility tool-backdrop-dark {
+  background-color: #0f0f0f;
+  background-image:
+    radial-gradient(at 0% 0%, rgba(196, 120, 90, 0.07) 0px, transparent 40%),
+    radial-gradient(at 100% 100%, rgba(42, 157, 143, 0.05) 0px, transparent 40%);
+}
+
+@utility tool-surface-light {
+  background-color: rgba(247, 243, 237, 0.86);
+  backdrop-filter: blur(16px);
+  border-color: rgba(28, 28, 28, 0.08);
+}
+
+@utility tool-surface-dark {
+  background-color: rgba(38, 38, 38, 0.86);
+  backdrop-filter: blur(16px);
+  border-color: rgba(245, 242, 237, 0.1);
+}
+
+@utility tool-panel-light {
+  background-color: #f7f3ed;
+  border-color: rgba(28, 28, 28, 0.08);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 12px 32px rgba(0, 0, 0, 0.06);
+}
+
+@utility tool-panel-dark {
+  background-color: #262626;
+  border-color: rgba(245, 242, 237, 0.12);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25), 0 16px 40px rgba(0, 0, 0, 0.45);
+}
+
+@utility tool-text-primary-light {
+  color: #1c1c1c;
+}
+
+@utility tool-text-primary-dark {
+  color: #f5f2ed;
+}
+
+@utility tool-text-secondary-light {
+  color: #6b6b6b;
+}
+
+@utility tool-text-secondary-dark {
+  color: #a0a0a0;
+}
+
+@utility tool-accent {
+  color: #b86b4f;
+}
+
+.dark .tool-accent {
+  color: #d49a7a;
+}
+
+@utility tool-accent-bg {
+  background-color: #c4785a;
+}
+
+.dark .tool-accent-bg {
+  background-color: #c49378;
+}
+
+@utility tool-ring {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(196, 120, 90, 0.2);
+}
+
+.dark .tool-ring {
+  box-shadow: 0 0 0 2px rgba(212, 154, 122, 0.25);
+}
+
+/* 菜单栏选中态 —— 浅底 + 低饱和文字 + 右侧强调条 */
+@utility tool-menu-active-light {
+  background-color: #f3ece6;
+  color: #b86b4f;
+  box-shadow: inset -3px 0 0 0 #c4785a;
+}
+
+@utility tool-menu-active-dark {
+  background-color: #2a2520;
+  color: #d49a7a;
+  box-shadow: inset -3px 0 0 0 #c49378;
+}
+
+/* 弹窗/抽屉动画 */
+@keyframes tool-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes tool-slide-right {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes tool-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@utility animate-tool-enter {
+  animation: tool-enter 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@utility animate-tool-slide-right {
+  animation: tool-slide-right 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@utility animate-tool-fade-in {
+  animation: tool-fade-in 0.2s ease-out forwards;
+}
+
+/* 批注标记光晕 */
+@utility annotation-glow {
+  box-shadow: 0 0 0 4px rgba(196, 120, 90, 0.15), 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.dark .annotation-glow {
+  box-shadow: 0 0 0 4px rgba(212, 154, 122, 0.18), 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+/* 滚动条统一风格 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(28, 28, 28, 0.12);
+  border-radius: 999px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(245, 242, 237, 0.12);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(28, 28, 28, 0.2);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(245, 242, 237, 0.2);
+}

@@ -48,6 +48,16 @@ function AppContent() {
   const [docOpen, setDocOpen] = useState(false)
   const [docTab, setDocTab] = useState<'spec' | 'annotations'>('spec')
 
+  // 同步 html dark class 与 shadcn/CSS 变量
+  useEffect(() => {
+    const root = document.documentElement
+    if (theme === 'dark') {
+      root.classList.add('dark')
+    } else {
+      root.classList.remove('dark')
+    }
+  }, [theme])
+
   const { state: annotationState, actions: annotationActions, ui: annotationUI, docDrawerProps } = useAnnotationController({
     previewContainer,
     currentPath: location.pathname,
@@ -106,7 +116,7 @@ function AppContent() {
   const currentPage = useMemo(() => pages.find(p => p.path === location.pathname), [location.pathname])
 
   return (
-    <div className={`flex h-screen ${theme === 'dark' ? 'bg-slate-950' : 'bg-gray-100'}`}>
+    <div className={`flex h-screen overflow-hidden ${theme === 'dark' ? 'tool-backdrop-dark' : 'tool-backdrop-light'}`}>
       <Sidebar
         theme={theme}
         projectName={projectName || DEFAULT_PROJECT_NAME}
@@ -133,12 +143,12 @@ function AppContent() {
         />
 
         <main className="flex-1 overflow-hidden flex flex-col relative">
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 w-[400px] z-[1100] space-y-2 pointer-events-none">
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1100] pointer-events-none">
             {toast && (
-              <div className={`px-4 py-2 rounded-lg shadow-lg text-sm font-medium text-center pointer-events-auto ${
+              <div className={`animate-tool-enter pointer-events-auto px-4 py-2.5 rounded-xl text-sm font-medium shadow-xl border ${
                 toast.type === 'success'
-                  ? 'bg-gray-900 text-white'
-                  : 'bg-red-500 text-white'
+                  ? `${theme === 'dark' ? 'tool-panel-dark' : 'tool-panel-light'} tool-accent border-current/10`
+                  : `${theme === 'dark' ? 'bg-red-950/90 text-red-200 border-red-900/50' : 'bg-red-50 text-red-700 border-red-100'} shadow-lg`
               }`}>
                 {toast.message}
               </div>
@@ -146,19 +156,19 @@ function AppContent() {
           </div>
 
           <div className="flex-1 flex overflow-hidden">
-            <div className="flex-1 overflow-auto p-4">
+            <div className="flex-1 overflow-auto p-5 lg:p-6">
               <div
-                className={`relative z-[100] mx-auto transition-all duration-300 ${
+                className={`relative z-[100] mx-auto transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
                   deviceMode === 'mobile'
-                    ? 'w-[400px] h-[852px] mt-20'
+                    ? 'w-[400px] h-[852px] mt-12'
                     : 'w-full h-full'
                 }`}
               >
                 <div
                   ref={previewRef}
                   id="preview-container"
-                  className={`w-full h-full bg-white shadow-lg ${
-                    deviceMode === 'mobile' ? 'shadow-2xl overflow-hidden' : 'rounded-lg'
+                  className={`w-full h-full bg-white shadow-2xl ${
+                    deviceMode === 'mobile' ? 'rounded-[2.5rem] overflow-hidden ring-8 ring-black/5' : 'rounded-2xl'
                   }`}
                   style={{ transform: 'translateZ(0)' }}
                 >

@@ -45,10 +45,17 @@ export default function AnnotationPanel({
 
   const visibleCategories = categories.filter((c) => selectedCategories.has(c.key))
 
+  const textPrimary = isDark ? 'text-[#f5f2ed]' : 'text-[#1c1c1c]'
+  const textSecondary = isDark ? 'text-[#a0a0a0]' : 'text-[#6b6b6b]'
+  const textMuted = isDark ? 'text-[#808080]' : 'text-[#a0a0a0]'
+  const borderClass = isDark ? 'border-[#ffffff]/8' : 'border-[#1c1c1c]/8'
+  const hoverSurface = isDark ? 'hover:bg-[#333333]' : 'hover:bg-[#efe9e0]'
+  const selectedSurface = isDark ? 'bg-[#c49378]/10 text-[#d49a7a]' : 'bg-[#c4785a]/10 text-[#b86b4f]'
+
   return (
     <div className="h-full flex flex-col">
       {/* 分类筛选 */}
-      <div className={`px-4 py-3 border-b ${isDark ? 'border-slate-800' : 'border-gray-100'}`}>
+      <div className={`px-4 py-3 border-b ${borderClass}`}>
         <div className="flex flex-wrap gap-2">
           {categories.map((cat) => {
             const isSelected = selectedCategories.has(cat.key)
@@ -57,18 +64,18 @@ export default function AnnotationPanel({
               <button
                 key={cat.key}
                 onClick={() => onToggleCategory(cat.key)}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs border transition-opacity hover:opacity-80"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all duration-200 hover:opacity-85"
                 style={{
                   borderColor: cat.color,
                   backgroundColor: isSelected
                     ? cat.color
                     : isDark
                       ? `${cat.color}25`
-                      : `${cat.color}15`,
+                      : `${cat.color}14`,
                   color: isSelected ? '#ffffff' : cat.color,
                 }}
               >
-                <span className="font-medium">{cat.label}</span>
+                <span>{cat.label}</span>
                 <span
                   className="text-[10px] px-1 py-0 rounded-full"
                   style={{
@@ -85,9 +92,9 @@ export default function AnnotationPanel({
       </div>
 
       {/* Annotation list */}
-      <div className={`flex-1 overflow-y-auto p-2 space-y-1 ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
+      <div className="flex-1 overflow-y-auto p-2 space-y-1">
         {visibleCategories.length === 0 && (
-          <div className={`px-3 py-8 text-center text-sm ${isDark ? 'text-slate-500' : 'text-gray-400'}`}>
+          <div className={`px-3 py-8 text-center text-sm ${textMuted}`}>
             请选择分类以查看批注
           </div>
         )}
@@ -96,55 +103,51 @@ export default function AnnotationPanel({
           const isExpanded = expandedCategories.has(cat.key)
 
           return (
-            <div key={cat.key} className="rounded-lg overflow-hidden">
+            <div key={cat.key} className="rounded-xl overflow-hidden">
               <button
                 onClick={() => toggleExpand(cat.key)}
-                className={`w-full flex items-center justify-between px-3 py-2 text-sm font-medium transition-colors ${
-                  isDark ? 'hover:bg-slate-800' : 'hover:bg-gray-50'
-                }`}
+                className={`w-full flex items-center justify-between px-3 py-2.5 text-sm font-semibold transition-all duration-200 rounded-xl ${hoverSurface}`}
               >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5">
                   <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cat.color }} />
-                  <span className={`${isDark ? 'text-slate-200' : 'text-gray-900'}`}>{cat.label}</span>
-                  <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-400'}`}>({items.length})</span>
+                  <span className={textPrimary}>{cat.label}</span>
+                  <span className={`text-xs ${textMuted}`}>({items.length})</span>
                 </div>
                 {isExpanded ? (
-                  <ChevronDown size={14} className={isDark ? 'text-slate-500' : 'text-gray-400'} />
+                  <ChevronDown size={14} className={textMuted} />
                 ) : (
-                  <ChevronRight size={14} className={isDark ? 'text-slate-500' : 'text-gray-400'} />
+                  <ChevronRight size={14} className={textMuted} />
                 )}
               </button>
 
               {isExpanded && (
-                <div className="pb-1">
+                <div className="pb-1 pt-0.5">
                   {items.length === 0 ? (
-                    <div className={`px-3 py-2 text-xs ${isDark ? 'text-slate-500' : 'text-gray-400'}`}>暂无标注</div>
+                    <div className={`px-3 py-2 text-xs ${textMuted}`}>暂无标注</div>
                   ) : (
                     items.map((item) => (
                       <button
                         key={item.id}
                         onClick={(e) => onSelect(item.id, e.clientX, e.clientY)}
                         className={[
-                          'w-full text-left px-3 py-2 rounded-md mx-1 mb-1 text-sm transition-colors',
+                          'w-full text-left px-3 py-2.5 rounded-xl mx-1 mb-1 text-sm transition-all duration-200',
                           selectedId === item.id
-                            ? isDark
-                              ? 'bg-blue-900/30 text-blue-300'
-                              : 'bg-blue-50 text-blue-700'
-                            : isDark
-                              ? 'text-slate-300 hover:bg-slate-800'
-                              : 'text-gray-700 hover:bg-gray-50',
+                            ? selectedSurface
+                            : `${textSecondary} ${hoverSurface}`,
                         ].join(' ')}
                       >
-                        <div className="flex items-start gap-2">
+                        <div className="flex items-start gap-2.5">
                           <span
-                            className="flex-shrink-0 w-5 h-5 rounded-full text-xs text-white flex items-center justify-center font-bold"
+                            className="flex-shrink-0 w-5 h-5 rounded-full text-[10px] text-white flex items-center justify-center font-bold shadow-sm"
                             style={{ backgroundColor: cat.color }}
                           >
                             {item.number}
                           </span>
                           <div className="flex-1 min-w-0">
-                            <div className="font-medium truncate">{item.title || '未命名标注'}</div>
-                            <div className={`text-xs line-clamp-2 ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>
+                            <div className={`font-semibold truncate ${selectedId === item.id ? 'tool-accent' : textPrimary}`}>
+                              {item.title || '未命名标注'}
+                            </div>
+                            <div className={`text-xs line-clamp-2 mt-0.5 ${selectedId === item.id ? 'opacity-80' : textMuted}`}>
                               {item.content}
                             </div>
                           </div>
