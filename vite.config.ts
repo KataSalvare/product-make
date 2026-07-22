@@ -6,6 +6,8 @@ import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 import fs from 'fs'
 
+import { cloudflare } from "@cloudflare/vite-plugin";
+
 const ANNOTATIONS_FILE = path.resolve(__dirname, 'src/resources/annotations.json')
 
 // 提供标注数据的本地文件读写接口，替代 localStorage
@@ -58,7 +60,7 @@ function annotationsPlugin() {
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss(), annotationsPlugin()],
+  plugins: [react(), tailwindcss(), annotationsPlugin(), cloudflare()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
