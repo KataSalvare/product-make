@@ -15,6 +15,7 @@ import {
   Settings,
   Shield,
   FileText,
+  HardDrive,
   ChevronDown,
   ChevronRight,
 } from 'lucide-react';
@@ -39,6 +40,17 @@ const menuItems: MenuItem[] = [
     icon: <Monitor size={18} />,
     label: '数据大屏',
     path: '/admin/bigscreen',
+  },
+  {
+    key: 'cloud-drive',
+    icon: <HardDrive size={18} />,
+    label: '云盘管理',
+    children: [
+      { key: 'cloud-drive-overview', icon: <HardDrive size={16} />, label: '云盘总览', path: '/admin/cloud-drive' },
+      { key: 'cloud-drive-files', icon: <FileText size={16} />, label: '文件管理', path: '/admin/cloud-drive/files' },
+      { key: 'cloud-drive-quotas', icon: <Users size={16} />, label: '用户配额', path: '/admin/cloud-drive/quotas' },
+      { key: 'cloud-drive-audit', icon: <FileText size={16} />, label: '操作审计', path: '/admin/cloud-drive/audit' },
+    ],
   },
   {
     key: 'users',
@@ -154,10 +166,6 @@ export default function AdminSidebar() {
     return false;
   };
 
-  const isSubActive = (child: MenuItem) => {
-    return currentPath === child.path;
-  };
-
   return (
     <aside className="w-64 bg-white border-r border-gray-200 min-h-[calc(100vh-73px)] flex flex-col">
       <nav className="p-4 space-y-1 flex-1 overflow-y-auto">
@@ -189,9 +197,10 @@ export default function AdminSidebar() {
                       <NavLink
                         key={child.key}
                         to={child.path || '#'}
+                        end
                         className={({ isActive: navIsActive }) =>
                           `flex items-center gap-3 px-4 py-2 rounded-lg text-sm transition-colors ${
-                            navIsActive || isSubActive(child)
+                            navIsActive
                               ? 'bg-blue-100 text-blue-700'
                               : 'text-gray-600 hover:bg-gray-50'
                           }`

@@ -46,6 +46,13 @@ const mainItems: MenuItem[] = [
     path: '/favorites',
   },
   {
+    id: 'cloud-drive',
+    label: 'Cloud Drive',
+    icon: 'M7 16a4 4 0 01-.88-7.903A5.5 5.5 0 1116.9 8H17a4 4 0 010 8H7z M12 12v9m0 0l-3-3m3 3l3-3',
+    description: '3.2 GB of 10 GB used',
+    path: '/cloud-drive',
+  },
+  {
     id: 'chat-folders',
     label: 'Chat Folders',
     icon: 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z',
@@ -70,7 +77,7 @@ const supportItems: MenuItem[] = [
     id: 'about',
     label: 'About',
     icon: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
-    description: 'v2.1.0',
+    description: 'v1.2.0',
     path: '/about',
   },
   {

@@ -6,9 +6,10 @@
  */
 
 import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import '../../themes/equatorial-minimalism/globals.css';
 import './style.css';
+import { formatBytes, useCloudDrive } from '../superim-cloud-drive/store';
 
 interface Contact {
   id: string;
@@ -60,12 +61,17 @@ const savedMessagesTarget: Contact = {
 
 const ForwardMessagePage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const cloudDrive = useCloudDrive();
   const [activeTab, setActiveTab] = useState<'chats' | 'contacts'>('chats');
   const [activeFolderId, setActiveFolderId] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const isCloudDriveSend = searchParams.get('source') === 'cloud-drive';
+  const cloudFileIds = useMemo(() => (searchParams.get('fileIds') || '').split(',').filter(Boolean), [searchParams]);
+  const cloudFiles = useMemo(() => cloudDrive.files.filter(file => cloudFileIds.includes(file.id)), [cloudDrive.files, cloudFileIds]);
 
   const allChatTargets = useMemo(() => [savedMessagesTarget, ...mockChats], []);
 
@@ -191,7 +197,7 @@ const ForwardMessagePage: React.FC = () => {
               </svg>
             </button>
             <h1 className="text-headline-md text-[var(--primary)]">
-              Forward to{selectedIds.length > 0 && ` (${selectedIds.length})`}
+              {isCloudDriveSend ? `Send ${cloudFiles.length || ''} ${cloudFiles.length === 1 ? 'file' : 'files'} to` : 'Forward to'}{selectedIds.length > 0 && ` (${selectedIds.length})`}
             </h1>
           </div>
           <button
@@ -207,6 +213,20 @@ const ForwardMessagePage: React.FC = () => {
           </button>
         </div>
       </header>
+
+      {isCloudDriveSend && cloudFiles.length > 0 && (
+        <div className="px-4 py-3 bg-[var(--primary-fixed)]/45 border-b border-[var(--outline-variant)]">
+          <p className="text-label-sm font-semibold text-[var(--on-primary-fixed)]">FROM CLOUD DRIVE</p>
+          <div className="mt-2 flex gap-2 overflow-x-auto scrollbar-hide">
+            {cloudFiles.map(file => (
+              <div key={file.id} className="min-w-[170px] max-w-[210px] rounded-xl bg-[var(--surface-container-lowest)] border border-[var(--outline-variant)] px-3 py-2">
+                <p className="text-sm font-semibold text-[var(--on-surface)] truncate">{file.name}</p>
+                <p className="text-xs text-[var(--on-surface-variant)] mt-0.5">{formatBytes(file.sizeBytes)}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Search */}
       <div className="px-4 py-2 border-b border-[var(--outline-variant)]">
@@ -345,7 +365,7 @@ const ForwardMessagePage: React.FC = () => {
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
-            <span className="text-sm font-medium">Message forwarded!</span>
+            <span className="text-sm font-medium">{isCloudDriveSend ? `${cloudFiles.length} ${cloudFiles.length === 1 ? 'file' : 'files'} sent!` : 'Message forwarded!'}</span>
           </div>
         </div>
       )}

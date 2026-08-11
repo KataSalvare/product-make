@@ -366,3 +366,12 @@ interface GroupChatState {
 - 下拉刷新手势
 - 显示loading spinner
 - 加载完成后平滑插入消息
+
+---
+
+## 6. v1.2 云盘集成
+
+- Share 附件面板新增 Cloud Drive，进入 `/cloud-drive?mode=picker&target=group-chat`。
+- Picker 返回 `cloudDriveSelection` 后，将所选文件追加为当前用户发送的群文件消息。
+- 文件消息长按菜单新增 Save to Cloud Drive；保存来源记录为群名称。
+- 临时会话不继承本页云盘能力。

@@ -140,3 +140,10 @@ interface Favorite {
 - `--on-surface` 主要文本色
 - `--on-surface-variant` 次要文本/时间色
 - `--outline-variant` 分割线、边框
+
+## 6. v1.2 云盘互通
+
+- Saved Messages 与 Cloud Drive 保持独立：前者按消息组织，后者按文件与文件夹组织。
+- 文件类型消息的长按菜单新增 Save to Cloud Drive。
+- 使用 `saved-message-{id}` 作为来源标识，重复保存时不创建副本并显示提示。
+- 云盘文件通过转发选择器发送到 Saved Messages 时，Saved Messages 仍作为普通接收目标。

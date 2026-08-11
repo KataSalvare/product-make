@@ -207,3 +207,12 @@ interface ForwardState {
 ### 5.4 搜索无结果
 - 显示空状态插图
 - 提示"No chats/contacts found for \"{query}\""
+
+---
+
+## 6. v1.2 云盘文件发送
+
+- 当查询参数为 `source=cloud-drive&fileIds=<ids>` 时，Header 显示待发送文件数量。
+- 接收人列表上方展示文件名和大小摘要，避免用户失去发送上下文。
+- Chats/Contacts、文件夹筛选、最多 50 个接收者和 Saved Messages 目标沿用现有逻辑。
+- 发送成功提示改为 `X files sent!`，随后返回云盘来源页。

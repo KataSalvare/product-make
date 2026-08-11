@@ -268,3 +268,10 @@
 ## 6. 主题适配
 
 使用 Equatorial Minimalism 主题，发送消息使用主色背景。
+
+## 7. v1.2 云盘集成
+
+- Share 附件面板新增 Cloud Drive，进入 `/cloud-drive?mode=picker&target=chatroom`。
+- Picker 返回 `cloudDriveSelection` 后，将所选文件追加为已发送文件消息。
+- 文件消息长按菜单新增 Save to Cloud Drive；同一消息重复保存时提示 `Already saved to Cloud Drive`。
+- 普通本地文件上传消息记录文件名、MIME 和大小，以便后续保存到云盘。

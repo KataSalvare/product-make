@@ -6,11 +6,12 @@
  */
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import '../../themes/equatorial-minimalism/globals.css';
 import './style.css';
+import { type CloudFile, formatBytes, useCloudDrive } from '../superim-cloud-drive/store';
 
-type MessageType = 'text' | 'image' | 'location' | 'video';
+type MessageType = 'text' | 'image' | 'location' | 'video' | 'file';
 
 interface Message {
   id: string;
@@ -23,6 +24,9 @@ interface Message {
   isPinned?: boolean;
   type?: MessageType;
   mediaUrl?: string;
+  fileName?: string;
+  fileSizeBytes?: number;
+  fileMimeType?: string;
   location?: {
     name: string;
     address: string;
@@ -77,9 +81,10 @@ const mockMessages: Message[] = [
   { id: '8', text: 'I\'m at the coffee shop nearby, come join me!', timestamp: '10:40 AM', sender: 'Amara', senderAvatar: 'AO', isMe: false, type: 'location', location: { name: 'Blue Bottle Coffee', address: '123 Market St, San Francisco', lat: 37.7749, lng: -122.4194 } },
   { id: '9', text: 'On my way! Sending you a quick video of the prototype:', timestamp: '10:42 AM', sender: 'You', senderAvatar: 'ME', isMe: true },
   { id: '10', text: '', timestamp: '10:42 AM', sender: 'You', senderAvatar: 'ME', isMe: true, type: 'video', mediaUrl: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=400&h=300&fit=crop' },
+  { id: '11', text: 'Design handoff.pdf', timestamp: '10:45 AM', sender: 'Zara', senderAvatar: 'ZM', isMe: false, type: 'file', fileName: 'Design handoff.pdf', fileSizeBytes: 8.6 * 1024 * 1024, fileMimeType: 'application/pdf' },
 ];
 
-type MessageAction = 'reply' | 'copy' | 'forward' | 'pin' | 'select' | 'delete';
+type MessageAction = 'reply' | 'copy' | 'forward' | 'pin' | 'select' | 'saveToCloud' | 'delete';
 
 interface MessageMenuItem {
   action: MessageAction;
@@ -88,12 +93,13 @@ interface MessageMenuItem {
   danger?: boolean;
 }
 
-const getMessageMenuItems = (isPinned: boolean): MessageMenuItem[] => [
+const getMessageMenuItems = (isPinned: boolean, isFile: boolean): MessageMenuItem[] => [
   { action: 'reply', label: 'Reply', icon: 'M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6' },
   { action: 'copy', label: 'Copy', icon: 'M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z' },
   { action: 'forward', label: 'Forward', icon: 'M13 5l7 7-7 7M5 5l7 7-7 7' },
   { action: 'pin', label: isPinned ? 'Unpin' : 'Pin', icon: 'M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z' },
   { action: 'select', label: 'Select', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' },
+  ...(isFile ? [{ action: 'saveToCloud' as MessageAction, label: 'Save to Cloud Drive', icon: 'M7 16a4 4 0 01-.88-7.903A5.5 5.5 0 1116.9 8H17a4 4 0 010 8h-3m-2-4v9m0 0l-3-3m3 3l3-3' }] : []),
   { action: 'delete', label: 'Delete', icon: 'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16', danger: true },
 ];
 
@@ -111,6 +117,8 @@ const autoDeleteOptions = [
 
 const GroupChatPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const cloudDrive = useCloudDrive();
   const [messages, setMessages] = useState<Message[]>(mockMessages);
   const [inputText, setInputText] = useState('');
   const [showAnnouncement, setShowAnnouncement] = useState(true);
@@ -130,7 +138,7 @@ const GroupChatPage: React.FC = () => {
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [showMentionPopup, setShowMentionPopup] = useState(false);
   const [mentionQuery, setMentionQuery] = useState('');
-  const [toast] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [selectedMessageIds, setSelectedMessageIds] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -146,6 +154,31 @@ const GroupChatPage: React.FC = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    const state = location.state as { cloudDriveSelection?: CloudFile[] } | null;
+    if (!state?.cloudDriveSelection?.length) return;
+    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const cloudMessages: Message[] = state.cloudDriveSelection.map((file) => ({
+      id: `cloud-${file.id}-${Date.now()}`,
+      text: file.name,
+      timestamp: now,
+      sender: 'You',
+      senderAvatar: 'ME',
+      isMe: true,
+      type: 'file',
+      fileName: file.name,
+      fileSizeBytes: file.sizeBytes,
+      fileMimeType: file.mimeType,
+    }));
+    const applySelection = window.setTimeout(() => {
+      setMessages((current) => [...current, ...cloudMessages]);
+      setToast(`${cloudMessages.length} ${cloudMessages.length === 1 ? 'file' : 'files'} sent from Cloud Drive`);
+      window.setTimeout(() => setToast(null), 2200);
+      navigate('/group-chat', { replace: true, state: null });
+    }, 0);
+    return () => window.clearTimeout(applySelection);
+  }, [location.state, navigate]);
 
   // Recording timer
   useEffect(() => {
@@ -376,6 +409,19 @@ const GroupChatPage: React.FC = () => {
         setIsMultiSelectMode(true);
         setSelectedMessageIds([selectedMessage.id]);
         break;
+      case 'saveToCloud': {
+        if (!selectedMessage.fileName) break;
+        const result = cloudDrive.saveMessageFile({
+          name: selectedMessage.fileName,
+          sizeBytes: selectedMessage.fileSizeBytes,
+          mimeType: selectedMessage.fileMimeType,
+          sourceMessageId: `groupchat-${selectedMessage.id}`,
+          sourceChat: mockGroup.name,
+        });
+        setToast(result.duplicate ? 'Already saved to Cloud Drive' : result.error || 'Saved to Cloud Drive');
+        window.setTimeout(() => setToast(null), 2200);
+        break;
+      }
       case 'delete':
         setShowDeleteConfirm(true);
         setShowMessageMenu(false);
@@ -479,6 +525,16 @@ const GroupChatPage: React.FC = () => {
               </div>
             </div>
             {message.text && <p className="text-body-md mt-2 text-[var(--on-surface)]">{renderMessageText(message.text)}</p>}
+          </div>
+        );
+      }
+      if (message.type === 'file' && message.fileName) {
+        return (
+          <div className="min-w-[210px] flex items-center gap-3">
+            <span className="w-11 h-11 rounded-xl bg-[var(--primary-fixed)] text-[var(--on-primary-fixed)] flex items-center justify-center flex-shrink-0">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+            </span>
+            <span className="min-w-0"><span className="block text-sm font-semibold truncate">{message.fileName}</span><span className="block mt-0.5 text-xs text-[var(--on-surface-variant)]">{formatBytes(message.fileSizeBytes || 0)}</span></span>
           </div>
         );
       }
@@ -900,7 +956,7 @@ const GroupChatPage: React.FC = () => {
           className="fixed bg-[var(--surface-container-low)] rounded-xl shadow-ambient-lg py-2 z-50 min-w-[160px]"
           style={{ left: menuPosition.x, top: menuPosition.y }}
         >
-          {getMessageMenuItems(selectedMessage.isPinned || false).map((item: MessageMenuItem) => (
+          {getMessageMenuItems(selectedMessage.isPinned || false, selectedMessage.type === 'file').map((item: MessageMenuItem) => (
             <button
               key={item.action}
               onClick={() => handleMessageAction(item.action)}
@@ -1094,6 +1150,10 @@ const GroupChatPage: React.FC = () => {
               sender: 'You',
               senderAvatar: 'ME',
               isMe: true,
+              type: 'file',
+              fileName: file.name,
+              fileSizeBytes: file.size,
+              fileMimeType: file.type || 'application/octet-stream',
             };
             setMessages([...messages, newMessage]);
           }
@@ -1207,6 +1267,18 @@ const GroupChatPage: React.FC = () => {
                   </svg>
                 </div>
                 <span className="text-label-xs text-[var(--on-surface)]">Location</span>
+              </button>
+              <button
+                onClick={() => {
+                  setShowAttachMenu(false);
+                  navigate('/cloud-drive?mode=picker&target=group-chat');
+                }}
+                className="flex flex-col items-center gap-2 py-2 cursor-pointer"
+              >
+                <div className="w-14 h-14 bg-[var(--primary-fixed)] rounded-2xl flex items-center justify-center">
+                  <svg className="w-7 h-7 text-[var(--on-primary-fixed)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5.5 5.5 0 1116.9 8H17a4 4 0 010 8H7z" /></svg>
+                </div>
+                <span className="text-label-xs text-[var(--on-surface)]">Cloud Drive</span>
               </button>
             </div>
           </div>

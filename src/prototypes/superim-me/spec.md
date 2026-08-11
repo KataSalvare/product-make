@@ -110,6 +110,7 @@
 |--------|----------|
 | My Posts | /my-posts |
 | Saved Messages | /favorites |
+| Cloud Drive | /cloud-drive |
 | Chat Folders | /chat-folders |
 | Settings | /settings |
 | Help Center | /help-center |
@@ -126,3 +127,9 @@
 ## 4. 主题适配
 
 使用 Equatorial Minimalism 主题变量，与 Chats、UserProfile 等页面保持一致。
+
+## 5. v1.2 云盘入口
+
+- Cloud Drive 位于 Saved Messages 之后，显示模拟容量摘要 `3.2 GB of 10 GB used`。
+- 点击进入 `/cloud-drive`；底部五栏导航保持不变。
+- About 版本更新为 `v1.2.0`。

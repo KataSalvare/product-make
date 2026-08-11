@@ -8,6 +8,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../../themes/equatorial-minimalism/globals.css';
 import './style.css';
+import { useCloudDrive } from '../superim-cloud-drive/store';
 
 type FavoriteType = 'text' | 'image' | 'video' | 'link' | 'file';
 
@@ -26,7 +27,7 @@ interface Favorite {
   replyTo?: { id: string; content: string };
 }
 
-type MenuAction = 'reply' | 'forward' | 'copy' | 'delete' | 'select';
+type MenuAction = 'reply' | 'forward' | 'copy' | 'saveToCloud' | 'delete' | 'select';
 
 const mockFavorites: Favorite[] = [
   {
@@ -82,6 +83,7 @@ const mockFavorites: Favorite[] = [
 
 const FavoritesPage: React.FC = () => {
   const navigate = useNavigate();
+  const cloudDrive = useCloudDrive();
   const [favorites, setFavorites] = useState<Favorite[]>(mockFavorites);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -203,6 +205,19 @@ const FavoritesPage: React.FC = () => {
         navigator.clipboard.writeText(item.content).catch(() => {});
         showToast('Copied to clipboard');
         break;
+      case 'saveToCloud': {
+        if (item.type !== 'file' || !item.fileName) break;
+        const sizeInMb = Number.parseFloat(item.fileSize || '2.4') || 2.4;
+        const result = cloudDrive.saveMessageFile({
+          name: item.fileName,
+          sizeBytes: sizeInMb * 1024 * 1024,
+          mimeType: item.fileName.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream',
+          sourceMessageId: `saved-message-${item.id}`,
+          sourceChat: 'Saved Messages',
+        });
+        showToast(result.duplicate ? 'Already saved to Cloud Drive' : result.error || 'Saved to Cloud Drive');
+        break;
+      }
       case 'delete':
         setShowDeleteConfirm(true);
         break;
@@ -771,11 +786,14 @@ const FavoritesPage: React.FC = () => {
         className="hidden"
         onChange={(e) => {
           if (e.target.files && e.target.files[0]) {
+            const selectedFile = e.target.files[0];
             const newNote: Favorite = {
               id: `f${Date.now()}`,
-              type: 'text',
+              type: 'file',
               source: 'You',
-              content: `📎 ${e.target.files[0].name}`,
+              content: selectedFile.name,
+              fileName: selectedFile.name,
+              fileSize: `${Math.max(0.1, selectedFile.size / 1024 / 1024).toFixed(1)} MB`,
               time: 'Just now',
               isFromMe: true,
             };
@@ -795,6 +813,7 @@ const FavoritesPage: React.FC = () => {
             { action: 'reply' as MenuAction, label: 'Reply', icon: 'M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6' },
             { action: 'forward' as MenuAction, label: 'Forward', icon: 'M13 5l7 7-7 7M5 5l7 7-7 7' },
             { action: 'copy' as MenuAction, label: 'Copy', icon: 'M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z' },
+            ...(contextMenu.item.type === 'file' ? [{ action: 'saveToCloud' as MenuAction, label: 'Save to Cloud Drive', icon: 'M7 16a4 4 0 01-.88-7.903A5.5 5.5 0 1116.9 8H17a4 4 0 010 8h-3m-2-4v9m0 0l-3-3m3 3l3-3' }] : []),
             { action: 'delete' as MenuAction, label: 'Delete', icon: 'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16' },
             { action: 'select' as MenuAction, label: 'Select', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' },
           ].map((item) => (

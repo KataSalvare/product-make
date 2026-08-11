@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, NavLink, useLocation, useParams } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, NavLink, matchPath, useLocation, useParams } from 'react-router-dom'
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { Smartphone, Monitor, ChevronRight, ChevronDown, FileText, XIcon, Keyboard, Sun, Moon, Palette } from 'lucide-react'
 
@@ -76,7 +76,7 @@ Object.entries(allModules).forEach(([path, mod]) => {
 })
 
 // 页面路径映射配置
-const frontendPageConfig: Record<string, { path: string; label: string }> = {
+const frontendPageConfig: Record<string, { path: string; label: string; navPath?: string }> = {
   'superim-splash': { path: '/', label: '启动页' },
   'superim-login': { path: '/login', label: '登录' },
   'superim-register': { path: '/register', label: '注册' },
@@ -106,12 +106,19 @@ const frontendPageConfig: Record<string, { path: string; label: string }> = {
   'superim-favorite-detail': { path: '/favorite/:id', label: '收藏详情' },
   'superim-account-switcher': { path: '/account-switcher', label: '账号切换' },
   'superim-settings': { path: '/settings', label: '设置' },
+  'superim-cloud-drive': { path: '/cloud-drive', label: '云盘首页' },
+  'superim-cloud-drive-folder': { path: '/cloud-drive/folder/:folderId', navPath: '/cloud-drive/folder/work', label: '云盘文件夹' },
+  'superim-cloud-drive-file': { path: '/cloud-drive/file/:fileId', navPath: '/cloud-drive/file/brand-film', label: '云盘文件详情' },
 }
 
 const adminPageConfig: Record<string, { path: string; label: string }> = {
   'superim-admin-login': { path: '/admin/login', label: '管理员登录' },
   'superim-admin-dashboard': { path: '/admin/dashboard', label: '仪表盘' },
   'superim-admin-bigscreen': { path: '/admin/bigscreen', label: '数据大屏' },
+  'superim-admin-cloud-drive': { path: '/admin/cloud-drive', label: '云盘总览' },
+  'superim-admin-cloud-drive-files': { path: '/admin/cloud-drive/files', label: '文件管理' },
+  'superim-admin-cloud-drive-quotas': { path: '/admin/cloud-drive/quotas', label: '用户配额' },
+  'superim-admin-cloud-drive-audit': { path: '/admin/cloud-drive/audit', label: '操作审计' },
   'superim-admin-users': { path: '/admin/users', label: '用户列表' },
   'superim-admin-user-detail': { path: '/admin/users/:userId', label: '用户详情' },
   'superim-admin-online-users': { path: '/admin/online-users', label: '在线用户' },
@@ -265,6 +272,7 @@ type PageCategory = 'frontend' | 'admin'
 
 interface PageItem {
   path: string
+  navPath?: string
   label: string
   component: React.ComponentType
   category: PageCategory
@@ -285,6 +293,7 @@ const generatePages = (): PageItem[] => {
       if (config) {
         pages.push({
           path: config.path,
+          navPath: config.navPath,
           label: config.label,
           component: getDefaultComponent(mod),
           category: 'frontend',
@@ -316,6 +325,9 @@ const generatePages = (): PageItem[] => {
 }
 
 const pages = generatePages()
+
+const findPageForPath = (pathname: string): PageItem | undefined =>
+  pages.find(page => matchPath({ path: page.path, end: true }, pathname) != null)
 
 // ==================== 主题导航组件 ====================
 interface ThemeNavProps {
@@ -433,7 +445,7 @@ const Sidebar = ({ theme, projectName, onProjectNameChange }: SidebarProps) => {
   const location = useLocation()
   const [activeTab, setActiveTab] = useState<PageCategory | 'themes' | 'docs'>('frontend')
   // 默认展开所有分组
-  const [expandedGroups, setExpandedGroups] = useState<string[]>(['启动/认证', '即时通讯', '通讯录', '社交动态', '个人中心', '通话', '收藏夹', '数据概览', '用户管理', '消息管理', '动态管理', '通话记录', '系统设置', '权限管理', '日志管理'])
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(['启动/认证', '即时通讯', '通讯录', '社交动态', '个人中心', '通话', '收藏夹', '云盘', '数据概览', '云盘管理', '用户管理', '消息管理', '动态管理', '通话记录', '系统设置', '权限管理', '日志管理'])
 
   // 根据当前选中的标签页过滤页面
   const filteredPages = pages.filter(p => p.category === activeTab as PageCategory)
@@ -445,6 +457,7 @@ const Sidebar = ({ theme, projectName, onProjectNameChange }: SidebarProps) => {
     '通讯录': filteredPages.filter(p => ['通讯录', '选择联系人', '添加联系人'].includes(p.label)),
     '社交动态': filteredPages.filter(p => ['动态', '发布动态', '动态详情', '我的动态'].includes(p.label)),
     '收藏夹': filteredPages.filter(p => ['收藏夹', '收藏详情'].includes(p.label)),
+    '云盘': filteredPages.filter(p => p.label === '云盘首页'),
     '个人中心': filteredPages.filter(p => ['个人中心', '查看用户资料', '编辑资料', '安全设置', '隐私设置', '账号切换', '设置'].includes(p.label)),
     '通话': filteredPages.filter(p => ['通话记录', '通话界面'].includes(p.label)),
   }
@@ -452,6 +465,7 @@ const Sidebar = ({ theme, projectName, onProjectNameChange }: SidebarProps) => {
   // 后台页面分组配置（与 AdminSidebar 导航结构保持一致）
   const adminGroups: Record<string, PageItem[]> = {
     '数据概览': filteredPages.filter(p => ['仪表盘', '数据大屏'].includes(p.label)),
+    '云盘管理': filteredPages.filter(p => ['云盘总览', '文件管理', '用户配额', '操作审计'].includes(p.label)),
     '用户管理': filteredPages.filter(p => ['用户列表', '用户详情', '在线用户', '封禁管理'].includes(p.label)),
     '消息管理': filteredPages.filter(p => ['会话列表', '会话详情', '举报消息', '敏感词库'].includes(p.label)),
     '动态管理': filteredPages.filter(p => ['动态列表', '动态详情', '评论管理', '动态举报'].includes(p.label)),
@@ -599,10 +613,10 @@ const Sidebar = ({ theme, projectName, onProjectNameChange }: SidebarProps) => {
                       {groupPages.map(page => (
                         <NavLink
                           key={page.path}
-                          to={page.path}
+                          to={page.navPath ?? page.path}
                           className={({ isActive: navActive }) =>
                             `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                              navActive || isActive(page.path)
+                              navActive || isActive(page.navPath ?? page.path)
                                 ? 'bg-blue-600 text-white'
                                 : isDark
                                   ? 'text-slate-300 hover:bg-slate-800 hover:text-white'
@@ -666,10 +680,10 @@ const Sidebar = ({ theme, projectName, onProjectNameChange }: SidebarProps) => {
                       {groupPages.map(page => (
                         <NavLink
                           key={page.path}
-                          to={page.path}
+                          to={page.navPath ?? page.path}
                           className={({ isActive: navActive }) =>
                             `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                              navActive || isActive(page.path)
+                            navActive || isActive(page.navPath ?? page.path)
                                 ? 'bg-blue-600 text-white'
                                 : isDark
                                   ? 'text-slate-300 hover:bg-slate-800 hover:text-white'
@@ -853,7 +867,7 @@ interface TopBarProps {
 
 const TopBar = ({ deviceMode, setDeviceMode, showToast, shortcuts, setShortcuts, theme, toggleTheme }: TopBarProps) => {
   const location = useLocation()
-  const currentPage = pages.find(p => p.path === location.pathname)
+  const currentPage = findPageForPath(location.pathname)
   const [docOpen, setDocOpen] = useState(false)
   const [docContent, setDocContent] = useState<string | null>(null)
   const [docLoading, setDocLoading] = useState(false)
@@ -1364,7 +1378,7 @@ function AppContent() {
   const location = useLocation()
   const previewRef = useRef<HTMLDivElement>(null)
   const [deviceMode, setDeviceMode] = useState<'mobile' | 'pc'>(() => {
-    const page = pages.find(p => p.path === location.pathname)
+    const page = findPageForPath(location.pathname)
     return page?.category === 'admin' ? 'pc' : 'mobile'
   })
   // toast 状态提升到 AppContent
@@ -1390,7 +1404,7 @@ function AppContent() {
   }, [])
 
   useEffect(() => {
-    const page = pages.find(p => p.path === location.pathname)
+    const page = findPageForPath(location.pathname)
     // 主题和文档页面使用 PC 模式
     const isThemeOrDoc = location.pathname.startsWith('/theme') || location.pathname.startsWith('/doc') || location.pathname === '/themes' || location.pathname === '/docs'
     // eslint-disable-next-line react-hooks/set-state-in-effect
