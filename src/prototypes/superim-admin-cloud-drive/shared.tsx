@@ -336,7 +336,7 @@ export const useAdminCloudDrive = () => {
 }
 
 export const AdminCloudDriveShell = ({ title, description, children, actions }: { title: string; description: string; children: ReactNode; actions?: ReactNode }) => (
-  <div className="min-h-screen bg-gray-50 text-gray-900">
+  <div className="relative min-h-screen bg-gray-50 text-gray-900">
     <header className="h-[73px] bg-white border-b border-gray-200 flex items-center justify-between px-6 sticky top-0 z-40">
       <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center"><HardDrive size={21} /></div><div><p className="font-bold leading-tight">SuperIM Admin</p><p className="text-xs text-gray-500">云盘运营工作台</p></div></div>
       <div className="flex items-center gap-3"><span className="hidden sm:inline text-sm text-gray-500">当前管理员</span><span className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-semibold">A</span></div>

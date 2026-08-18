@@ -450,30 +450,42 @@ const Sidebar = ({ theme, projectName, onProjectNameChange }: SidebarProps) => {
   // 根据当前选中的标签页过滤页面
   const filteredPages = pages.filter(p => p.category === activeTab as PageCategory)
 
-  // 前端页面分组配置
-  const frontendGroups: Record<string, PageItem[]> = {
-    '启动/认证': filteredPages.filter(p => ['启动页', '登录', '注册', '忘记密码'].includes(p.label)),
-    '即时通讯': filteredPages.filter(p => ['聊天列表', '聊天室', '群聊', '群聊设置', '转发消息', '临时会话', '对话文件夹'].includes(p.label)),
-    '通讯录': filteredPages.filter(p => ['通讯录', '选择联系人', '添加联系人'].includes(p.label)),
-    '社交动态': filteredPages.filter(p => ['动态', '发布动态', '动态详情', '我的动态'].includes(p.label)),
-    '收藏夹': filteredPages.filter(p => ['收藏夹', '收藏详情'].includes(p.label)),
-    '云盘': filteredPages.filter(p => p.label === '云盘首页'),
-    '个人中心': filteredPages.filter(p => ['个人中心', '查看用户资料', '编辑资料', '安全设置', '隐私设置', '账号切换', '设置'].includes(p.label)),
-    '通话': filteredPages.filter(p => ['通话记录', '通话界面'].includes(p.label)),
+  // 前端页面分组配置（按数组顺序排序）
+  const orderedFrontendGroups: Record<string, string[]> = {
+    '启动/认证': ['启动页', '登录', '注册', '忘记密码'],
+    '即时通讯': ['聊天列表', '聊天室', '群聊', '群聊设置', '转发消息', '临时会话', '对话文件夹'],
+    '通讯录': ['通讯录', '选择联系人', '添加联系人'],
+    '社交动态': ['动态', '发布动态', '动态详情', '我的动态'],
+    '收藏夹': ['收藏夹', '收藏详情'],
+    '云盘': ['云盘首页'],
+    '个人中心': ['个人中心', '查看用户资料', '编辑资料', '安全设置', '隐私设置', '账号切换', '设置'],
+    '通话': ['通话记录', '通话界面'],
   }
+  const frontendGroups: Record<string, PageItem[]> = Object.fromEntries(
+    Object.entries(orderedFrontendGroups).map(([groupName, labelOrder]) => [
+      groupName,
+      labelOrder.map(label => filteredPages.find(p => p.label === label)).filter((p): p is PageItem => !!p),
+    ])
+  )
 
-  // 后台页面分组配置（与 AdminSidebar 导航结构保持一致）
-  const adminGroups: Record<string, PageItem[]> = {
-    '数据概览': filteredPages.filter(p => ['仪表盘', '数据大屏'].includes(p.label)),
-    '云盘管理': filteredPages.filter(p => ['云盘总览', '文件管理', '用户配额', '操作审计'].includes(p.label)),
-    '用户管理': filteredPages.filter(p => ['用户列表', '用户详情', '在线用户', '封禁管理'].includes(p.label)),
-    '消息管理': filteredPages.filter(p => ['会话列表', '会话详情', '举报消息', '敏感词库'].includes(p.label)),
-    '动态管理': filteredPages.filter(p => ['动态列表', '动态详情', '评论管理', '动态举报'].includes(p.label)),
-    '通话记录': filteredPages.filter(p => p.label === '通话记录'),
-    '系统设置': filteredPages.filter(p => ['基础配置', '版本管理'].includes(p.label)),
-    '权限管理': filteredPages.filter(p => ['管理员列表', '角色管理'].includes(p.label)),
-    '日志管理': filteredPages.filter(p => ['操作日志', '登录日志', '系统日志'].includes(p.label)),
+  // 后台页面分组配置（按数组顺序排序，与 AdminSidebar 导航结构保持一致）
+  const orderedAdminGroups: Record<string, string[]> = {
+    '数据概览': ['仪表盘', '数据大屏'],
+    '云盘管理': ['云盘总览', '文件管理', '操作审计', '用户配额'],
+    '用户管理': ['用户列表', '用户详情', '在线用户', '封禁管理'],
+    '消息管理': ['会话列表', '会话详情', '举报消息', '敏感词库'],
+    '动态管理': ['动态列表', '动态详情', '评论管理', '动态举报'],
+    '通话记录': ['通话记录'],
+    '系统设置': ['基础配置', '版本管理'],
+    '权限管理': ['管理员列表', '角色管理'],
+    '日志管理': ['操作日志', '登录日志', '系统日志'],
   }
+  const adminGroups: Record<string, PageItem[]> = Object.fromEntries(
+    Object.entries(orderedAdminGroups).map(([groupName, labelOrder]) => [
+      groupName,
+      labelOrder.map(label => filteredPages.find(p => p.label === label)).filter((p): p is PageItem => !!p),
+    ])
+  )
 
   const toggleGroup = (group: string) => {
     setExpandedGroups(prev =>
@@ -614,6 +626,7 @@ const Sidebar = ({ theme, projectName, onProjectNameChange }: SidebarProps) => {
                         <NavLink
                           key={page.path}
                           to={page.navPath ?? page.path}
+                          end
                           className={({ isActive: navActive }) =>
                             `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
                               navActive || isActive(page.navPath ?? page.path)
@@ -642,6 +655,7 @@ const Sidebar = ({ theme, projectName, onProjectNameChange }: SidebarProps) => {
               <NavLink
                 key={page.path}
                 to={page.path}
+                end
                 className={({ isActive: navActive }) =>
                   `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors mb-2 ${
                     navActive || isActive(page.path)
@@ -681,6 +695,7 @@ const Sidebar = ({ theme, projectName, onProjectNameChange }: SidebarProps) => {
                         <NavLink
                           key={page.path}
                           to={page.navPath ?? page.path}
+                          end
                           className={({ isActive: navActive }) =>
                             `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
                             navActive || isActive(page.navPath ?? page.path)
