@@ -5,10 +5,10 @@
  */
 
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import '../../themes/equatorial-minimalism/globals.css';
 import './style.css';
-import { useCloudDrive } from '../superim-cloud-drive/store';
+import { type CloudFile, formatBytes, useCloudDrive } from '../superim-cloud-drive/store';
 
 type FavoriteType = 'text' | 'image' | 'video' | 'link' | 'file';
 
@@ -23,7 +23,10 @@ interface Favorite {
   url?: string;
   fileName?: string;
   fileSize?: string;
+  fileSizeBytes?: number;
+  fileMimeType?: string;
   isFromMe?: boolean;
+  isCloudDrive?: boolean;
   replyTo?: { id: string; content: string };
 }
 
@@ -37,6 +40,21 @@ const mockFavorites: Favorite[] = [
     content: 'Project brief.pdf',
     fileName: 'Project brief.pdf',
     fileSize: '2.4 MB',
+    fileSizeBytes: 2.4 * 1024 * 1024,
+    fileMimeType: 'application/pdf',
+    time: 'Last week',
+  },
+  {
+    id: 'cd-1',
+    type: 'file',
+    source: 'You',
+    content: 'Q2 financial report.xlsx',
+    fileName: 'Q2 financial report.xlsx',
+    fileSize: '1.8 MB',
+    fileSizeBytes: 1.8 * 1024 * 1024,
+    fileMimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    isFromMe: true,
+    isCloudDrive: true,
     time: 'Last week',
   },
   {
@@ -65,6 +83,19 @@ const mockFavorites: Favorite[] = [
     time: 'Monday, 8:00 PM',
   },
   {
+    id: 'cd-2',
+    type: 'image',
+    source: 'You',
+    content: 'Design reference pack',
+    fileName: 'Design reference pack.zip',
+    fileSize: '12.6 MB',
+    fileSizeBytes: 12.6 * 1024 * 1024,
+    fileMimeType: 'application/zip',
+    isFromMe: true,
+    isCloudDrive: true,
+    time: 'Monday, 9:20 PM',
+  },
+  {
     id: '5',
     type: 'image',
     source: 'Amara Okafor',
@@ -83,6 +114,7 @@ const mockFavorites: Favorite[] = [
 
 const FavoritesPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const cloudDrive = useCloudDrive();
   const [favorites, setFavorites] = useState<Favorite[]>(mockFavorites);
   const [searchQuery, setSearchQuery] = useState('');
@@ -101,6 +133,33 @@ const FavoritesPage: React.FC = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const viewMenuRef = useRef<HTMLDivElement>(null);
+
+  // Handle Cloud Drive picker return
+  useEffect(() => {
+    const state = location.state as { cloudDriveSelection?: CloudFile[] } | null;
+    if (!state?.cloudDriveSelection?.length) return;
+    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const cloudItems: Favorite[] = state.cloudDriveSelection.map((file) => ({
+      id: `cloud-${file.id}-${Date.now()}`,
+      type: 'file',
+      source: 'You',
+      content: file.name,
+      fileName: file.name,
+      fileSize: formatBytes(file.sizeBytes),
+      fileSizeBytes: file.sizeBytes,
+      fileMimeType: file.mimeType,
+      isFromMe: true,
+      isCloudDrive: true,
+      time: now,
+    }));
+    const applySelection = window.setTimeout(() => {
+      setFavorites((current) => [...current, ...cloudItems]);
+      setToast(`${cloudItems.length} ${cloudItems.length === 1 ? 'item' : 'items'} shared from Cloud Drive to Saved Messages`);
+      window.setTimeout(() => setToast(null), 2200);
+      navigate('/favorites', { replace: true, state: null });
+    }, 0);
+    return () => window.clearTimeout(applySelection);
+  }, [location.state, navigate]);
 
   const menuRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -347,14 +406,26 @@ const FavoritesPage: React.FC = () => {
         );
       case 'file':
         return (
-          <div className="flex items-center gap-2">
-            <svg className="w-5 h-5 text-[var(--on-surface-variant)] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <div>
-              <p className="text-body-md text-[var(--on-surface)]">{item.fileName}</p>
-              <p className="text-label-sm text-[var(--on-surface-variant)]">{item.fileSize}</p>
+          <div className="min-w-[200px]">
+            <div className="flex items-center gap-3">
+              <span className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${item.isCloudDrive ? 'bg-[var(--primary-fixed)] text-[var(--on-primary-fixed)]' : 'bg-[var(--secondary-container)] text-[var(--on-secondary-container)]'}`}>
+                {item.isCloudDrive ? (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5.5 5.5 0 1116.9 8H17a4 4 0 010 8H7z" /></svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                )}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-body-md font-semibold text-[var(--on-surface)] truncate">{item.fileName}</p>
+                <p className="text-label-sm text-[var(--on-surface-variant)]">{item.fileSize}</p>
+              </div>
             </div>
+            {item.isCloudDrive && (
+              <div className="mt-2 flex items-center gap-1.5 pt-2 border-t border-[var(--outline-variant)]/60">
+                <svg className="w-3.5 h-3.5 text-[var(--primary)] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5.5 5.5 0 1116.9 8H17a4 4 0 010 8H7z" /></svg>
+                <span className="text-label-xs font-medium text-[var(--primary)]">Shared from Cloud Drive</span>
+              </div>
+            )}
           </div>
         );
       default:
@@ -571,7 +642,15 @@ const FavoritesPage: React.FC = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-0.5">
-                      <h3 className="font-semibold text-[var(--on-surface)] truncate">{item.source}</h3>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <h3 className="font-semibold text-[var(--on-surface)] truncate">{item.source}</h3>
+                        {item.isCloudDrive && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--primary)]/10 text-[var(--primary)] text-[10px] font-medium flex-shrink-0">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5.5 5.5 0 1116.9 8H17a4 4 0 010 8H7z" /></svg>
+                            Cloud
+                          </span>
+                        )}
+                      </div>
                       <span className="text-label-sm text-[var(--on-surface-variant)] whitespace-nowrap ml-2">{item.time}</span>
                     </div>
                     <p className="text-body-md text-[var(--on-surface-variant)] truncate">
@@ -774,6 +853,20 @@ const FavoritesPage: React.FC = () => {
                   </svg>
                 </div>
                 <span className="text-label-sm text-[var(--on-surface)]">File</span>
+              </button>
+              <button
+                onClick={() => {
+                  setShowAttachMenu(false);
+                  navigate('/cloud-drive?mode=picker&target=favorites');
+                }}
+                className="flex flex-col items-center gap-2 p-4 rounded-2xl hover:bg-[var(--surface-container-low)] transition-colors"
+              >
+                <div className="w-14 h-14 bg-[var(--primary-fixed)] rounded-full flex items-center justify-center">
+                  <svg className="w-7 h-7 text-[var(--on-primary-fixed)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5.5 5.5 0 1116.9 8H17a4 4 0 010 8H7z" />
+                  </svg>
+                </div>
+                <span className="text-label-sm text-[var(--on-surface)]">Cloud Drive</span>
               </button>
             </div>
           </div>

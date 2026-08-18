@@ -23,6 +23,7 @@ interface Message {
   fileName?: string;
   fileSizeBytes?: number;
   fileMimeType?: string;
+  isCloudDrive?: boolean;
   replyTo?: {
     id: string;
     text: string;
@@ -45,8 +46,10 @@ const mockMessages: Message[] = [
   { id: '1', text: 'Hey! How are you doing?', timestamp: '10:30 AM', isSent: false, isRead: true, sender: 'Amara', senderAvatar: 'AO' },
   { id: '2', text: 'I\'m doing great! Just finished the project.', timestamp: '10:32 AM', isSent: true, isRead: true, sender: 'You', senderAvatar: 'ME' },
   { id: '3', text: 'That\'s awesome! Congratulations 🎉', timestamp: '10:33 AM', isSent: false, isRead: true, sender: 'Amara', senderAvatar: 'AO' },
+  { id: 'cd-1', text: 'Team photo album.zip', timestamp: '10:38 AM', isSent: true, isRead: true, sender: 'You', senderAvatar: 'ME', fileName: 'Team photo album.zip', fileSizeBytes: 24.5 * 1024 * 1024, fileMimeType: 'application/zip', isCloudDrive: true },
   { id: '4', text: 'Thanks for the help with the project!', timestamp: '10:42 AM', isSent: false, isRead: false, sender: 'Amara', senderAvatar: 'AO' },
   { id: 'file-brief', text: 'Project brief.pdf', timestamp: '10:44 AM', isSent: false, isRead: false, sender: 'Amara', senderAvatar: 'AO', fileName: 'Project brief.pdf', fileSizeBytes: 2.4 * 1024 * 1024, fileMimeType: 'application/pdf' },
+  { id: 'cd-2', text: 'Contract template.docx', timestamp: '10:48 AM', isSent: true, isRead: false, sender: 'You', senderAvatar: 'ME', fileName: 'Contract template.docx', fileSizeBytes: 892 * 1024, fileMimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', isCloudDrive: true },
 ];
 
 type MessageAction = 'reply' | 'copy' | 'forward' | 'pin' | 'select' | 'saveToCloud' | 'delete';
@@ -123,6 +126,7 @@ const Component: React.FC = () => {
       fileName: file.name,
       fileSizeBytes: file.sizeBytes,
       fileMimeType: file.mimeType,
+      isCloudDrive: true,
     }));
     const applySelection = window.setTimeout(() => {
       setMessages((current) => [...current, ...cloudMessages]);
@@ -586,11 +590,23 @@ const Component: React.FC = () => {
                     onClick={() => isMultiSelectMode && toggleMessageSelection(message.id)}
                   >
                     {message.fileName ? (
-                      <div className="min-w-[190px] flex items-center gap-3">
-                        <span className="w-10 h-10 rounded-xl bg-[var(--primary-fixed)] text-[var(--on-primary-fixed)] flex items-center justify-center">
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                        </span>
-                        <span className="min-w-0"><span className="block text-sm font-semibold truncate">{message.fileName}</span><span className="block text-xs text-[var(--on-surface-variant)]">{formatBytes(message.fileSizeBytes || 0)}</span></span>
+                      <div className="min-w-[190px]">
+                        <div className="flex items-center gap-3">
+                          <span className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${message.isCloudDrive ? 'bg-[var(--primary-fixed)] text-[var(--on-primary-fixed)]' : 'bg-[var(--primary-fixed)]/70 text-[var(--on-primary-fixed)]'}`}>
+                            {message.isCloudDrive ? (
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5.5 5.5 0 1116.9 8H17a4 4 0 010 8H7z" /></svg>
+                            ) : (
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                            )}
+                          </span>
+                          <span className="min-w-0 flex-1"><span className="block text-sm font-semibold truncate">{message.fileName}</span><span className="block text-xs text-[var(--on-surface-variant)]">{formatBytes(message.fileSizeBytes || 0)}</span></span>
+                        </div>
+                        {message.isCloudDrive && (
+                          <div className="mt-2 flex items-center gap-1.5 pt-2 border-t border-[var(--outline-variant)]/60">
+                            <svg className="w-3.5 h-3.5 text-[var(--primary)] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5.5 5.5 0 1116.9 8H17a4 4 0 010 8H7z" /></svg>
+                            <span className="text-label-xs font-medium text-[var(--primary)]">Shared from Cloud Drive</span>
+                          </div>
+                        )}
                       </div>
                     ) : <p className="text-body-md">{message.text}</p>}
                   </div>
@@ -644,11 +660,23 @@ const Component: React.FC = () => {
                       onClick={() => isMultiSelectMode && toggleMessageSelection(message.id)}
                     >
                       {message.fileName ? (
-                        <div className="min-w-[190px] flex items-center gap-3">
-                          <span className="w-10 h-10 rounded-xl bg-[var(--secondary-container)] text-[var(--on-secondary-container)] flex items-center justify-center">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                          </span>
-                          <span className="min-w-0"><span className="block text-sm font-semibold truncate">{message.fileName}</span><span className="block text-xs text-[var(--on-surface-variant)]">{formatBytes(message.fileSizeBytes || 0)}</span></span>
+                        <div className="min-w-[190px]">
+                          <div className="flex items-center gap-3">
+                            <span className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${message.isCloudDrive ? 'bg-[var(--primary-fixed)] text-[var(--on-primary-fixed)]' : 'bg-[var(--secondary-container)] text-[var(--on-secondary-container)]'}`}>
+                              {message.isCloudDrive ? (
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5.5 5.5 0 1116.9 8H17a4 4 0 010 8H7z" /></svg>
+                              ) : (
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                              )}
+                            </span>
+                            <span className="min-w-0 flex-1"><span className="block text-sm font-semibold truncate">{message.fileName}</span><span className="block text-xs text-[var(--on-surface-variant)]">{formatBytes(message.fileSizeBytes || 0)}</span></span>
+                          </div>
+                          {message.isCloudDrive && (
+                            <div className="mt-2 flex items-center gap-1.5 pt-2 border-t border-[var(--outline-variant)]/60">
+                              <svg className="w-3.5 h-3.5 text-[var(--primary)] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5.5 5.5 0 1116.9 8H17a4 4 0 010 8H7z" /></svg>
+                              <span className="text-label-xs font-medium text-[var(--primary)]">Shared from Cloud Drive</span>
+                            </div>
+                          )}
                         </div>
                       ) : <p className="text-body-md">{message.text}</p>}
                     </div>
@@ -1010,18 +1038,6 @@ const Component: React.FC = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
-              <button
-                onClick={() => {
-                  setShowAttachMenu(false);
-                  navigate('/cloud-drive?mode=picker&target=chatroom');
-                }}
-                className="flex flex-col items-center gap-2 py-2 cursor-pointer"
-              >
-                <div className="w-14 h-14 bg-[var(--primary-fixed)] rounded-2xl flex items-center justify-center">
-                  <svg className="w-7 h-7 text-[var(--on-primary-fixed)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5.5 5.5 0 1116.9 8H17a4 4 0 010 8H7z" /></svg>
-                </div>
-                <span className="text-label-xs text-[var(--on-surface)]">Cloud Drive</span>
-              </button>
             </div>
 
             {/* Grid Menu */}
@@ -1083,6 +1099,21 @@ const Component: React.FC = () => {
                   </svg>
                 </div>
                 <span className="text-label-xs text-[var(--on-surface)]">Location</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowAttachMenu(false);
+                  navigate('/cloud-drive?mode=picker&target=chatroom');
+                }}
+                className="flex flex-col items-center gap-2 py-2"
+              >
+                <div className="w-14 h-14 bg-[var(--primary-fixed)] rounded-2xl flex items-center justify-center">
+                  <svg className="w-7 h-7 text-[var(--on-primary-fixed)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5.5 5.5 0 1116.9 8H17a4 4 0 010 8H7z" />
+                  </svg>
+                </div>
+                <span className="text-label-xs text-[var(--on-surface)]">Cloud Drive</span>
               </button>
             </div>
           </div>

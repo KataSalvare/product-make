@@ -27,6 +27,7 @@ interface Message {
   fileName?: string;
   fileSizeBytes?: number;
   fileMimeType?: string;
+  isCloudDrive?: boolean;
   location?: {
     name: string;
     address: string;
@@ -77,11 +78,13 @@ const mockMessages: Message[] = [
   { id: '4', text: '🎉 John joined the group', timestamp: '10:35 AM', sender: 'System', senderAvatar: '', isMe: false, isSystem: true },
   { id: '5', text: '@You Check out this design I just finished!', timestamp: '10:36 AM', sender: 'Zara', senderAvatar: 'ZM', isMe: false },
   { id: '6', text: 'Wow, that looks amazing! Love the color palette.', timestamp: '10:37 AM', sender: 'You', senderAvatar: 'ME', isMe: true },
+  { id: 'cd-1', text: 'Brand guidelines pack.zip', timestamp: '10:37:30 AM', sender: 'You', senderAvatar: 'ME', isMe: true, type: 'file', fileName: 'Brand guidelines pack.zip', fileSizeBytes: 56.2 * 1024 * 1024, fileMimeType: 'application/zip', isCloudDrive: true },
   { id: '7', text: 'Thanks! Here\'s the full mockup:', timestamp: '10:38 AM', sender: 'Zara', senderAvatar: 'ZM', isMe: false, type: 'image', mediaUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&h=300&fit=crop' },
   { id: '8', text: 'I\'m at the coffee shop nearby, come join me!', timestamp: '10:40 AM', sender: 'Amara', senderAvatar: 'AO', isMe: false, type: 'location', location: { name: 'Blue Bottle Coffee', address: '123 Market St, San Francisco', lat: 37.7749, lng: -122.4194 } },
   { id: '9', text: 'On my way! Sending you a quick video of the prototype:', timestamp: '10:42 AM', sender: 'You', senderAvatar: 'ME', isMe: true },
   { id: '10', text: '', timestamp: '10:42 AM', sender: 'You', senderAvatar: 'ME', isMe: true, type: 'video', mediaUrl: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=400&h=300&fit=crop' },
   { id: '11', text: 'Design handoff.pdf', timestamp: '10:45 AM', sender: 'Zara', senderAvatar: 'ZM', isMe: false, type: 'file', fileName: 'Design handoff.pdf', fileSizeBytes: 8.6 * 1024 * 1024, fileMimeType: 'application/pdf' },
+  { id: 'cd-2', text: 'User research summary.xlsx', timestamp: '10:47 AM', sender: 'Amina', senderAvatar: 'AJ', isMe: false, type: 'file', fileName: 'User research summary.xlsx', fileSizeBytes: 1.3 * 1024 * 1024, fileMimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', isCloudDrive: true },
 ];
 
 type MessageAction = 'reply' | 'copy' | 'forward' | 'pin' | 'select' | 'saveToCloud' | 'delete';
@@ -170,6 +173,7 @@ const GroupChatPage: React.FC = () => {
       fileName: file.name,
       fileSizeBytes: file.sizeBytes,
       fileMimeType: file.mimeType,
+      isCloudDrive: true,
     }));
     const applySelection = window.setTimeout(() => {
       setMessages((current) => [...current, ...cloudMessages]);
@@ -530,11 +534,23 @@ const GroupChatPage: React.FC = () => {
       }
       if (message.type === 'file' && message.fileName) {
         return (
-          <div className="min-w-[210px] flex items-center gap-3">
-            <span className="w-11 h-11 rounded-xl bg-[var(--primary-fixed)] text-[var(--on-primary-fixed)] flex items-center justify-center flex-shrink-0">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-            </span>
-            <span className="min-w-0"><span className="block text-sm font-semibold truncate">{message.fileName}</span><span className="block mt-0.5 text-xs text-[var(--on-surface-variant)]">{formatBytes(message.fileSizeBytes || 0)}</span></span>
+          <div className="min-w-[210px]">
+            <div className="flex items-center gap-3">
+              <span className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${message.isCloudDrive ? 'bg-[var(--primary-fixed)] text-[var(--on-primary-fixed)]' : (message.isMe ? 'bg-[var(--primary-fixed)] text-[var(--on-primary-fixed)]' : 'bg-[var(--secondary-container)] text-[var(--on-secondary-container)]')}`}>
+                {message.isCloudDrive ? (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5.5 5.5 0 1116.9 8H17a4 4 0 010 8H7z" /></svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                )}
+              </span>
+              <span className="min-w-0 flex-1"><span className="block text-sm font-semibold truncate">{message.fileName}</span><span className="block mt-0.5 text-xs text-[var(--on-surface-variant)]">{formatBytes(message.fileSizeBytes || 0)}</span></span>
+            </div>
+            {message.isCloudDrive && (
+              <div className="mt-2 flex items-center gap-1.5 pt-2 border-t border-[var(--outline-variant)]/60">
+                <svg className="w-3.5 h-3.5 text-[var(--primary)] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5.5 5.5 0 1116.9 8H17a4 4 0 010 8H7z" /></svg>
+                <span className="text-label-xs font-medium text-[var(--primary)]">Shared from Cloud Drive</span>
+              </div>
+            )}
           </div>
         );
       }
