@@ -1115,6 +1115,20 @@ const Component: React.FC = () => {
                 </div>
                 <span className="text-label-xs text-[var(--on-surface)]">Cloud Drive</span>
               </button>
+              <button
+                onClick={() => {
+                  setShowAttachMenu(false);
+                  navigate('/wallet/chat-transfer');
+                }}
+                className="flex flex-col items-center gap-2 py-2 cursor-pointer"
+              >
+                <div className="w-14 h-14 bg-[var(--secondary-fixed)] rounded-2xl flex items-center justify-center">
+                  <svg className="w-7 h-7 text-[var(--on-secondary-fixed)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M20 7H4a2 2 0 00-2 2v9a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2zM2 11h20M16 16h.01" />
+                  </svg>
+                </div>
+                <span className="text-label-xs text-[var(--on-surface)]">Transfer</span>
+              </button>
             </div>
           </div>
         </div>

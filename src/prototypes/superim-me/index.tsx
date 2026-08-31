@@ -53,6 +53,13 @@ const mainItems: MenuItem[] = [
     path: '/cloud-drive',
   },
   {
+    id: 'wallet',
+    label: 'Wallet',
+    icon: 'M20 7H4a2 2 0 00-2 2v9a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z M2 11h20 M16 16h.01',
+    description: 'Base Mainnet · 2,480.32 USDC',
+    path: '/wallet',
+  },
+  {
     id: 'chat-folders',
     label: 'Chat Folders',
     icon: 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z',

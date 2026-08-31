@@ -109,9 +109,10 @@ const frontendPageConfig: Record<string, { path: string; label: string; navPath?
   'superim-cloud-drive': { path: '/cloud-drive', label: '云盘首页' },
   'superim-cloud-drive-folder': { path: '/cloud-drive/folder/:folderId', navPath: '/cloud-drive/folder/work', label: '云盘文件夹' },
   'superim-cloud-drive-file': { path: '/cloud-drive/file/:fileId', navPath: '/cloud-drive/file/brand-film', label: '云盘文件详情' },
+  'superim-wallet': { path: '/wallet/*', navPath: '/wallet', label: '钱包原型' },
 }
 
-const adminPageConfig: Record<string, { path: string; label: string }> = {
+const adminPageConfig: Record<string, { path: string; label: string; navPath?: string }> = {
   'superim-admin-login': { path: '/admin/login', label: '管理员登录' },
   'superim-admin-dashboard': { path: '/admin/dashboard', label: '仪表盘' },
   'superim-admin-bigscreen': { path: '/admin/bigscreen', label: '数据大屏' },
@@ -139,6 +140,7 @@ const adminPageConfig: Record<string, { path: string; label: string }> = {
   'superim-admin-operation-logs': { path: '/admin/operation-logs', label: '操作日志' },
   'superim-admin-login-logs': { path: '/admin/login-logs', label: '登录日志' },
   'superim-admin-system-logs': { path: '/admin/system-logs', label: '系统日志' },
+  'superim-admin-wallet': { path: '/admin/wallet/*', navPath: '/admin/wallet', label: '钱包运营' },
 }
 
 // 提取默认组件
@@ -312,6 +314,7 @@ const generatePages = (): PageItem[] => {
       if (config) {
         pages.push({
           path: config.path,
+          navPath: config.navPath,
           label: config.label,
           component: getDefaultComponent(mod),
           category: 'admin',
@@ -445,7 +448,7 @@ const Sidebar = ({ theme, projectName, onProjectNameChange }: SidebarProps) => {
   const location = useLocation()
   const [activeTab, setActiveTab] = useState<PageCategory | 'themes' | 'docs'>('frontend')
   // 默认展开所有分组
-  const [expandedGroups, setExpandedGroups] = useState<string[]>(['启动/认证', '即时通讯', '通讯录', '社交动态', '个人中心', '通话', '收藏夹', '云盘', '数据概览', '云盘管理', '用户管理', '消息管理', '动态管理', '通话记录', '系统设置', '权限管理', '日志管理'])
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(['启动/认证', '即时通讯', '通讯录', '社交动态', '个人中心', '通话', '收藏夹', '云盘', '数据概览', '钱包管理', '云盘管理', '用户管理', '消息管理', '动态管理', '通话记录', '系统设置', '权限管理', '日志管理'])
 
   // 根据当前选中的标签页过滤页面
   const filteredPages = pages.filter(p => p.category === activeTab as PageCategory)
@@ -458,7 +461,7 @@ const Sidebar = ({ theme, projectName, onProjectNameChange }: SidebarProps) => {
     '社交动态': ['动态', '发布动态', '动态详情', '我的动态'],
     '收藏夹': ['收藏夹', '收藏详情'],
     '云盘': ['云盘首页'],
-    '个人中心': ['个人中心', '查看用户资料', '编辑资料', '安全设置', '隐私设置', '账号切换', '设置'],
+    '个人中心': ['个人中心', '钱包原型', '查看用户资料', '编辑资料', '安全设置', '隐私设置', '账号切换', '设置'],
     '通话': ['通话记录', '通话界面'],
   }
   const frontendGroups: Record<string, PageItem[]> = Object.fromEntries(
@@ -471,6 +474,7 @@ const Sidebar = ({ theme, projectName, onProjectNameChange }: SidebarProps) => {
   // 后台页面分组配置（按数组顺序排序，与 AdminSidebar 导航结构保持一致）
   const orderedAdminGroups: Record<string, string[]> = {
     '数据概览': ['仪表盘', '数据大屏'],
+    '钱包管理': ['钱包运营'],
     '云盘管理': ['云盘总览', '文件管理', '操作审计', '用户配额'],
     '用户管理': ['用户列表', '用户详情', '在线用户', '封禁管理'],
     '消息管理': ['会话列表', '会话详情', '举报消息', '敏感词库'],
