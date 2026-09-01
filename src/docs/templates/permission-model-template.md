@@ -8,18 +8,27 @@
 - 说明角色边界、可见范围与关键操作权限
 - 为页面展示和交互控制提供统一依据
 
-## 2. 角色清单
+## 2. 角色与会员等级清单
 
-| 角色 | 核心职责 | 主要关注点 |
-|------|------|------|
-| `{{ROLE_NAME}}` | `{{ROLE_RESPONSIBILITY}}` | `{{ROLE_FOCUS}}` |
-
-## 3. 权限矩阵
-
-| 操作/资源 | `{{ROLE_A}}` | `{{ROLE_B}}` | 规则说明 |
+| 身份类型 | 核心职责 / 权益 | 主要关注点 | 真实来源 |
 |------|------|------|------|
-| `{{ACTION_OR_RESOURCE}}` | `Y/N` | `Y/N` | `{{RULE_DESC}}` |
+| `{{ROLE_OR_TIER}}` | `{{ROLE_RESPONSIBILITY_OR_BENEFIT}}` | `{{ROLE_FOCUS}}` | `{{PRD/DATA_SOURCE}}` |
 
-## 4. 待确认项
+## 3. 真实权限矩阵
 
-- `{{OPEN_ISSUE}}`
+| 操作/资源 | 身份 / 等级 | 真实权限 | 后端校验 / 强制层 | 页面展示 | 规则说明 | 需求/验收 ID |
+|------|------|------|------|------|------|------|
+| `{{ACTION_OR_RESOURCE}}` | `{{ROLE_OR_TIER}}` | `Y/N/条件允许` | `{{BACKEND_ENFORCEMENT}}` | `{{SHOW/HIDE/LOCK/DISABLE}}` | `{{RULE_DESC}}` | `{{SOURCE_ID}}` |
+
+## 4. 原型权限展示边界
+
+- **原型身份来源**：`{{MOCK_ROLE_OR_TIER_SOURCE}}`
+- **原型可模拟内容**：`{{MOCK_PERMISSION_BEHAVIOR}}`
+- **不得由原型推断的内容**：后端授权、数据隔离、越权防护和最终权限判断。
+- **原型未覆盖项**：`{{UNIMPLEMENTED_PERMISSION_CASES}}`
+
+## 5. 待确认项
+
+- **权限继承 / 优先级**：`{{PERMISSION_INHERITANCE}}`
+- **后端与前端不一致时的处理**：以后端真实授权结果为准。
+- **待确认项**：`{{OPEN_ISSUE}}`
