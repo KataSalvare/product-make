@@ -297,6 +297,13 @@
 .wallet-chat-composer { padding: 8px 16px calc(8px + env(safe-area-inset-bottom)); }
 .wallet-composer-add, .wallet-composer-send { width: 44px; height: 44px; flex-basis: 44px; }
 .wallet-chat-composer > div { padding: 12px 16px; border-radius: var(--radius-full); }
+.wallet-dynamic-embedded, .wallet-dynamic-surface { margin-top: 16px; overflow: hidden; border: 1px solid var(--outline-variant); border-radius: var(--radius-lg); background: var(--surface-container-lowest); }
+.wallet-dynamic-embedded { min-height: 520px; }
+.wallet-dynamic-embedded > * { min-height: 520px; }
+.wallet-dynamic-surface { min-height: 640px; padding: 12px; }
+.wallet-dynamic-route-links { display: grid; gap: 8px; margin-top: 16px; }
+.wallet-dynamic-route-links button { display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 14px; border: 1px solid var(--outline-variant); border-radius: var(--radius-md); color: var(--primary); background: var(--surface-container-lowest); font-weight: 700; }
+.wallet-dynamic-route-links svg { width: 18px; }
 .wallet-modal-scrim { background: color-mix(in srgb, var(--primary) 48%, transparent); }
 .wallet-auth-sheet { padding: 8px 16px 24px; border-radius: var(--radius-xl) var(--radius-xl) 0 0; box-shadow: var(--shadow-xl); }
 .wallet-sheet-handle { margin-bottom: 16px; border-radius: var(--radius-full); }

@@ -1,61 +1,89 @@
-# SuperIM v2.0 钱包原型规格
+# SuperIM v2.0 Dynamic 钱包原型规格
 
 ## 原型目标
 
-验证 Base Mainnet + USDC 钱包的核心信息层级、链上同链转账流程、聊天窗口内转账卡片和 Passkey/支付密码授权关系。原型默认使用内存 Mock 数据；当配置 Dynamic Environment ID 时，钱包首页额外展示 Dynamic Sandbox 连接 Demo，不连接真实 RPC、不发起真实 USDC 交易。
+验证 SuperIM 作为 Dynamic 钱包入口和聊天转账编排层的核心路径。登录、钱包创建、连接、充值、转账、交易确认和签名全部由 Dynamic SDK 提供；SuperIM 只负责入口、钱包地址绑定查询和聊天场景衔接。
 
-## Dynamic Demo 接入
+## Dynamic 接入
 
-- SDK：`@dynamic-labs/sdk-react-core@5.3.1`、`@dynamic-labs/ethereum@5.3.1`。
-- 应用根部使用 `DynamicContextProvider`，EVM 连接器使用 `EthereumWalletConnectors`。
-- 通过 `.env.local` 配置 `VITE_DYNAMIC_ENVIRONMENT_ID`；可参考仓库根目录 `.env.example`。
-- Dynamic Sandbox 环境需在 Dashboard 中仅启用 Base Mainnet；本 Demo 不提供新增网络或跨链入口。
-- 配置成功后，钱包首页的 `DYNAMIC DEMO` 卡片可以打开 Dynamic Widget，展示 SDK 加载状态、登录状态、钱包地址和钱包数量。
-- 未配置 Environment ID 时不初始化 Dynamic，页面继续使用原有 Mock 钱包地址和交易数据。
-- Demo 只验证 Dynamic 连接和钱包信息读取；转账、提现、充值、Passkey 和后台规则仍由原型 Mock 展示。
+- 应用根部使用 `DynamicContextProvider`。
+- 登录、注册和钱包入口使用 `DynamicEmbeddedWidget`。
+- Dynamic SDK 使用 `connect-and-sign`。
+- Dashboard 配置 EVM、Embedded Wallet 和 `Create on Sign up`。
+- Base 是产品网络；开发/验收使用 Base Sepolia，生产再使用 Base Mainnet。
+- `primaryWallet.address` 作为当前用户公开钱包地址。
+- `onEmbeddedWalletCreated` 和钱包状态变化用于触发地址绑定。
+- 绑定 API 使用 `VITE_SUPERIM_API_BASE_URL` 配置。
 
-## 页面入口
+## 页面与入口
 
-钱包作为「我的 → Wallet」二级页面进入，统一入口为 `/wallet`，内部可点击进入：
+- `/wallet`：Dynamic Embedded Wallet 页面。
+- `/wallet/deposit`：兼容旧链接，展示 Dynamic Wallet/Funding 页面。
+- `/wallet/transactions`：兼容旧链接，展示 Dynamic Wallet 页面。
+- `/wallet/chat-transfer`：单聊查询地址后打开 Dynamic Send。
+- `/wallet/transfer`：群聊查询指定成员地址后打开 Dynamic Send。
 
-- `/wallet/deposit`：Base Mainnet USDC 充值地址、二维码、充值状态。
-- `/wallet/transfer`：SuperIM 用户间同链 USDC 转账，默认 Amara Okafor。
-- `/wallet/withdraw`：Base Mainnet 外部地址提现，展示后台配置的手续费示例。
-- `/wallet/transactions`：交易筛选与记录列表。
-- `/wallet/transactions/:id`：提现处理中详情。
-- `/wallet/security`：Passkey 优先、支付密码兜底和钱包安全说明。
-- `/wallet/chat-transfer`：聊天内 USDC 转账卡片与授权状态。
+钱包原型不再实现自有余额卡、充值二维码、交易列表、提现表单、交易详情或支付授权面板。
 
-单聊从聊天室更多操作进入 `/wallet/chat-transfer`；群聊从更多操作进入 `/wallet/transfer?source=group-chat`，并在转账页标识“群聊 · 单收款人”。
+## 地址绑定
 
-## 已确认规则
+用户登录并获得钱包地址后，前端通过 Dynamic JWT 请求：
 
-- 唯一网络：Base Mainnet；v2.0 不允许新增其他 EVM 网络。
-- 唯一资产：USDC，精度 6 位；不展示 USDT 或其他资产。
-- 内部转账为 Base Mainnet 内链上转账，仅限 SuperIM 用户，不支持跨链。
-- 群聊转账在后续聊天接入时只允许单收款人。
-- 内部转账由 SuperIM 代付 Gas；提现展示服务手续费，网络 Gas 由平台承担。
-- 转账/提现需用户授权，Passkey 优先，支付密码兜底；不能绕过用户签名。
-- 提现支持 Base Mainnet 外部地址，不提供地址簿和白名单。
-- 充值只展示链上地址/二维码，不包含法币购买。
+```text
+POST /api/wallet/bind
+```
 
-## 交互状态
+聊天转账通过当前会话用户 ID 请求：
 
-- 点击 Deposit / Transfer / Withdraw 进入对应流程。
-- Transfer 与 Withdraw 在 Review 后打开底部授权面板；Passkey 是主操作，Payment password 是 fallback。
-- 授权完成只模拟成功，Transfer 显示完成反馈，Withdraw 显示处理中反馈。
-- 首页交易列表可进入详情；聊天卡片可完成授权并切换为已完成。
-- 地址复制与保存草稿提供 Toast 反馈。
-- 钱包首页不展示欢迎文案或聊天转账快捷卡片；聊天转账只从聊天室/群聊窗口内发起。
-- `/wallet/chat-transfer` 复用原聊天室的会话页头、消息滚动区、消息气泡、输入栏和滚动层级，仅在原消息流末尾追加一张 USDC 转账卡片。
+```text
+GET /api/users/:userId/wallet
+```
+
+查询结果：
+
+- 有效地址：允许继续打开 Dynamic Send。
+- `404`：提示“对方暂未开通钱包”。
+- 服务不可用：提示无法获取钱包地址，不得误报为未开通。
+
+## Dynamic Send
+
+- SuperIM 通过 `useSendBalance().open({ recipientAddress })` 打开 Dynamic Send UI。
+- 收款地址来自 SuperIM 后端绑定记录。
+- 金额、资产、网络、费用提示和签名由 Dynamic 处理。
+- Dynamic 返回交易哈希后，SuperIM 展示提交成功并关联聊天消息。
+- Dynamic 取消或失败时，不生成成功转账消息。
+
+## 聊天场景
+
+- 单聊 Transfer 默认使用当前会话对象。
+- 群聊 Transfer 必须明确一名收款人。
+- 没有钱包地址时阻止打开 Dynamic Send。
+- 不支持转给群组、多人分发、跨链或 SuperIM 自行签名。
+
+## 状态
+
+- Dynamic 未配置：展示配置提示。
+- 未登录：引导用户返回钱包入口完成 Dynamic 登录。
+- 钱包创建/同步中：展示等待状态。
+- 地址绑定中：展示绑定状态。
+- 地址绑定失败：展示失败提示并允许重试。
+- 对方无钱包：展示“对方暂未开通钱包”。
+- Dynamic Send 中：展示 Opening Dynamic / 等待结果。
+- Dynamic 成功：展示交易哈希。
+- Dynamic 取消或失败：展示可重试的错误反馈。
+
+## 非目标
+
+- 不保存私钥、助记词、支付密码或 Dynamic JWT。
+- 不维护本地 Mock 余额或 Mock 交易数组。
+- 不模拟 Passkey、Payment password 或链上交易状态。
+- 不实现后台提现规则、人工审核和管理员代签。
 
 ## 视觉规范
 
-- 复用 `src/themes/equatorial-minimalism/globals.css` 的主题变量。
-- Soft Sand 页面底色、Deep Indigo 结构色、Terracotta 关键操作与金额强调。
-- 用户端按 400 × 852 移动端预览设计，内容左右边距为 16px，触控目标不小于 44px。
-- 使用 Lucide SVG 图标，不使用 Emoji 作为结构图标；支持深色模式变量与 reduced motion。
-- 间距遵循 8px 节奏；主要卡片、输入框和按钮使用主题 `--radius-*` token；状态色使用主题语义变量。
-- 顶部导航复用 SuperIM 二级页面规范：`surface-container-low` 背景、底部边框、左侧返回按钮、单行页面标题，右侧仅放置当前页面操作。
-- 钱包页头的返回按钮、标题字号、内边距与 `编辑资料`、`安全设置` 保持一致；钱包安全入口作为右侧页面操作保留。
-- 详细的用户端二级页头盘点、变体边界和钱包落地方案见同目录 `design.md`。
+- UI 层：前端内容层。
+- 主题来源：`src/themes/equatorial-minimalism/`。
+- 参考页面：`src/prototypes/superim-me/`、`src/prototypes/superim-chatroom/`。
+- 复用组件：Dynamic Embedded Widget、钱包二级页头、聊天更多操作入口。
+- 状态：默认、加载、绑定中、成功、取消、失败、未开通钱包、未配置。
+- 响应式：移动端保持 400 × 852 预览；宽屏内容区扩展但不改变钱包页头层级。

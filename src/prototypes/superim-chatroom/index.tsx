@@ -1118,7 +1118,7 @@ const Component: React.FC = () => {
               <button
                 onClick={() => {
                   setShowAttachMenu(false);
-                  navigate('/wallet/chat-transfer');
+                  navigate('/wallet/chat-transfer?recipientUserId=1&recipientName=Amara%20Okafor');
                 }}
                 className="flex flex-col items-center gap-2 py-2 cursor-pointer"
               >

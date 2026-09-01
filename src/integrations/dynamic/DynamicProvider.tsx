@@ -1,13 +1,15 @@
 import type { FC, ReactNode } from 'react'
 import {
   DynamicContextProvider,
-  DynamicWidget,
+  DynamicEmbeddedWidget,
   useDynamicContext,
   useIsLoggedIn,
   useUserWallets,
 } from '@dynamic-labs/sdk-react-core'
 import { EthereumWalletConnectors } from '@dynamic-labs/ethereum'
 import { dynamicEnvironmentId, isDynamicConfigured } from './config'
+import { bindDynamicWallet, walletBindingApiConfigured } from './walletBinding'
+import { useEffect, useState } from 'react'
 
 export const DynamicProvider: FC<{ children: ReactNode }> = ({ children }) => {
   if (!isDynamicConfigured) return <>{children}</>
@@ -18,6 +20,7 @@ export const DynamicProvider: FC<{ children: ReactNode }> = ({ children }) => {
       settings={{
         environmentId: dynamicEnvironmentId,
         walletConnectors: [EthereumWalletConnectors],
+        initialAuthenticationMode: 'connect-and-sign',
       }}
     >
       {children}
@@ -26,17 +29,29 @@ export const DynamicProvider: FC<{ children: ReactNode }> = ({ children }) => {
 }
 
 export const DynamicWalletDemo: FC = () => {
-  const { sdkHasLoaded, primaryWallet } = useDynamicContext()
+  const { sdkHasLoaded, primaryWallet, user } = useDynamicContext()
   const isLoggedIn = useIsLoggedIn()
   const userWallets = useUserWallets()
   const walletAddress = primaryWallet?.address
+  const [bindingState, setBindingState] = useState<'idle' | 'bound' | 'error'>('idle')
+
+  useEffect(() => {
+    if (!isLoggedIn || !primaryWallet || !user?.userId || !walletBindingApiConfigured) return
+
+    let cancelled = false
+    bindDynamicWallet(primaryWallet, user.userId)
+      .then(() => { if (!cancelled) setBindingState('bound') })
+      .catch(() => { if (!cancelled) setBindingState('error') })
+
+    return () => { cancelled = true }
+  }, [isLoggedIn, primaryWallet, user?.userId])
 
   return (
     <section className="wallet-dynamic-card" aria-labelledby="dynamic-demo-title">
       <div className="wallet-dynamic-heading">
         <div>
           <span className="wallet-eyebrow">DYNAMIC DEMO</span>
-          <h3 id="dynamic-demo-title">Embedded wallet connection</h3>
+          <h3 id="dynamic-demo-title">SuperIM wallet powered by Dynamic</h3>
         </div>
         <span className={`wallet-dynamic-status ${sdkHasLoaded ? 'is-ready' : 'is-loading'}`}>
           <span aria-hidden="true" />
@@ -44,21 +59,16 @@ export const DynamicWalletDemo: FC = () => {
         </span>
       </div>
 
-      {isLoggedIn && walletAddress ? (
+      <div className="wallet-dynamic-embedded">
+        <DynamicEmbeddedWidget />
+      </div>
+      {isLoggedIn && walletAddress && (
         <div className="wallet-dynamic-connected">
           <div>
-            <strong>Wallet connected</strong>
+            <strong>Wallet address available to SuperIM</strong>
             <small>{walletAddress}</small>
           </div>
-          <span>{userWallets.length} wallet{userWallets.length === 1 ? '' : 's'}</span>
-        </div>
-      ) : (
-        <div className="wallet-dynamic-connect">
-          <p>Connect Dynamic to preview your Base Mainnet wallet. USDC transfers remain Mock-only in this demo.</p>
-          <DynamicWidget
-            variant="modal"
-            innerButtonComponent={<span className="wallet-dynamic-connect-button">Connect Dynamic wallet</span>}
-          />
+          <span>{bindingState === 'bound' ? 'Bound' : bindingState === 'error' ? 'Binding failed' : walletBindingApiConfigured && user?.userId ? 'Binding…' : `${userWallets.length} wallet${userWallets.length === 1 ? '' : 's'}`}</span>
         </div>
       )}
     </section>

@@ -1,75 +1,155 @@
 /**
  * @name 钱包运营后台
- * @description SuperIM 钱包运营、交易和提现规则配置原型
+ * @description Dynamic 钱包集成的运营、同步和审计后台原型。
  */
 
+import { useMemo, useState, type FC } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { useState, type FC } from 'react'
-import { AlertOutlined, ArrowDownOutlined, ArrowRightOutlined, ArrowUpOutlined, AuditOutlined, CheckCircleOutlined, ClockCircleOutlined, DollarOutlined, EyeOutlined, FilterOutlined, SafetyCertificateOutlined, SearchOutlined, SettingOutlined, TeamOutlined } from '@ant-design/icons'
-import { Alert, Button, Card, Col, Form, Input, List, Progress, Row, Select, Space, Statistic, Table, Tag, Typography, message, type TableColumnsType } from 'antd'
+import {
+  ArrowDownOutlined,
+  ArrowRightOutlined,
+  ArrowUpOutlined,
+  AuditOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  CloudSyncOutlined,
+  DatabaseOutlined,
+  DollarOutlined,
+  EyeOutlined,
+  FilterOutlined,
+  SafetyCertificateOutlined,
+  SearchOutlined,
+  SettingOutlined,
+  TeamOutlined,
+  WalletOutlined,
+} from '@ant-design/icons'
+import { Alert, Button, Card, Col, Input, List, Progress, Row, Space, Statistic, Table, Tag, Typography, type TableColumnsType } from 'antd'
 import AdminShell from '../../components/AdminShell'
+import { dynamicEnvironmentId } from '../../integrations/dynamic/config'
 import './style.css'
 
 type AdminView = 'dashboard' | 'transactions' | 'users' | 'settings' | 'audit'
-type Transaction = { id: string; user: string; type: string; amount: string; status: string; time: string }
-type WalletUser = { name: string; handle: string; wallet: string; balance: string; status: string; joined: string }
+type TransactionAction = 'send' | 'fund' | 'receive' | 'signature'
+type TransactionStatus = 'submitted' | 'confirmed' | 'failed' | 'cancelled' | 'syncing'
+type BindingStatus = 'bound' | 'pending' | 'failed' | 'unbound'
 
-const adminTransactions: Transaction[] = [
-  { id: 'tx-1042', user: 'Amina Yusuf', type: 'Internal transfer', amount: '84.00 USDC', status: 'Completed', time: '10:42' },
-  { id: 'tx-1041', user: 'Amina Yusuf', type: 'Internal transfer', amount: '120.00 USDC', status: 'Completed', time: '09:18' },
-  { id: 'tx-1039', user: 'Kwame Boateng', type: 'Withdrawal', amount: '250.80 USDC', status: 'Processing', time: '昨天' },
-  { id: 'tx-1036', user: 'Elena Rossi', type: 'Deposit', amount: '500.00 USDC', status: 'Completed', time: '8月29日' },
-]
-const adminUsers: WalletUser[] = [
-  { name: 'Amina Yusuf', handle: '@amina', wallet: '0x7A2D...9C4D', balance: '2,480.32 USDC', status: 'Ready', joined: '2026年8月22日' },
-  { name: 'Kwame Boateng', handle: '@kwame', wallet: '0x91C2...1A7F', balance: '840.10 USDC', status: 'Ready', joined: '2026年8月20日' },
-  { name: 'Elena Rossi', handle: '@elena', wallet: '0xA90D...32B1', balance: '120.00 USDC', status: 'Ready', joined: '2026年8月18日' },
-  { name: 'Noah Williams', handle: '@noah', wallet: '待创建', balance: '—', status: 'Pending', joined: '今天 09:22' },
-]
-
-const transactionTypeLabels: Record<string, string> = { 'Internal transfer': '站内转账', Withdrawal: '提现', Deposit: '充值' }
-const statusLabels: Record<string, string> = { Completed: '已完成', Processing: '处理中', Ready: '正常', Pending: '待处理', Failed: '失败' }
-const statusTag = (status: string) => <Tag color={status === 'Completed' || status === 'Ready' ? 'success' : status === 'Processing' || status === 'Pending' ? 'warning' : 'error'}>{statusLabels[status] || status}</Tag>
-const initials = (value: string) => value.split(' ').map(word => word[0]).join('')
-const viewPath = (view: AdminView) => view === 'dashboard' ? '/admin/wallet' : `/admin/wallet/${view}`
-
-const OverviewPage: FC<{ onNavigate: (view: AdminView) => void }> = ({ onNavigate }) => {
-  const bars = [42, 54, 49, 68, 61, 78, 74, 88, 72, 94, 82, 100]
-  return <Space direction="vertical" size={16} style={{ width: '100%' }}>
-    <Row gutter={[16, 16]}>
-      <Col xs={12} xl={6}><Card><Statistic title="钱包用户总数" value="18,492" prefix={<TeamOutlined />} suffix={<Typography.Text type="success" style={{ fontSize: 12 }}>+12.8%</Typography.Text>} /></Card></Col>
-      <Col xs={12} xl={6}><Card><Statistic title="近30日 USDC 交易量" value="$2.84M" prefix={<DollarOutlined />} suffix={<Typography.Text type="success" style={{ fontSize: 12 }}>+8.4%</Typography.Text>} /></Card></Col>
-      <Col xs={12} xl={6}><Card><Statistic title="交易成功率" value="99.2%" prefix={<CheckCircleOutlined />} suffix={<Typography.Text type="success" style={{ fontSize: 12 }}>+0.6%</Typography.Text>} /></Card></Col>
-      <Col xs={12} xl={6}><Card><Statistic title="待处理事项" value={27} prefix={<ClockCircleOutlined />} suffix={<Typography.Text type="warning" style={{ fontSize: 12 }}>9 项待复核</Typography.Text>} /></Card></Col>
-    </Row>
-    <Row gutter={[16, 16]}>
-      <Col xs={24} xl={16}><Card title="钱包活跃度" extra={<Select defaultValue="30" options={[{ value: '30', label: '近30天' }]} style={{ width: 100 }} />}><Typography.Title level={3} style={{ marginTop: 0 }}>$2.84M <Typography.Text type="success" style={{ fontSize: 13 }}>+8.4% 较上一周期</Typography.Text></Typography.Title><div className="wallet-chart" aria-label="钱包活跃度趋势图">{bars.map((height, index) => <div className="wallet-chart__bar" key={index}><i style={{ height: `${height}%` }} /><Typography.Text type="secondary">{[1, 10, 20, 30].includes(index + 1) ? `8月${index + 1}日` : ''}</Typography.Text></div>)}</div><Space style={{ marginTop: 16 }}><Tag color="blue">转账</Tag><Tag color="gold">提现</Tag><Typography.Text type="secondary">USDC · Base 主网</Typography.Text></Space></Card></Col>
-      <Col xs={24} xl={8}><Card title="钱包基础设施" extra={<SafetyCertificateOutlined />}><Progress type="circle" percent={99.2} size={84} /><Typography.Title level={4} style={{ display: 'inline-block', marginLeft: 16 }}>健康</Typography.Title><List size="small" dataSource={[['嵌入式钱包创建', '运行正常'], ['Base 主网 RPC', '运行正常'], ['Gas 赞助', '已降级']]} renderItem={([label, value]) => <List.Item><Typography.Text>{label}</Typography.Text><Tag color={value === '已降级' ? 'warning' : 'success'}>{value}</Tag></List.Item>} /><Button type="link" icon={<ArrowRightOutlined />} onClick={() => onNavigate('audit')}>查看系统事件</Button></Card></Col>
-    </Row>
-    <Card title="待处理提现" extra={<Button type="link" onClick={() => onNavigate('transactions')}>查看全部</Button>}><List dataSource={adminTransactions.filter(item => item.status === 'Processing')} renderItem={item => <List.Item actions={[statusTag(item.status), <Button key="view" type="link" icon={<ArrowRightOutlined />} onClick={() => onNavigate('transactions')}>查看</Button>]}><List.Item.Meta avatar={<ArrowUpOutlined />} title={item.user} description={`${item.id} · ${item.time} · ${item.amount}`} /></List.Item>} /><Alert type="warning" showIcon icon={<AlertOutlined />} message="有 9 笔提现需要复核" description="触发了费用或额度规则" /></Card>
-  </Space>
+type WalletOverview = {
+  walletUserCount: number
+  boundWalletCount: number
+  transactionCount30d: number
+  pendingSyncCount: number
+  volume30d: string
+  successRate30d: number
+  infrastructure: Array<{ name: string; status: 'healthy' | 'degraded' | 'not-configured' }>
+  pendingItems: Array<{ id: string; summary: string; createdAt: string }>
 }
 
+type WalletTransaction = {
+  id: string
+  dynamicTransactionId?: string
+  txHash?: string
+  userName: string
+  walletAddress?: string
+  action: TransactionAction
+  amount?: string
+  asset?: string
+  network: string
+  status: TransactionStatus
+  createdAt: string
+}
+
+type WalletUser = {
+  userId: string
+  displayName: string
+  handle: string
+  dynamicUserId: string
+  walletAddress?: string
+  walletCount: number
+  bindingStatus: BindingStatus
+  lastSyncedAt?: string
+}
+
+type AuditRecord = { id: string; actor: string; action: string; detail: string; createdAt: string }
+
+const mockOverview: WalletOverview = {
+  walletUserCount: 18492,
+  boundWalletCount: 18441,
+  transactionCount30d: 18492,
+  pendingSyncCount: 27,
+  volume30d: '2.84M USDC',
+  successRate30d: 99.2,
+  infrastructure: [
+    { name: 'Dynamic Embedded Wallet', status: 'healthy' },
+    { name: 'Base 链上同步', status: 'healthy' },
+    { name: 'Funding / Send 事件', status: 'degraded' },
+  ],
+  pendingItems: [
+    { id: 'evt_1042', summary: 'Dynamic Send 等待链上确认', createdAt: '今天 10:42' },
+    { id: 'evt_1039', summary: '用户钱包地址绑定待同步', createdAt: '今天 09:25' },
+  ],
+}
+
+const mockTransactions: WalletTransaction[] = [
+  { id: 'tx-1042', dynamicTransactionId: 'dyn_tx_1042', txHash: '0x91f0...8b2a', userName: 'Amina Yusuf', walletAddress: '0x7A2D...9C4D', action: 'send', amount: '84.00', asset: 'USDC', network: 'Base', status: 'confirmed', createdAt: '今天 10:42' },
+  { id: 'tx-1041', dynamicTransactionId: 'dyn_tx_1041', txHash: '0xb19e...51a0', userName: 'Amina Yusuf', walletAddress: '0x7A2D...9C4D', action: 'signature', amount: '120.00', asset: 'USDC', network: 'Base', status: 'submitted', createdAt: '今天 09:18' },
+  { id: 'tx-1039', dynamicTransactionId: 'dyn_tx_1039', userName: 'Kwame Boateng', walletAddress: '0x91C2...1A7F', action: 'fund', amount: '250.80', asset: 'USDC', network: 'Base', status: 'syncing', createdAt: '昨天 18:05' },
+  { id: 'tx-1036', dynamicTransactionId: 'dyn_tx_1036', txHash: '0xa90d...32b1', userName: 'Elena Rossi', walletAddress: '0xA90D...32B1', action: 'receive', amount: '500.00', asset: 'USDC', network: 'Base', status: 'confirmed', createdAt: '8月29日' },
+]
+
+const mockUsers: WalletUser[] = [
+  { userId: '10001', displayName: 'Amina Yusuf', handle: '@amina', dynamicUserId: 'dyn_usr_01', walletAddress: '0x7A2D...9C4D', walletCount: 1, bindingStatus: 'bound', lastSyncedAt: '今天 10:42' },
+  { userId: '10002', displayName: 'Kwame Boateng', handle: '@kwame', dynamicUserId: 'dyn_usr_02', walletAddress: '0x91C2...1A7F', walletCount: 1, bindingStatus: 'bound', lastSyncedAt: '今天 09:25' },
+  { userId: '10003', displayName: 'Elena Rossi', handle: '@elena', dynamicUserId: 'dyn_usr_03', walletAddress: '0xA90D...32B1', walletCount: 2, bindingStatus: 'bound', lastSyncedAt: '昨天 18:05' },
+  { userId: '10004', displayName: 'Noah Williams', handle: '@noah', dynamicUserId: 'dyn_usr_04', walletCount: 0, bindingStatus: 'pending', lastSyncedAt: '今天 09:22' },
+]
+
+const mockAudit: AuditRecord[] = [
+  { id: 'audit-1042', actor: '系统', action: 'Dynamic Send 交易同步', detail: 'tx-1042 · Base 已确认', createdAt: '今天 10:44' },
+  { id: 'audit-1039', actor: '系统', action: '钱包绑定等待重试', detail: 'Noah Williams · wallet_pending', createdAt: '今天 09:25' },
+  { id: 'audit-1036', actor: '系统', action: 'Funding 事件同步', detail: 'tx-1036 · USDC 充值已确认', createdAt: '昨天 18:06' },
+  { id: 'audit-1030', actor: 'Maya Chen', action: '查看钱包集成状态', detail: '后台只读访问', createdAt: '昨天 16:20' },
+]
+
+const actionLabels: Record<TransactionAction, string> = { send: 'Dynamic Send', fund: '充值 / Funding', receive: '链上收款', signature: '用户签名' }
+const transactionStatusLabels: Record<TransactionStatus, string> = { submitted: '已提交', confirmed: '已确认', failed: '失败', cancelled: '已取消', syncing: '同步中' }
+const bindingStatusLabels: Record<BindingStatus, string> = { bound: '已绑定', pending: '待同步', failed: '绑定失败', unbound: '未绑定' }
+const statusTag = (status: string, label: string) => <Tag color={['confirmed', 'bound', 'healthy'].includes(status) ? 'success' : ['submitted', 'syncing', 'pending', 'degraded'].includes(status) ? 'warning' : ['failed', 'cancelled', 'unbound'].includes(status) ? 'error' : 'default'}>{label}</Tag>
+const initials = (value: string) => value.split(' ').map(word => word[0]).join('').slice(0, 2).toUpperCase()
+const shortAddress = (value?: string) => value ? `${value.slice(0, 6)}...${value.slice(-4)}` : '未绑定'
+const viewPath = (view: AdminView) => view === 'dashboard' ? '/admin/wallet' : `/admin/wallet/${view}`
+
+const MockDataBanner: FC = () => <Alert type="info" showIcon icon={<CloudSyncOutlined />} message="原型演示数据" description="当前页面使用 Mock 数据展示 Dynamic 钱包运营效果，真实项目由服务端同步 Dynamic Webhook 和链上确认结果。" />
+
+const OverviewPage: FC<{ onNavigate: (view: AdminView) => void }> = ({ onNavigate }) => <Space direction="vertical" size={16} style={{ width: '100%' }}><MockDataBanner /><Row gutter={[16, 16]}><Col xs={12} xl={6}><Card><Statistic title="钱包绑定用户" value={mockOverview.walletUserCount} prefix={<TeamOutlined />} /></Card></Col><Col xs={12} xl={6}><Card><Statistic title="已绑定钱包" value={mockOverview.boundWalletCount} prefix={<WalletOutlined />} /></Card></Col><Col xs={12} xl={6}><Card><Statistic title="近30日链上交易" value={mockOverview.transactionCount30d} prefix={<DatabaseOutlined />} /></Card></Col><Col xs={12} xl={6}><Card><Statistic title="待同步事件" value={mockOverview.pendingSyncCount} prefix={<ClockCircleOutlined />} /></Card></Col></Row><Row gutter={[16, 16]}><Col xs={24} xl={16}><Card title="Dynamic 钱包活动" extra={<Typography.Text type="secondary">近30日</Typography.Text>}><Typography.Title level={3} style={{ marginTop: 0 }}>{mockOverview.volume30d} <Typography.Text type="secondary" style={{ fontSize: 13 }}>链上交易量</Typography.Text></Typography.Title><Progress percent={mockOverview.successRate30d} status="success" format={value => `成功率 ${value}%`} /><Space style={{ marginTop: 16 }}><Tag color="blue">Dynamic</Tag><Tag color="gold">USDC</Tag><Typography.Text type="secondary">Base 主网</Typography.Text></Space></Card></Col><Col xs={24} xl={8}><Card title="基础设施状态" extra={<SafetyCertificateOutlined />}><List size="small" dataSource={mockOverview.infrastructure} renderItem={item => <List.Item><Typography.Text>{item.name}</Typography.Text>{statusTag(item.status, item.status === 'healthy' ? '正常' : item.status === 'degraded' ? '降级' : '未配置')}</List.Item>} /><Button type="link" icon={<ArrowRightOutlined />} onClick={() => onNavigate('audit')}>查看同步事件</Button></Card></Col></Row><Card title="待处理同步事件" extra={<Button type="link" onClick={() => onNavigate('transactions')}>查看交易</Button>}><List dataSource={mockOverview.pendingItems} renderItem={item => <List.Item><List.Item.Meta avatar={<CloudSyncOutlined />} title={item.summary} description={`${item.id} · ${item.createdAt}`} />{statusTag('syncing', '同步中')}</List.Item>} /></Card></Space>
+
 const TransactionsPage: FC = () => {
-  const columns: TableColumnsType<Transaction> = [{ title: '交易 ID', dataIndex: 'id', key: 'id' }, { title: '用户', key: 'user', render: (_, item) => <Space><span className="wallet-avatar">{initials(item.user)}</span>{item.user}</Space> }, { title: '类型', key: 'type', render: (_, item) => <Space>{item.type === 'Deposit' ? <ArrowDownOutlined /> : <ArrowUpOutlined />}{transactionTypeLabels[item.type]}</Space> }, { title: '金额', dataIndex: 'amount', key: 'amount' }, { title: '状态', dataIndex: 'status', key: 'status', render: statusTag }, { title: '创建时间', dataIndex: 'time', key: 'time' }, { title: '', key: 'action', render: (_, item) => <Button type="text" icon={<ArrowRightOutlined />} aria-label={`打开交易 ${item.id}`} /> }]
-  return <Card title={<span>全部交易 <Typography.Text type="secondary">共 18,492 笔</Typography.Text></span>} extra={<Space><Button icon={<FilterOutlined />}>筛选</Button><Button type="primary">导出 CSV</Button></Space>}><Space wrap style={{ marginBottom: 16 }}><Tag color="blue">全部交易</Tag><Tag>待处理 27</Tag><Tag>提现</Tag><Tag>失败</Tag><Input prefix={<SearchOutlined />} placeholder="按交易 ID、用户或地址搜索" style={{ width: 240 }} /></Space><Table rowKey="id" columns={columns} dataSource={adminTransactions} scroll={{ x: 760 }} pagination={false} /></Card>
+  const [search, setSearch] = useState('')
+  const transactions = useMemo(() => { const query = search.trim().toLowerCase(); return mockTransactions.filter(item => !query || [item.id, item.dynamicTransactionId, item.txHash, item.userName, item.walletAddress].some(value => value?.toLowerCase().includes(query))) }, [search])
+  const columns: TableColumnsType<WalletTransaction> = [{ title: '交易 ID', dataIndex: 'id', key: 'id' }, { title: '用户', key: 'user', render: (_, item) => <Space><span className="wallet-avatar">{initials(item.userName)}</span>{item.userName}</Space> }, { title: '动作', key: 'action', render: (_, item) => <Space>{item.action === 'receive' ? <ArrowDownOutlined /> : <ArrowUpOutlined />}{actionLabels[item.action]}</Space> }, { title: '金额', key: 'amount', render: (_, item) => item.amount ? `${item.amount} ${item.asset ?? 'USDC'}` : '—' }, { title: '网络', dataIndex: 'network', key: 'network' }, { title: '状态', key: 'status', render: (_, item) => statusTag(item.status, transactionStatusLabels[item.status]) }, { title: '时间', dataIndex: 'createdAt', key: 'createdAt' }, { title: '', key: 'action-link', render: (_, item) => <Button type="text" icon={<ArrowRightOutlined />} aria-label={`打开交易 ${item.id}`} /> }]
+  return <Space direction="vertical" size={16} style={{ width: '100%' }}><MockDataBanner /><Card title={<span>Dynamic 交易同步 <Typography.Text type="secondary">共 {transactions.length} 笔</Typography.Text></span>} extra={<Space><Button icon={<FilterOutlined />}>筛选</Button><Button type="primary" icon={<DollarOutlined />}>导出 CSV</Button></Space>}><Space wrap style={{ marginBottom: 16 }}><Tag color="blue">全部动作</Tag><Tag>同步中</Tag><Tag>失败</Tag><Input value={search} onChange={event => setSearch(event.target.value)} prefix={<SearchOutlined />} placeholder="按交易 ID、用户或地址搜索" style={{ width: 260 }} /></Space><Table rowKey="id" columns={columns} dataSource={transactions} scroll={{ x: 900 }} pagination={{ pageSize: 20 }} /></Card></Space>
 }
 
 const UsersPage: FC = () => {
-  const columns: TableColumnsType<WalletUser> = [{ title: '用户', key: 'user', render: (_, user) => <Space><span className="wallet-avatar wallet-avatar--sand">{initials(user.name)}</span><div><Typography.Text strong>{user.name}</Typography.Text><br /><Typography.Text type="secondary">{user.handle}</Typography.Text></div></Space> }, { title: '钱包地址', dataIndex: 'wallet', key: 'wallet' }, { title: '余额', dataIndex: 'balance', key: 'balance' }, { title: '状态', dataIndex: 'status', key: 'status', render: statusTag }, { title: '注册时间', dataIndex: 'joined', key: 'joined' }, { title: '', key: 'action', render: (_, user) => <Button type="text" icon={<ArrowRightOutlined />} aria-label={`打开用户 ${user.name}`} /> }]
-  return <Space direction="vertical" size={16} style={{ width: '100%' }}><Card><Row gutter={16}><Col xs={12} md={6}><Statistic title="钱包总数" value="18,492" /></Col><Col xs={12} md={6}><Statistic title="正常" value="18,441" /></Col><Col xs={12} md={6}><Statistic title="待处理 / 失败" value={51} /></Col><Col xs={12} md={6}><Statistic title="总余额" value="$6.2M" /></Col></Row></Card><Card title="用户钱包" extra={<Button icon={<SearchOutlined />}>搜索用户</Button>}><Table rowKey="handle" columns={columns} dataSource={adminUsers} scroll={{ x: 760 }} pagination={false} /></Card></Space>
+  const columns: TableColumnsType<WalletUser> = [{ title: '用户', key: 'user', render: (_, user) => <Space><span className="wallet-avatar wallet-avatar--sand">{initials(user.displayName)}</span><div><Typography.Text strong>{user.displayName}</Typography.Text><br /><Typography.Text type="secondary">{user.handle}</Typography.Text></div></Space> }, { title: 'Dynamic 用户 ID', dataIndex: 'dynamicUserId', key: 'dynamicUserId' }, { title: '钱包地址', key: 'walletAddress', render: (_, user) => shortAddress(user.walletAddress) }, { title: '钱包数', dataIndex: 'walletCount', key: 'walletCount' }, { title: '绑定状态', key: 'bindingStatus', render: (_, user) => statusTag(user.bindingStatus, bindingStatusLabels[user.bindingStatus]) }, { title: '最近同步', dataIndex: 'lastSyncedAt', key: 'lastSyncedAt', render: value => value ?? '—' }, { title: '', key: 'action', render: (_, user) => <Button type="text" icon={<ArrowRightOutlined />} aria-label={`打开用户 ${user.displayName}`} /> }]
+  return <Space direction="vertical" size={16} style={{ width: '100%' }}><MockDataBanner /><Card title="Dynamic 用户与钱包绑定" extra={<Button icon={<SearchOutlined />}>搜索用户</Button>}><Table rowKey="userId" columns={columns} dataSource={mockUsers} scroll={{ x: 980 }} pagination={{ pageSize: 20 }} /></Card></Space>
 }
 
-const SettingsPage: FC<{ onToast: (text: string) => void }> = ({ onToast }) => {
-  const [fee, setFee] = useState('0.80'); const [minimum, setMinimum] = useState('10.00'); const [daily, setDaily] = useState('5,000.00'); const [review, setReview] = useState('1,000.00')
-  return <Row gutter={[16, 16]}><Col xs={24} xl={16}><Card title="提现规则" extra={<SettingOutlined />}><Typography.Paragraph type="secondary">以下规则适用于新的提现申请。SuperIM 站内转账由平台承担 Gas 费用，不收取服务费。</Typography.Paragraph><Form layout="vertical"><Form.Item label="服务费（USDC）" help="从提现金额中扣除的固定费用。"><Input value={fee} onChange={event => setFee(event.target.value)} addonAfter="USDC" /></Form.Item><Form.Item label="最低提现金额（USDC）" help="低于此金额的申请将被拦截。"><Input value={minimum} onChange={event => setMinimum(event.target.value)} addonAfter="USDC" /></Form.Item><Form.Item label="用户每日额度（USDC）" help="每个用户滚动 24 小时的提现额度。"><Input value={daily} onChange={event => setDaily(event.target.value)} addonAfter="USDC" /></Form.Item><Form.Item label="人工审核阈值（USDC）" help="超过此金额的申请将进入人工审核队列。"><Input value={review} onChange={event => setReview(event.target.value)} addonAfter="USDC" /></Form.Item><Button type="primary" onClick={() => onToast('提现规则已保存为草稿')}>保存草稿</Button></Form></Card></Col><Col xs={24} xl={8}><Card title="确认摘要" extra={<EyeOutlined />}><Card className="wallet-preview-card"><Typography.Text>提现</Typography.Text><Typography.Title level={2}>250.00 USDC</Typography.Title><Space direction="vertical" style={{ width: '100%' }}><Space style={{ width: '100%', justifyContent: 'space-between' }}><span>服务费</span><b>-{fee} USDC</b></Space><Space style={{ width: '100%', justifyContent: 'space-between' }}><span>网络费</span><b>由 SuperIM 承担</b></Space><Space style={{ width: '100%', justifyContent: 'space-between' }}><span>实际到账</span><b>{Math.max(0, 250 - Number(fee || 0)).toFixed(2)} USDC</b></Space></Space></Card><Alert type="info" showIcon message="规则变更会记录审计日志，仅对新的提现申请生效。" style={{ marginTop: 16 }} /></Card></Col></Row>
+const SettingsPage: FC = () => {
+  const environmentId = dynamicEnvironmentId ? `${dynamicEnvironmentId.slice(0, 8)}…` : '未配置'
+  const integrationItems = [{ label: 'Dynamic Environment', value: environmentId, status: dynamicEnvironmentId ? 'healthy' : 'not-configured' }, { label: '后台数据源', value: 'Mock 原型数据', status: 'healthy' }, { label: '钱包创建', value: '由 Dynamic Dashboard 控制', status: 'healthy' }, { label: '充值 / Funding', value: '由 Dynamic Dashboard 控制', status: 'healthy' }, { label: '转账 / Send', value: '由 Dynamic SDK 发起', status: 'healthy' }, { label: '用户签名', value: '由 Dynamic Wallet 请求', status: 'healthy' }]
+  return <Row gutter={[16, 16]}><Col xs={24} xl={16}><Card title="Dynamic 集成状态" extra={<SettingOutlined />}><Typography.Paragraph type="secondary">后台原型使用 Mock 数据展示运营效果。正式系统中，Dynamic 能力由 Dynamic Dashboard 配置，SuperIM 只维护业务绑定、同步和审计。</Typography.Paragraph><List dataSource={integrationItems} renderItem={item => <List.Item><Typography.Text>{item.label}</Typography.Text><Space>{statusTag(item.status, item.status === 'healthy' ? '正常' : '未配置')}<Typography.Text type="secondary">{item.value}</Typography.Text></Space></List.Item>} /></Card></Col><Col xs={24} xl={8}><Card title="安全边界" extra={<EyeOutlined />}><Space direction="vertical"><Alert type="success" showIcon icon={<CheckCircleOutlined />} message="不保存私钥" /><Alert type="success" showIcon icon={<CheckCircleOutlined />} message="不代替用户签名" /><Alert type="info" showIcon message="链上结果只读同步" /></Space></Card></Col></Row>
 }
 
-const AuditPage: FC = () => <Card title="钱包审计日志" extra={<Button icon={<AuditOutlined />}>导出日志</Button>}><List dataSource={[['Jordan Davis', '更新提现服务费', '0.70 → 0.80 USDC', '12 分钟前', '规则配置'], ['系统', '提现进入人工审核', 'tx-1039 · 250.80 USDC', '昨天 18:05', '交易'], ['Maya Chen', '重试钱包绑定', 'Noah Williams · wallet_pending', '今天 09:25', '钱包生命周期'], ['系统', 'Gas 赞助服务降级', 'Base 主网 · Paymaster 延迟', '今天 08:40', '基础设施']]} renderItem={([actor, action, detail, time, type]) => <List.Item><List.Item.Meta avatar={<AuditOutlined />} title={action} description={`${detail} · ${type}`} /><Typography.Text type="secondary">{actor} · {time}</Typography.Text></List.Item>} /></Card>
+const AuditPage: FC = () => <Space direction="vertical" size={16} style={{ width: '100%' }}><MockDataBanner /><Card title="Dynamic 钱包审计日志" extra={<Button icon={<AuditOutlined />}>导出日志</Button>}><List dataSource={mockAudit} renderItem={item => <List.Item><List.Item.Meta avatar={<AuditOutlined />} title={item.action} description={`${item.detail} · ${item.id}`} /><Typography.Text type="secondary">{item.actor} · {item.createdAt}</Typography.Text></List.Item>} /></Card></Space>
 
 const AdminWalletPage: FC = () => {
-  const location = useLocation(); const navigate = useNavigate(); const [messageApi, contextHolder] = message.useMessage(); const view: AdminView = (location.pathname.split('/')[3] as AdminView) || 'dashboard'; const titleMap: Record<AdminView, [string, string]> = { dashboard: ['钱包总览', '查看钱包健康度、交易量和待处理事项。'], transactions: ['交易记录', '查看 Base 主网上的 USDC 交易活动。'], users: ['用户钱包', '查看钱包状态和账户绑定情况。'], settings: ['提现规则', '配置提现费用和额度限制。'], audit: ['审计日志', '追踪钱包操作和规则变更。'] }; const activeView = titleMap[view] ? view : 'dashboard'; const onNavigate = (next: AdminView) => navigate(viewPath(next))
-  return <>{contextHolder}<AdminShell title={titleMap[activeView][0]} description={titleMap[activeView][1]}>{activeView === 'dashboard' && <OverviewPage onNavigate={onNavigate} />}{activeView === 'transactions' && <TransactionsPage />}{activeView === 'users' && <UsersPage />}{activeView === 'settings' && <SettingsPage onToast={text => messageApi.success(text)} />}{activeView === 'audit' && <AuditPage />}</AdminShell></>
+  const location = useLocation()
+  const navigate = useNavigate()
+  const view: AdminView = (location.pathname.split('/')[3] as AdminView) || 'dashboard'
+  const titleMap: Record<AdminView, [string, string]> = { dashboard: ['钱包总览', '查看 Dynamic 钱包绑定、链上同步和基础设施状态。'], transactions: ['交易记录', '查看 Dynamic Send、Funding 和链上交易同步结果。'], users: ['用户钱包', '查看 SuperIM 用户与 Dynamic 钱包地址的绑定关系。'], settings: ['集成配置', '查看 Dynamic 能力和 SuperIM 钱包服务的配置状态。'], audit: ['审计日志', '追踪钱包绑定、交易同步和后台配置事件。'] }
+  const activeView = titleMap[view] ? view : 'dashboard'
+  const onNavigate = (next: AdminView) => navigate(viewPath(next))
+  return <AdminShell title={titleMap[activeView][0]} description={titleMap[activeView][1]}>{activeView === 'dashboard' && <OverviewPage onNavigate={onNavigate} />}{activeView === 'transactions' && <TransactionsPage />}{activeView === 'users' && <UsersPage />}{activeView === 'settings' && <SettingsPage />}{activeView === 'audit' && <AuditPage />}</AdminShell>
 }
 
 export default AdminWalletPage

@@ -39,5 +39,7 @@
 
 ## 5. 当前待补事项
 
-- Dynamic Embedded Wallet Demo 已接入钱包首页；正式环境配置、真实链路、RPC 和交易服务仍待开发阶段实现。
-- 钱包真实链路、RPC 和多链能力不属于当前 Mock 原型范围。
+- Dynamic Embedded Wallet 已接入登录、注册和钱包入口；需要配置 `VITE_DYNAMIC_ENVIRONMENT_ID` 才会启用。
+- 钱包地址绑定和聊天对象地址查询通过可选的 `VITE_SUPERIM_API_BASE_URL` 对接 SuperIM 后端；交易、充值和签名由 Dynamic SDK 负责。
+- 钱包后台原型使用 Mock 数据展示绑定、交易同步、基础设施和审计效果；正式系统再通过 `VITE_SUPERIM_API_BASE_URL` 对接服务端数据。
+- Base 网络、Funding 配置和生产环境安全校验仍需在 Dynamic Dashboard 与后端部署阶段完成。
