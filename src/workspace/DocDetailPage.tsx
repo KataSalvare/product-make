@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { NavLink, useParams } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
 import { docModules } from '@tools/config/docs'
+import MarkdownDocument from '@tools/components/MarkdownDocument'
 
 export const DocDetailPage: React.FC = () => {
   const { docId } = useParams<{ docId: string }>()
@@ -46,9 +47,7 @@ export const DocDetailPage: React.FC = () => {
               <div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full" />
             </div>
           ) : content ? (
-            <pre className="whitespace-pre-wrap font-mono text-sm text-gray-800 leading-relaxed">
-              {content}
-            </pre>
+            <MarkdownDocument content={content} />
           ) : (
             <div className="text-gray-400 text-center py-20">文档加载失败</div>
           )}

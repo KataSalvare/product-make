@@ -3,6 +3,7 @@ import { NavLink, useParams } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
 import { getDefaultComponent } from '@tools/config/pages'
 import { getThemeInfo, themeDesignDocs, themeModules } from '@tools/config/themes'
+import MarkdownDocument from '@tools/components/MarkdownDocument'
 
 export const ThemeDetailPage: React.FC = () => {
   const { themeId } = useParams<{ themeId: string }>()
@@ -93,9 +94,7 @@ export const ThemeDetailPage: React.FC = () => {
                 <div className="animate-spin w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full" />
               </div>
             ) : designDoc ? (
-              <pre className="whitespace-pre-wrap font-mono text-sm text-gray-700 leading-relaxed">
-                {designDoc}
-              </pre>
+              <MarkdownDocument content={designDoc} />
             ) : (
               <div className="text-gray-400 text-center py-10">暂无设计文档</div>
             )}

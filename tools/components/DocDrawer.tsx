@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { FileText, MapPin, XIcon } from 'lucide-react'
 import AnnotationPanel from './AnnotationPanel'
+import MarkdownDocument from './MarkdownDocument'
 import type { Annotation, AnnotationCategory } from '../lib/annotations'
 
 export type Theme = 'light' | 'dark'
@@ -152,9 +153,7 @@ export default function DocDrawer({
                 <div className="animate-spin w-6 h-6 border-2 border-current border-t-transparent rounded-full tool-accent" />
               </div>
             ) : docContent ? (
-              <pre className={`whitespace-pre-wrap font-mono text-sm leading-relaxed ${textSecondary}`}>
-                {docContent}
-              </pre>
+              <MarkdownDocument content={docContent} theme={theme} />
             ) : (
               <div className={`text-center py-20 ${textMuted}`}>加载失败</div>
             )}
