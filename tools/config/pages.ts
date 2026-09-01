@@ -28,15 +28,12 @@ Object.entries(allModules).forEach(([path, mod]) => {
 })
 
 const frontendPageConfig: Record<string, { path: string; label: string }> = {
-  'demo-register': { path: '/register', label: '注册' },
-  'demo-login': { path: '/login', label: '登录' },
   'demo-login 20-22-24-906': { path: '/login2', label: '登录' },
   'demo-home': { path: '/home', label: '首页' },
   'demo-profile': { path: '/profile', label: '个人中心' },
 }
 
 const adminPageConfig: Record<string, { path: string; label: string }> = {
-  'demo-admin-users': { path: '/admin/users', label: '用户管理' },
   'demo-admin-dashboard': { path: '/admin/dashboard', label: '仪表盘' },
   'demo-admin-orders': { path: '/admin/orders', label: '订单管理' },
 }

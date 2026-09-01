@@ -1,16 +1,31 @@
 # 产品原型预览系统
 
-基于 React + TypeScript + Vite 构建的产品原型预览脚手架，用于产品经理和 UI 设计师快速预览和展示页面原型。
+基于 React + TypeScript + Vite 构建的产品原型预览工作台，用于产品经理和 UI 设计师快速预览、批注和展示页面原型，同时管理设计系统主题与项目文档。
 
 ## 技术栈
 
-- **框架**: React 18 + TypeScript
+- **框架**: React 19 + TypeScript
 - **构建工具**: Vite
-- **路由**: React Router
-- **样式**: Tailwind CSS
+- **路由**: React Router 7
+- **样式**: Tailwind CSS 4
 - **图标**: Lucide React
+- **组件**: Ant Design、Radix UI、shadcn/ui 基础组件
 
 ## 功能特性
+
+## 三类对象
+
+项目中有三类对象，必须先区分再开始实现：
+
+| 对象 | 定义 | 代码位置 |
+|------|------|----------|
+| 原型浏览工具 | 承载和评审原型的工作台，包括侧边栏、顶部栏、路由、批注、快捷键和 Figma 复制 | `tools/` |
+| 前端原型 | 面向终端用户的业务页面 | `src/prototypes/<name>/` |
+| 后台原型 | 面向运营、管理员或内部员工的业务页面 | `src/prototypes/<name>/` |
+
+后台原型仍然属于业务内容，不是工具层。只有实现原型浏览工作台本身的代码才放在 `tools/`。
+
+完整术语定义见根目录 [`CONTEXT.md`](./CONTEXT.md)。
 
 ### 全局功能
 
@@ -20,7 +35,7 @@
 - **快捷键配置**: 可自定义快捷键，支持复制到 Figma、查看文档、批注选择元素等操作
 - **复制到 Figma**: 一键将当前页面复制到 Figma（HTML to Design）
 - **主题管理**: 动态读取 `src/themes` 中的设计系统主题，支持预览主题组件和查看设计规范
-- **文档管理**: 动态读取 `src/docs` 中的 Markdown 文档
+- **文档管理**: 动态读取 `src/docs/*.md` 中的根目录 Markdown 文档
 - **侧边栏折叠**: 顶部操作栏可一键折叠/展开左侧菜单栏，折叠后完全隐藏
 
 ### 页面批注
@@ -40,6 +55,28 @@
 | 查看文档 | Ctrl+Cmd+E | Ctrl+Alt+E |
 | 批注选择元素 | Ctrl+Cmd+S | Ctrl+Alt+S |
 
+## 原型路由
+
+前端原型和后台原型的入口统一放在 `src/prototypes/<name>/index.tsx`。原型浏览工具通过 Vite `import.meta.glob` 自动发现这些入口，再由 `tools/config/pages.ts` 为每个目录配置 URL、名称和分类。
+
+当前已注册的原型路由：
+
+| 分类 | 页面 | 路径 | 目录 |
+|------|------|------|------|
+| 前端 | 登录 | `/login2` | `demo-login 20-22-24-906` |
+| 前端 | 首页 | `/home` | `demo-home` |
+| 前端 | 个人中心 | `/profile` | `demo-profile` |
+| 后台 | 仪表盘 | `/admin/dashboard` | `demo-admin-dashboard` |
+| 后台 | 订单管理 | `/admin/orders` | `demo-admin-orders` |
+
+新增原型时，需要同时完成以下事项：
+
+1. 创建 `src/prototypes/<name>/index.tsx`，并导出默认组件。
+2. 在 `tools/config/pages.ts` 中增加目录名、路径、中文名称和分类映射。
+3. 如果页面需要 PRD，在同一目录增加 `spec.md`。
+
+只有实际存在 `index.tsx` 的目录才会被注册为路由；空目录或已删除目录不会出现在侧边栏。
+
 ## 项目结构
 
 ```
@@ -49,7 +86,7 @@ src/                        # 内容层：只放业务/原型相关内容
 ├── prototypes/             # 页面原型组件（前端原型 + 后台原型）
 ├── themes/                 # 主题设计系统
 ├── docs/                   # 项目文档（Markdown）
-├── workspace/              # 4 个 Tab 内容页面
+├── workspace/              # 首页、主题和文档工作区页面
 │   ├── HomePage.tsx        # 默认首页/引导页
 │   ├── ThemeDetailPage.tsx # 主题详情
 │   ├── ThemesListPage.tsx  # 主题列表
@@ -111,6 +148,8 @@ npm run build
 npm run preview
 ```
 
+批注保存接口由 Vite 开发服务器提供：开发时通过 `/api/annotations` 读写 `src/resources/annotations.json`；生产部署需要提供等价的后端接口，静态文件预览本身不会提供写入能力。
+
 ## 配置说明
 
 ### 本地存储键名
@@ -118,6 +157,8 @@ npm run preview
 - `prototype-theme`: 主题设置（light/dark）
 - `prototype-project-name`: 自定义项目名称
 - `prototype-shortcuts`: 快捷键配置
+- `prototype-sidebar-collapsed`: 侧边栏折叠状态
+- `prototype-annotations-draft`: 尚未保存到文件的批注草稿
 
 ## License
 

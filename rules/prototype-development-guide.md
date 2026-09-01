@@ -1,6 +1,6 @@
 # 原型开发与验收指南
 
-用于 `src/prototypes/<name>/` 下的原型实现、局部修改、多页面组织和预览验收。主题创建、派生和主题页验收优先看 `rules/theme-guide.md`。
+用于 `src/prototypes/<name>/` 下的前端原型和后台原型实现、局部修改、多页面组织和预览验收。原型浏览工具本身的修改不适用本指南，应参考 `rules/architecture-guide.md`。主题创建、派生和主题页验收优先看 `rules/theme-guide.md`。
 
 开发流程：
 
@@ -10,11 +10,31 @@
 
 ## 实现边界
 
+- 前端原型和后台原型都是被原型浏览工具加载的业务内容；两者都必须放在 `src/prototypes/<name>/`，不能放入 `tools/`。
+- 原型浏览工具包括侧边栏、顶部栏、工作区路由、主题/文档浏览、批注、快捷键和 Figma 复制；这些能力放在 `tools/`，不写进具体原型。
 - 一个原型目录就是主要隔离边界，页面组件、样式和素材优先留在对应原型目录内。
 - 不为单个原型随意修改 `src/common/`、全局主题或共享工具。
 - 多步骤或高风险修改先拆成短任务，逐项处理并维护当前状态。
 - 一次只处理一个明确问题；遇到构建、运行或验收失败，先定位原因再继续。
 - 完成后必须通过预览验收；纯视觉、文案、布局和素材调整不要求测试驱动。
+
+## 原型类型判定
+
+开始实现前，先回答“谁使用这个页面”：
+
+| 类型 | 用户 | 放置位置 | 路由分类 | 示例 |
+|------|------|----------|----------|------|
+| 前端原型 | 终端用户 | `src/prototypes/<name>/` | `frontend` | 登录、首页、个人中心 |
+| 后台原型 | 运营、管理员或内部员工 | `src/prototypes/<name>/` | `admin` | 仪表盘、用户管理、订单管理 |
+
+后台原型可以使用表格、图表、侧栏、权限和高密度信息布局，但这些只是业务页面的表现形式，不代表它属于工具层。
+
+必须遵守：
+
+1. 业务页面一律放在 `src/prototypes/<name>/`。
+2. 预览器能力一律放在 `tools/`。
+3. 后台原型目录建议使用 `demo-admin-<name>`，并在 `tools/config/pages.ts` 的后台页面映射中注册；前端原型在前端页面映射中注册。运行时会分别生成 `category: 'admin'` 和 `category: 'frontend'`。
+4. 开发前在任务摘要中写明：`对象类型`、`用户`、`内容目录`、`路由分类`。
 
 ## 文件结构与命名
 
@@ -29,7 +49,7 @@ src/prototypes/<name>/
 ```
 
 - 原型入口文件必须是 `index.tsx`。
-- 原型目录名使用小写字母、数字、连字符，如 `order-review`。
+- 原型目录名使用小写字母、数字、连字符，如前端原型 `demo-home`、后台原型 `demo-admin-orders`。
 - 当目录名为 `untitled`、`untitled-*` 或显示名为「未命名」时，开始生成实际内容前应更新为有意义的目录名和 `@name`。
 - 本项目当前不产出独立 `components` 资源；原型内部组件放在对应原型目录下的 `components/`。
 - 原型目录文档放在当前原型的 `docs/` 下，例如 `src/prototypes/order-review/docs/prd-03-status.md`。
@@ -44,31 +64,20 @@ src/prototypes/<name>/
 
 ## 多页面原型
 
-单个原型可以包含多个页面，通过 URL hash 参数 `#page=<pageId>` 定位：
+单个原型可以包含多个页面，通过 URL hash 参数 `#page=<pageId>` 在原型内部定位：
 
 ```text
-/prototypes/express-app/#page=home
-/prototypes/express-app/#page=detail
+/home#page=home
+/home#page=detail
 ```
 
-多页面仍属于同一个原型目录；页面组件放在原型内部的 `pages/`，跨页面共享组件放在原型内部的 `components/`。
-
-使用公共 hook `src/common/useHashPage.ts`：
-
-```typescript
-import { useHashPage } from '../../common/useHashPage';
-
-export default function MyApp() {
-    const { page, setPage } = useHashPage('home');
-    // page === 'home' | 'detail' | ...
-}
-```
+多页面仍属于同一个原型目录；页面组件放在原型内部的 `pages/`，跨页面共享组件放在原型内部的 `components/`。原型内部页面不需要在 `tools/config/pages.ts` 中分别注册，浏览工具只注册原型入口。
 
 - `pageId` 命名使用小写字母、数字、连字符。
 - 不带 `#page=` 时自动使用 `defaultPage`。
 - 此路由完全在原型内部，不影响构建。
 
-参考实现：`src/prototypes/ref-app-home/index.tsx`。
+参考实现：`src/prototypes/demo-home/index.tsx`。
 
 ## 弹窗（Modal/Overlay）开发规范
 
