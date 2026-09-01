@@ -31,7 +31,7 @@ export const loadTheme = (): Theme => {
   } catch {
     // ignore
   }
-  return 'dark'
+  return 'light'
 }
 
 export const saveTheme = (theme: Theme) => {
