@@ -1416,6 +1416,10 @@ function AppContent() {
     saveTheme(newTheme)
   }, [theme])
 
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark')
+  }, [theme])
+
   // 更新项目名称
   const handleProjectNameChange = useCallback((name: string) => {
     setProjectName(name)

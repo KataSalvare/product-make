@@ -3,7 +3,7 @@
  * @description SuperIM v2.0 USDC wallet prototype. Mock-only, Base Mainnet.
  */
 
-import { useMemo, useState, type FC, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type FC, type ReactNode } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   AlertCircle,
@@ -14,19 +14,22 @@ import {
   Check,
   CheckCircle2,
   ChevronRight,
-  CircleDollarSign,
   Clock3,
   Copy,
+  Cloud,
   ExternalLink,
+  FileText,
   KeyRound,
   LockKeyhole,
+  Mic,
+  MoreVertical,
+  Paperclip,
   ReceiptText,
   ScanLine,
-  Send,
   Settings2,
   ShieldCheck,
+  Smile,
   TriangleAlert,
-  UsersRound,
   X,
 } from 'lucide-react'
 import '../../themes/equatorial-minimalism/globals.css'
@@ -254,11 +257,90 @@ const SecurityPage: FC = () => {
   return <div className="wallet-screen"><PageHeader title="Wallet security" onBack={() => navigate('/wallet')} /><main className="wallet-scroll-area wallet-detail-scroll"><section className="wallet-security-hero"><span className="wallet-feature-icon wallet-feature-icon-indigo"><ShieldCheck aria-hidden="true" /></span><h2>Sign with<br /><em>confidence.</em></h2><p>Every transfer requires your explicit approval. Your private wallet credentials never leave the protected wallet layer.</p></section><section className="wallet-security-list"><div className="wallet-security-item wallet-security-item-active"><span className="wallet-option-icon"><KeyRound aria-hidden="true" /></span><span><strong>Passkey</strong><small>Preferred verification method</small></span><span className="wallet-security-state">Active <Check aria-hidden="true" /></span><ChevronRight aria-hidden="true" /></div><div className="wallet-security-item"><span className="wallet-option-icon wallet-option-icon-muted"><LockKeyhole aria-hidden="true" /></span><span><strong>Payment password</strong><small>Fallback verification method</small></span><span className="wallet-security-state">Set up</span><ChevronRight aria-hidden="true" /></div></section><div className="wallet-security-note wallet-security-note-block"><ShieldCheck aria-hidden="true" /><span><strong>Signature required</strong><br />SuperIM can sponsor network fees, but cannot bypass your wallet signature.</span></div><section className="wallet-section"><div className="wallet-section-heading"><div><span className="wallet-eyebrow">WALLET IDENTITY</span><h3>Connected wallet</h3></div></div><div className="wallet-address-card"><span className="wallet-card-label">BASE MAINNET · PRIMARY</span><strong>{fullWalletAddress}</strong><small>Created when your SuperIM account was registered.</small></div></section></main></div>
 }
 
+interface WalletChatMessage {
+  id: string
+  text: string
+  timestamp: string
+  isSent: boolean
+  isRead: boolean
+  fileName?: string
+  fileSize?: string
+  isCloudDrive?: boolean
+}
+
+const walletChatMessages: WalletChatMessage[] = [
+  { id: '1', text: 'Hey! How are you doing?', timestamp: '10:30 AM', isSent: false, isRead: true },
+  { id: '2', text: "I'm doing great! Just finished the project.", timestamp: '10:32 AM', isSent: true, isRead: true },
+  { id: '3', text: "That's awesome! Congratulations 🎉", timestamp: '10:33 AM', isSent: false, isRead: true },
+  { id: 'cd-1', text: 'Team photo album.zip', timestamp: '10:38 AM', isSent: true, isRead: true, fileName: 'Team photo album.zip', fileSize: '25 MB', isCloudDrive: true },
+  { id: '4', text: 'Thanks for the help with the project!', timestamp: '10:42 AM', isSent: false, isRead: false },
+  { id: 'file-brief', text: 'Project brief.pdf', timestamp: '10:44 AM', isSent: false, isRead: false, fileName: 'Project brief.pdf', fileSize: '2.4 MB' },
+  { id: 'cd-2', text: 'Contract template.docx', timestamp: '10:48 AM', isSent: true, isRead: false, fileName: 'Contract template.docx', fileSize: '892 KB', isCloudDrive: true },
+]
+
+const WalletChatMessage: FC<{ message: WalletChatMessage }> = ({ message }) => {
+  const bubble = (
+    <div className={`bg-[var(--surface-container-lowest)] text-[var(--on-surface)] px-4 py-2.5 cursor-pointer active:scale-[0.98] transition-transform ${message.isSent ? 'rounded-2xl rounded-tr-sm' : 'rounded-2xl rounded-tl-sm'} mt-0.5`}>
+      {message.fileName ? (
+        <div className="min-w-[190px]">
+          <div className="flex items-center gap-3">
+            <span className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${message.isCloudDrive ? 'bg-[var(--primary-fixed)] text-[var(--on-primary-fixed)]' : 'bg-[var(--secondary-container)] text-[var(--on-secondary-container)]'}`}>
+              {message.isCloudDrive ? <Cloud className="w-5 h-5" aria-hidden="true" /> : <FileText className="w-5 h-5" aria-hidden="true" />}
+            </span>
+            <span className="min-w-0 flex-1"><span className="block text-sm font-semibold truncate">{message.fileName}</span><span className="block text-xs text-[var(--on-surface-variant)]">{message.fileSize}</span></span>
+          </div>
+          {message.isCloudDrive && <div className="mt-2 flex items-center gap-1.5 pt-2 border-t border-[var(--outline-variant)]/60"><Cloud className="w-3.5 h-3.5 text-[var(--primary)] flex-shrink-0" aria-hidden="true" /><span className="text-label-xs font-medium text-[var(--primary)]">Shared from Cloud Drive</span></div>}
+        </div>
+      ) : <p className="text-body-md">{message.text}</p>}
+    </div>
+  )
+
+  return message.isSent ? (
+    <div className="flex gap-2">
+      <div className="flex-1 flex justify-end"><div className="max-w-[70%]">{bubble}<div className="flex items-center gap-1 mt-1 justify-end"><span className="text-label-xs text-[var(--on-surface-variant)]">{message.timestamp}</span><svg className={`w-4 h-4 ${message.isRead ? 'text-[var(--secondary)]' : 'text-[var(--outline)]'}`} fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /><path d="M5 16.17L1.83 13l-1.42 1.41L5 20l12-12-1.41-1.41z" opacity="0.5" /></svg></div></div></div>
+    </div>
+  ) : (
+    <div className="flex gap-2"><div className="max-w-[70%]">{bubble}<span className="text-label-xs text-[var(--on-surface-variant)] mt-1 block">{message.timestamp}</span></div></div>
+  )
+}
+
 const ChatTransferPage: FC<{ onToast: (message: string) => void }> = ({ onToast }) => {
   const navigate = useNavigate()
   const [authOpen, setAuthOpen] = useState(false)
   const [sent, setSent] = useState(false)
-  return <div className="wallet-screen wallet-chat-screen"><header className="wallet-chat-header"><IconButton label="Back to wallet" onClick={() => navigate('/wallet')}><ArrowLeft aria-hidden="true" /></IconButton><span className="wallet-avatar wallet-avatar-small">AO</span><div><strong>Amara Okafor</strong><small><span className="wallet-online-dot" /> online</small></div><IconButton label="Chat details"><UsersRound aria-hidden="true" /></IconButton></header><main className="wallet-chat-messages"><div className="wallet-chat-date">TODAY</div><div className="wallet-chat-bubble wallet-chat-bubble-received">Hey! Can you send me your half for dinner?</div><div className="wallet-chat-bubble wallet-chat-bubble-sent">Sure — sending it now.</div><div className="wallet-transfer-card wallet-transfer-card-sent"><div className="wallet-transfer-card-top"><span className="wallet-transfer-card-icon"><ArrowUpRight aria-hidden="true" /></span><span><span className="wallet-eyebrow">USDC TRANSFER</span><strong>120.00 USDC</strong></span><StatusPill status={sent ? 'completed' : 'processing'} /></div><div className="wallet-transfer-card-meta"><span>{sent ? 'Sent to Amara' : 'Awaiting your approval'}</span><NetworkBadge /></div>{!sent && <button type="button" className="wallet-card-action" onClick={() => setAuthOpen(true)}>Approve transfer <ArrowRight aria-hidden="true" /></button>}{sent && <div className="wallet-transfer-complete"><CheckCircle2 aria-hidden="true" /> Transfer complete</div>}</div><div className="wallet-chat-bubble wallet-chat-bubble-received">Got it, thank you!</div></main><footer className="wallet-chat-composer"><button type="button" className="wallet-composer-add" onClick={() => navigate('/wallet/transfer')} aria-label="Open USDC transfer"><CircleDollarSign aria-hidden="true" /></button><div>Message Amara...</div><button type="button" className="wallet-composer-send" onClick={() => setAuthOpen(true)} aria-label="Approve chat transfer"><Send aria-hidden="true" /></button></footer><AuthSheet open={authOpen} onClose={() => setAuthOpen(false)} onComplete={method => { setAuthOpen(false); setSent(true); onToast(`${method === 'passkey' ? 'Passkey' : 'Payment password'} verified · Chat transfer complete`) }} /></div>
+  const messagesRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const messages = messagesRef.current
+    if (messages) messages.scrollTop = messages.scrollHeight
+  }, [])
+
+  return <div className="h-full bg-[var(--surface-container-low)] flex flex-col wallet-chat-screen">
+    <header className="bg-[var(--surface-container-low)] border-b border-[var(--outline-variant)] px-4 py-3 z-20">
+      <div className="flex items-center gap-3">
+        <button type="button" onClick={() => navigate('/wallet')} className="p-2 -ml-2 hover:bg-[var(--surface-container)] rounded-full transition-colors" aria-label="Back to wallet"><ArrowLeft className="w-6 h-6 text-[var(--on-surface)]" aria-hidden="true" /></button>
+        <button type="button" onClick={() => navigate('/user-profile?isContact=true')} className="w-10 h-10 bg-[var(--primary-container)] rounded-full flex items-center justify-center text-[var(--on-primary-container)] font-semibold hover:opacity-90 transition-opacity" aria-label="AO">AO</button>
+        <div className="flex-1"><button type="button" onClick={() => navigate('/user-profile?isContact=true')} className="text-left"><h1 className="text-body-lg font-semibold text-[var(--on-surface)]">Amara Okafor</h1></button><p className="text-label-sm text-[var(--secondary)]">Online</p></div>
+        <button type="button" className="p-2 hover:bg-[var(--surface-container)] rounded-full transition-colors" aria-label="Chat menu"><MoreVertical className="w-6 h-6 text-[var(--on-surface)]" aria-hidden="true" /></button>
+      </div>
+    </header>
+
+    <div ref={messagesRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+      <div className="flex items-center justify-center"><span className="px-3 py-1 bg-[var(--surface-container)] rounded-full text-label-sm text-[var(--on-surface-variant)]">Today</span></div>
+      {walletChatMessages.map(message => <WalletChatMessage key={message.id} message={message} />)}
+      <div className="flex justify-end"><div className="wallet-transfer-card wallet-transfer-card-sent"><div className="wallet-transfer-card-top"><span className="wallet-transfer-card-icon"><ArrowUpRight aria-hidden="true" /></span><span><span className="wallet-eyebrow">USDC TRANSFER</span><strong>120.00 USDC</strong></span><StatusPill status={sent ? 'completed' : 'processing'} /></div><div className="wallet-transfer-card-meta"><span>{sent ? 'Sent to Amara' : 'Awaiting your approval'}</span><NetworkBadge /></div>{!sent && <button type="button" className="wallet-card-action" onClick={() => setAuthOpen(true)}>Approve transfer <ArrowRight aria-hidden="true" /></button>}{sent && <div className="wallet-transfer-complete"><CheckCircle2 aria-hidden="true" /> Transfer complete</div>}</div></div>
+    </div>
+
+    <div className="bg-[var(--surface-container-low)] border-t border-[var(--outline-variant)] px-3 py-2.5">
+      <div className="flex items-center gap-2">
+        <button type="button" className="h-11 w-11 rounded-full flex items-center justify-center flex-shrink-0 text-[var(--on-surface-variant)] hover:bg-[var(--surface-container)] transition-colors" aria-label="Attachments"><Paperclip className="w-6 h-6" aria-hidden="true" /></button>
+        <div className="flex-1 relative"><textarea aria-label="Message" placeholder="Message..." rows={1} className="w-full min-h-[44px] max-h-[120px] bg-[var(--surface-container-lowest)] text-[var(--on-surface)] placeholder:text-[var(--on-surface-variant)]/50 resize-none focus:outline-none rounded-2xl px-4 py-2.5 pr-10 text-body-md border border-[var(--outline-variant)] focus:border-[var(--primary)]/30 transition-colors" /><button type="button" className="absolute right-2 top-1/2 -translate-y-1/2 transition-colors text-[var(--on-surface-variant)]/70 hover:text-[var(--on-surface-variant)]" aria-label="Emoji"><Smile className="w-5 h-5" aria-hidden="true" /></button></div>
+        <button type="button" className="h-11 w-11 rounded-full text-[var(--on-surface-variant)] hover:bg-[var(--surface-container)] flex items-center justify-center flex-shrink-0 transition-colors" aria-label="Record voice"><Mic className="w-5 h-5" aria-hidden="true" /></button>
+      </div>
+    </div>
+
+    <AuthSheet open={authOpen} onClose={() => setAuthOpen(false)} onComplete={method => { setAuthOpen(false); setSent(true); onToast(`${method === 'passkey' ? 'Passkey' : 'Payment password'} verified · Chat transfer complete`) }} />
+  </div>
 }
 
 const WalletPage: FC = () => {
