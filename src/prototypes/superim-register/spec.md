@@ -12,7 +12,15 @@
 | **页面目的** | 用户注册账号，加入SuperIM社区 |
 
 ### 1.2 页面描述
-用户注册页面，支持手机号和邮箱两种注册方式，包含验证码验证、密码设置、密码强度检测、服务条款同意等功能，引导新用户完成账号创建。
+用户注册页面，支持手机号和邮箱两种注册方式，包含验证码验证、密码设置、密码强度检测、服务条款同意等功能，引导新用户完成账号创建。配置 Dynamic Sandbox 后，注册成功还需要自动创建并绑定 Base Mainnet Embedded Wallet。
+
+### 1.3 Dynamic 钱包注册 Demo
+
+- 注册按钮提交后打开 Dynamic Auth Flow，完成 Dynamic 用户注册/登录。
+- Dynamic Sandbox 需开启 Embedded Wallet 和 `Create on Sign Up`，并仅启用 Base Mainnet。
+- Dynamic 注册成功后读取钱包地址，在页面显示 `Account created · Wallet ready`。
+- 未配置 `VITE_DYNAMIC_ENVIRONMENT_ID` 时，保留原有 Mock 注册行为。
+- 本 Demo 不连接 SuperIM 注册 API，也不发起真实 USDC 交易；正式开发时需要由后端完成 SuperIM 用户与 Dynamic 用户/钱包的绑定。
 
 ---
 
@@ -123,6 +131,12 @@
 ### 3.1 注册流程
 ```
 选择注册方式(Phone/Email) → 填写账号 → 获取验证码 → 设置密码 → 同意条款 → 创建账号
+```
+
+配置 Dynamic 后：
+
+```
+点击 Create Account → 打开 Dynamic Auth Flow → 注册/登录成功 → Dynamic 自动创建 Base Mainnet Embedded Wallet → 读取钱包地址并显示成功状态
 ```
 
 ### 3.2 Tab切换

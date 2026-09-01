@@ -33,6 +33,8 @@ import {
   X,
 } from 'lucide-react'
 import '../../themes/equatorial-minimalism/globals.css'
+import { DynamicWalletDemo } from '../../integrations/dynamic/DynamicProvider'
+import { isDynamicConfigured } from '../../integrations/dynamic/config'
 import './style.css'
 
 type WalletView = 'home' | 'deposit' | 'transfer' | 'withdraw' | 'transactions' | 'detail' | 'security' | 'chat-transfer'
@@ -195,6 +197,18 @@ const WalletHome: FC<{ onToast: (message: string) => void }> = ({ onToast }) => 
         <div className="wallet-address-row"><span>{walletAddress}</span><button type="button" onClick={copyAddress} aria-label="Copy wallet address"><Copy aria-hidden="true" /> Copy</button></div>
         <div className="wallet-card-footer"><span><ShieldCheck aria-hidden="true" /> Protected by Passkey</span><span>Available</span></div>
       </section>
+      {isDynamicConfigured ? <DynamicWalletDemo /> : (
+        <section className="wallet-dynamic-card wallet-dynamic-card-unconfigured" aria-labelledby="dynamic-demo-title">
+          <div className="wallet-dynamic-heading">
+            <div>
+              <span className="wallet-eyebrow">DYNAMIC DEMO</span>
+              <h3 id="dynamic-demo-title">Connect your wallet</h3>
+            </div>
+            <span className="wallet-dynamic-status">Setup</span>
+          </div>
+          <p>Set <code>VITE_DYNAMIC_ENVIRONMENT_ID</code> to enable the Dynamic Sandbox connection demo.</p>
+        </section>
+      )}
       <section className="wallet-action-grid" aria-label="Wallet actions">
         <ActionTile label="Deposit" icon={<ArrowDownLeft aria-hidden="true" />} onClick={() => navigate('/wallet/deposit')} />
         <ActionTile label="Transfer" icon={<ArrowUpRight aria-hidden="true" />} onClick={() => navigate('/wallet/transfer')} />

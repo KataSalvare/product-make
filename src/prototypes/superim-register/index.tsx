@@ -5,9 +5,35 @@
  * @skill /skills/axure-export-workflow/SKILL.md
  */
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { useDynamicContext, useIsLoggedIn, useUserWallets } from '@dynamic-labs/sdk-react-core';
 import '../../themes/equatorial-minimalism/globals.css';
 import './style.css';
+import { isDynamicConfigured } from '../../integrations/dynamic/config';
+
+const DynamicRegistrationBridge: React.FC<{
+  request: number;
+  onWalletCreated: (address: string) => void;
+}> = ({ request, onWalletCreated }) => {
+  const { sdkHasLoaded, primaryWallet, setShowAuthFlow } = useDynamicContext();
+  const isLoggedIn = useIsLoggedIn();
+  const userWallets = useUserWallets();
+  const walletAddress = primaryWallet?.address ?? userWallets[0]?.address;
+
+  useEffect(() => {
+    if (request > 0 && sdkHasLoaded && !isLoggedIn) {
+      setShowAuthFlow(true);
+    }
+  }, [isLoggedIn, request, sdkHasLoaded, setShowAuthFlow]);
+
+  useEffect(() => {
+    if (request > 0 && isLoggedIn && walletAddress) {
+      onWalletCreated(walletAddress);
+    }
+  }, [isLoggedIn, onWalletCreated, request, walletAddress]);
+
+  return null;
+};
 
 const RegisterPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'phone' | 'email'>('phone');
@@ -21,6 +47,8 @@ const RegisterPage: React.FC = () => {
   const [countdown, setCountdown] = useState(60);
   const [countryCode, setCountryCode] = useState('+234');
   const [showCountryPicker, setShowCountryPicker] = useState(false);
+  const [dynamicRegistrationRequest, setDynamicRegistrationRequest] = useState(0);
+  const [createdWalletAddress, setCreatedWalletAddress] = useState<string | null>(null);
   const countryPickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -58,9 +86,19 @@ const RegisterPage: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (isDynamicConfigured) {
+      setDynamicRegistrationRequest((request) => request + 1);
+      return;
+    }
+
     setIsLoading(true);
     setTimeout(() => setIsLoading(false), 2000);
   };
+
+  const handleDynamicWalletCreated = useCallback((address: string) => {
+    setCreatedWalletAddress(address);
+  }, []);
 
   const getPasswordStrength = (pwd: string): { strength: number; label: string; color: string } => {
     if (pwd.length === 0) return { strength: 0, label: '', color: '' };
@@ -95,6 +133,21 @@ const RegisterPage: React.FC = () => {
           <h1 className="text-headline-md text-[var(--primary)] mb-2">Create Account</h1>
           <p className="text-body-sm text-[var(--on-surface-variant)]">Join SuperIM today</p>
         </div>
+
+        {isDynamicConfigured && (
+          <DynamicRegistrationBridge
+            request={dynamicRegistrationRequest}
+            onWalletCreated={handleDynamicWalletCreated}
+          />
+        )}
+
+        {createdWalletAddress && (
+          <div className="mb-4 rounded-xl border border-[var(--success)]/30 bg-[var(--surface-container-lowest)] px-4 py-3 text-sm text-[var(--on-surface)]">
+            <strong className="block">Account created · Wallet ready</strong>
+            <span className="mt-1 block break-all text-xs">{createdWalletAddress}</span>
+            <span className="mt-1 block text-xs opacity-80">Base Mainnet Embedded Wallet created by Dynamic.</span>
+          </div>
+        )}
 
         {/* Register Card */}
         <div className="bg-[var(--surface-container-low)] rounded-2xl shadow-ambient-lg p-5">
@@ -310,6 +363,11 @@ const RegisterPage: React.FC = () => {
                 'Create Account'
               )}
             </button>
+            {isDynamicConfigured && (
+              <p className="text-center text-xs text-[var(--on-surface-variant)]">
+                Dynamic will create your Base Mainnet wallet after sign-up.
+              </p>
+            )}
           </form>
 
           {/* Sign In Link */}

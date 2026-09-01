@@ -39,5 +39,5 @@
 
 ## 5. 当前待补事项
 
-- Dynamic Embedded Wallet 正式接入仍待开发阶段实现。
+- Dynamic Embedded Wallet Demo 已接入钱包首页；正式环境配置、真实链路、RPC 和交易服务仍待开发阶段实现。
 - 钱包真实链路、RPC 和多链能力不属于当前 Mock 原型范围。

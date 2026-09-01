@@ -2,7 +2,17 @@
 
 ## 原型目标
 
-验证 Base Mainnet + USDC 钱包的核心信息层级、链上同链转账流程、聊天窗口内转账卡片和 Passkey/支付密码授权关系。原型仅使用内存 Mock 数据，不接入 Dynamic、不连接真实 RPC、不发起真实交易。
+验证 Base Mainnet + USDC 钱包的核心信息层级、链上同链转账流程、聊天窗口内转账卡片和 Passkey/支付密码授权关系。原型默认使用内存 Mock 数据；当配置 Dynamic Environment ID 时，钱包首页额外展示 Dynamic Sandbox 连接 Demo，不连接真实 RPC、不发起真实 USDC 交易。
+
+## Dynamic Demo 接入
+
+- SDK：`@dynamic-labs/sdk-react-core@5.3.1`、`@dynamic-labs/ethereum@5.3.1`。
+- 应用根部使用 `DynamicContextProvider`，EVM 连接器使用 `EthereumWalletConnectors`。
+- 通过 `.env.local` 配置 `VITE_DYNAMIC_ENVIRONMENT_ID`；可参考仓库根目录 `.env.example`。
+- Dynamic Sandbox 环境需在 Dashboard 中仅启用 Base Mainnet；本 Demo 不提供新增网络或跨链入口。
+- 配置成功后，钱包首页的 `DYNAMIC DEMO` 卡片可以打开 Dynamic Widget，展示 SDK 加载状态、登录状态、钱包地址和钱包数量。
+- 未配置 Environment ID 时不初始化 Dynamic，页面继续使用原有 Mock 钱包地址和交易数据。
+- Demo 只验证 Dynamic 连接和钱包信息读取；转账、提现、充值、Passkey 和后台规则仍由原型 Mock 展示。
 
 ## 页面入口
 
