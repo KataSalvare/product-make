@@ -26,6 +26,19 @@
 - 页面数据、状态和交互应能回溯到 SPEC 的 mock 映射及 PRD 的真实需求；发现冲突时先回到需求/设计对齐，不自行选择。
 - 原型未实现但 PRD 要求的能力，要在 SPEC 的“未实现项”中列出，不得默认为已完成。
 
+## 文档交接校验
+
+在研发交付前运行：
+
+```bash
+npm run check:docs
+node scripts/check-doc-handoff.mjs src/prototypes/<name>
+```
+
+- 默认校验 `src/prototypes/` 和 `src/docs/` 中的 PRD、SPEC 及补充模型文档。
+- `--stage draft` 允许 PRD 暂时保留“待设计”的页面映射；研发交付使用默认的 `handoff` 阶段。
+- 校验失败时，先修复文档边界、页面状态、需求编号或追踪关系，再进行原型验收。
+
 ## 原型类型判定
 
 开始实现前，先回答“谁使用这个页面”：
@@ -196,3 +209,4 @@ node scripts/check-app-ready.mjs /prototypes/[原型目录]
 - [ ] 新增依赖已写入 `package.json`。
 - [ ] `check-app-ready.mjs` 原型验收通过。
 - [ ] 已标记 mock 数据、模拟交互和原型未实现项，未将其当作生产逻辑。
+- [ ] `check-doc-handoff.mjs` 文档交接校验通过。
