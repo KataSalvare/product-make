@@ -187,6 +187,12 @@ const getThemeInfo = (dirName: string): { name: string; description: string } =>
 
 // ==================== 文档动态加载 ====================
 const docModules = import.meta.glob('./docs/*.md', { query: '?raw', import: 'default' })
+const getPrdDocs = () => Object.entries(docModules).map(([path]) => {
+  const match = path.match(/\.\/docs\/(.+)\.md$/)
+  if (!match || !/prd/i.test(match[1])) return null
+  const fileName = match[1]
+  return { id: fileName, name: fileName, path: `/doc/${fileName}` }
+}).filter(Boolean) as { id: string; name: string; path: string }[]
 
 // ==================== 操作系统检测 ====================
 const getOS = (): 'mac' | 'windows' | 'linux' | 'unknown' => {
@@ -408,18 +414,7 @@ const DocNav = ({ isDark }: DocNavProps) => {
   const location = useLocation()
 
   // 动态生成文档列表
-  const docs = Object.entries(docModules).map(([path]) => {
-    const match = path.match(/\.\/docs\/(.+)\.md$/)
-    if (match) {
-      const fileName = match[1]
-      return {
-        id: fileName,
-        name: fileName,
-        path: `/doc/${fileName}`,
-      }
-    }
-    return null
-  }).filter(Boolean) as { id: string; name: string; path: string }[]
+  const docs = getPrdDocs()
 
   return (
     <div className="space-y-1">
@@ -1361,18 +1356,7 @@ const DocDetailPage = () => {
 
 // ==================== 文档列表页面 ====================
 const DocsListPage = () => {
-  const docs = Object.entries(docModules).map(([path]) => {
-    const match = path.match(/\.\/docs\/(.+)\.md$/)
-    if (match) {
-      const fileName = match[1]
-      return {
-        id: fileName,
-        name: fileName,
-        path: `/doc/${fileName}`,
-      }
-    }
-    return null
-  }).filter(Boolean) as { id: string; name: string; path: string }[]
+  const docs = getPrdDocs()
 
   return (
     <div className="h-full overflow-auto p-8 bg-gray-50">

@@ -1,4 +1,4 @@
-# SuperIM Dynamic 注册规格
+# SuperIM 注册页规格
 
 ## 页面信息
 
@@ -9,21 +9,24 @@
 
 ## 功能
 
-- 使用 `DynamicEmbeddedWidget` 展示 Dynamic 注册流程。
-- Dynamic 负责账号认证和 Embedded Wallet 创建。
-- Dynamic Dashboard 开启 `Create on Sign up` 后，注册完成自动创建或恢复钱包。
-- SuperIM 读取公开钱包地址，并通过后端验证 Dynamic JWT 后完成地址绑定。
-- 未配置 `VITE_DYNAMIC_ENVIRONMENT_ID` 时展示明确配置提示。
+- 支持手机号和邮箱两种注册方式切换。
+- 手机号注册支持国家码选择，默认国家码为 `+234`。
+- 支持验证码发送和 60 秒倒计时。
+- 支持密码输入和 Weak、Medium、Strong 密码强度展示。
+- 必须同意服务条款和隐私政策后才可提交注册。
+- 提交后显示加载状态；当前原型使用 Mock 注册反馈，不请求真实注册 API。
 
 ## 状态
 
-- Dynamic 加载中
-- 登录/注册中
-- 钱包创建或同步中
-- 钱包地址已获取
-- SuperIM 地址绑定失败，可重试
+- 默认：手机号注册 Tab。
+- 切换：手机号/邮箱表单切换。
+- 验证码：可发送、倒计时中、倒计时结束。
+- 密码强度：空、弱、中、强。
+- 条款：未同意、已同意。
+- 加载中：按钮禁用并显示 `Creating...`。
 
-## 非目标
+## 视觉规范
 
-- 不实现手机号/邮箱 Mock 注册表单。
-- 不保存 Dynamic JWT、私钥、助记词、支付密码或签名材料。
+- 使用 Equatorial Minimalism 主题和现有注册页样式。
+- 保持返回按钮、注册标题、表单卡片、条款勾选和登录入口结构。
+- 交互控件保留 hover、focus 和 disabled 状态。
