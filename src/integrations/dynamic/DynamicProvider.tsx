@@ -29,22 +29,23 @@ export const DynamicProvider: FC<{ children: ReactNode }> = ({ children }) => {
 }
 
 export const DynamicWalletDemo: FC = () => {
-  const { sdkHasLoaded, primaryWallet, user } = useDynamicContext()
+  const { sdkHasLoaded, user } = useDynamicContext()
   const isLoggedIn = useIsLoggedIn()
   const userWallets = useUserWallets()
-  const walletAddress = primaryWallet?.address
+  const embeddedWallet = userWallets.find(wallet => wallet.connector.isEmbeddedWallet)
+  const walletAddress = embeddedWallet?.address
   const [bindingState, setBindingState] = useState<'idle' | 'bound' | 'error'>('idle')
 
   useEffect(() => {
-    if (!isLoggedIn || !primaryWallet || !user?.userId || !walletBindingApiConfigured) return
+    if (!isLoggedIn || !embeddedWallet || !user?.userId || !walletBindingApiConfigured) return
 
     let cancelled = false
-    bindDynamicWallet(primaryWallet, user.userId)
+    bindDynamicWallet(embeddedWallet)
       .then(() => { if (!cancelled) setBindingState('bound') })
       .catch(() => { if (!cancelled) setBindingState('error') })
 
     return () => { cancelled = true }
-  }, [isLoggedIn, primaryWallet, user?.userId])
+  }, [embeddedWallet, isLoggedIn, user?.userId])
 
   return (
     <section className="wallet-dynamic-card" aria-labelledby="dynamic-demo-title">
@@ -65,7 +66,7 @@ export const DynamicWalletDemo: FC = () => {
       {isLoggedIn && walletAddress && (
         <div className="wallet-dynamic-connected">
           <div>
-            <strong>Wallet address available to SuperIM</strong>
+            <strong>Embedded Wallet address bound to SuperIM</strong>
             <small>{walletAddress}</small>
           </div>
           <span>{bindingState === 'bound' ? 'Bound' : bindingState === 'error' ? 'Binding failed' : walletBindingApiConfigured && user?.userId ? 'Binding…' : `${userWallets.length} wallet${userWallets.length === 1 ? '' : 's'}`}</span>

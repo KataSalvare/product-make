@@ -39,7 +39,7 @@
 
 ## 5. 当前待补事项
 
-- Dynamic Embedded Wallet 已接入登录、注册和钱包入口；需要配置 `VITE_DYNAMIC_ENVIRONMENT_ID` 才会启用。
-- 钱包地址绑定和聊天对象地址查询通过可选的 `VITE_SUPERIM_API_BASE_URL` 对接 SuperIM 后端；交易、充值和签名由 Dynamic SDK 负责。
+- SuperIM 登录、注册保持现有 SuperIM 账号体系；用户进入「我的 → 钱包」后才通过 Dynamic Embedded Widget 开通钱包。需要配置 `VITE_DYNAMIC_ENVIRONMENT_ID` 才会启用。
+- 钱包绑定使用 SuperIM 当前会话与 Dynamic JWT 双重校验；聊天对象地址查询只依赖 SuperIM 后端会话。交易、充值和签名由 Dynamic SDK 负责。
 - 钱包后台原型使用 Mock 数据展示绑定、交易同步、基础设施和审计效果；正式系统再通过 `VITE_SUPERIM_API_BASE_URL` 对接服务端数据。
 - Base 网络、Funding 配置和生产环境安全校验仍需在 Dynamic Dashboard 与后端部署阶段完成。

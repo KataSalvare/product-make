@@ -2,16 +2,16 @@
 
 ## 原型目标
 
-验证 SuperIM 作为 Dynamic 钱包入口和聊天转账编排层的核心路径。登录、钱包创建、连接、充值、转账、交易确认和签名全部由 Dynamic SDK 提供；SuperIM 只负责入口、钱包地址绑定查询和聊天场景衔接。
+验证 SuperIM 作为 Dynamic 钱包入口和聊天转账编排层的核心路径。SuperIM 先完成账号注册/登录，用户进入「我的 → 钱包」后再由 Dynamic SDK 提供钱包开通、连接、充值、转账、交易确认和签名；SuperIM 只负责钱包入口、身份绑定、钱包地址查询和聊天场景衔接。
 
 ## Dynamic 接入
 
 - 应用根部使用 `DynamicContextProvider`。
-- 登录、注册和钱包入口使用 `DynamicEmbeddedWidget`。
+- SuperIM 登录和注册继续使用现有 SuperIM 账号表单；仅钱包入口使用 `DynamicEmbeddedWidget`。
 - Dynamic SDK 使用 `connect-and-sign`。
-- Dashboard 配置 EVM、Embedded Wallet 和 `Create on Sign up`。
+- Dashboard 配置 EVM 和 Embedded Wallet；是否开启 `Create on Sign up` 按钱包开通策略决定。
 - Base 是产品网络；开发/验收使用 Base Sepolia，生产再使用 Base Mainnet。
-- `primaryWallet.address` 作为当前用户公开钱包地址。
+- 仅将 `connector.isEmbeddedWallet === true` 的钱包地址作为当前用户聊天收款地址；外部钱包不写入绑定记录。
 - `onEmbeddedWalletCreated` 和钱包状态变化用于触发地址绑定。
 - 绑定 API 使用 `VITE_SUPERIM_API_BASE_URL` 配置。
 
@@ -27,13 +27,13 @@
 
 ## 地址绑定
 
-用户登录并获得钱包地址后，前端通过 Dynamic JWT 请求：
+用户必须已有 SuperIM 登录态。进入「我的 → 钱包」并在 Dynamic 完成钱包认证/创建、获得 Embedded Wallet 地址后，前端携带 Dynamic JWT 和 SuperIM 会话请求：
 
 ```text
 POST /api/wallet/bind
 ```
 
-聊天转账通过当前会话用户 ID 请求：
+聊天转账通过当前 SuperIM 会话按收款人用户 ID 请求：
 
 ```text
 GET /api/users/:userId/wallet
@@ -48,6 +48,7 @@ GET /api/users/:userId/wallet
 ## Dynamic Send
 
 - SuperIM 通过 `useSendBalance().open({ recipientAddress })` 打开 Dynamic Send UI。
+- 打开前确保当前 `primaryWallet` 已切换为 Dynamic Embedded Wallet；外部钱包仅用于连接或充值。
 - 收款地址来自 SuperIM 后端绑定记录。
 - 金额、资产、网络、费用提示和签名由 Dynamic 处理。
 - Dynamic 返回交易哈希后，SuperIM 展示提交成功并关联聊天消息。
@@ -63,7 +64,8 @@ GET /api/users/:userId/wallet
 ## 状态
 
 - Dynamic 未配置：展示配置提示。
-- 未登录：引导用户返回钱包入口完成 Dynamic 登录。
+- 未有 SuperIM 登录态：不能进入钱包业务页。
+- 已登录但未开通钱包：引导用户从「我的 → 钱包」完成 Dynamic 钱包开通。
 - 钱包创建/同步中：展示等待状态。
 - 地址绑定中：展示绑定状态。
 - 地址绑定失败：展示失败提示并允许重试。

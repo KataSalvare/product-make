@@ -56,7 +56,7 @@ const mainItems: MenuItem[] = [
     id: 'wallet',
     label: 'Wallet',
     icon: 'M20 7H4a2 2 0 00-2 2v9a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z M2 11h20 M16 16h.01',
-    description: 'Base Mainnet · 2,480.32 USDC',
+    description: 'Dynamic wallet · Open to activate',
     path: '/wallet',
   },
   {

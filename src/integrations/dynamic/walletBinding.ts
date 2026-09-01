@@ -3,9 +3,9 @@ import { getAuthToken, type Wallet } from '@dynamic-labs/sdk-react-core'
 const superimApiBaseUrl = (import.meta.env.VITE_SUPERIM_API_BASE_URL as string | undefined)?.trim() ?? ''
 
 export type WalletBindingPayload = {
-  dynamicUserId: string
   dynamicWalletId: string
   walletAddress: string
+  walletType: 'embedded'
   network: 'Base'
 }
 
@@ -15,11 +15,11 @@ export type WalletBindingResult =
 
 export const walletBindingApiConfigured = Boolean(superimApiBaseUrl)
 
-export async function bindDynamicWallet(wallet: Wallet, dynamicUserId: string): Promise<WalletBindingResult> {
+export async function bindDynamicWallet(wallet: Wallet): Promise<WalletBindingResult> {
   if (!superimApiBaseUrl) return { status: 'skipped', reason: 'api-not-configured' }
 
   const authToken = getAuthToken()
-  if (!authToken || !dynamicUserId) return { status: 'skipped', reason: 'user-not-authenticated' }
+  if (!authToken) return { status: 'skipped', reason: 'user-not-authenticated' }
 
   const response = await fetch(`${superimApiBaseUrl.replace(/\/$/, '')}/api/wallet/bind`, {
     method: 'POST',
@@ -29,9 +29,9 @@ export async function bindDynamicWallet(wallet: Wallet, dynamicUserId: string): 
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      dynamicUserId,
       dynamicWalletId: wallet.id,
       walletAddress: wallet.address,
+      walletType: 'embedded',
       network: 'Base',
     } satisfies WalletBindingPayload),
   })
@@ -43,12 +43,8 @@ export async function bindDynamicWallet(wallet: Wallet, dynamicUserId: string): 
 export async function findUserWalletAddress(userId: string): Promise<string | null> {
   if (!superimApiBaseUrl || !userId) return null
 
-  const authToken = getAuthToken()
-  if (!authToken) return null
-
   const response = await fetch(`${superimApiBaseUrl.replace(/\/$/, '')}/api/users/${encodeURIComponent(userId)}/wallet`, {
     credentials: 'include',
-    headers: { Authorization: `Bearer ${authToken}` },
   })
 
   if (response.status === 404) return null
