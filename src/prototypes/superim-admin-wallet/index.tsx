@@ -1,102 +1,75 @@
 /**
  * @name 钱包运营后台
- * @description SuperIM v2.0 wallet operations and withdrawal rule configuration prototype
+ * @description SuperIM 钱包运营、交易和提现规则配置原型
  */
 
 import { useLocation, useNavigate } from 'react-router-dom'
-import { useState, type FC, type ReactNode } from 'react'
-import {
-  Activity,
-  AlertCircle,
-  ArrowDownLeft,
-  ArrowUpRight,
-  CheckCircle2,
-  ChevronRight,
-  Clock3,
-  DollarSign,
-  FileSearch,
-  LayoutDashboard,
-  ListFilter,
-  Search,
-  Settings2,
-  ShieldCheck,
-  SlidersHorizontal,
-  UsersRound,
-  WalletCards,
-} from 'lucide-react'
-import '../../themes/equatorial-minimalism/globals.css'
+import { useState, type FC } from 'react'
+import { AlertOutlined, ArrowDownOutlined, ArrowRightOutlined, ArrowUpOutlined, AuditOutlined, CheckCircleOutlined, ClockCircleOutlined, DollarOutlined, EyeOutlined, FilterOutlined, SafetyCertificateOutlined, SearchOutlined, SettingOutlined, TeamOutlined } from '@ant-design/icons'
+import { Alert, Button, Card, Col, Form, Input, List, Progress, Row, Select, Space, Statistic, Table, Tag, Typography, message, type TableColumnsType } from 'antd'
+import AdminShell from '../../components/AdminShell'
 import './style.css'
 
 type AdminView = 'dashboard' | 'transactions' | 'users' | 'settings' | 'audit'
+type Transaction = { id: string; user: string; type: string; amount: string; status: string; time: string }
+type WalletUser = { name: string; handle: string; wallet: string; balance: string; status: string; joined: string }
 
-const adminTransactions = [
+const adminTransactions: Transaction[] = [
   { id: 'tx-1042', user: 'Amina Yusuf', type: 'Internal transfer', amount: '84.00 USDC', status: 'Completed', time: '10:42' },
   { id: 'tx-1041', user: 'Amina Yusuf', type: 'Internal transfer', amount: '120.00 USDC', status: 'Completed', time: '09:18' },
-  { id: 'tx-1039', user: 'Kwame Boateng', type: 'Withdrawal', amount: '250.80 USDC', status: 'Processing', time: 'Yesterday' },
-  { id: 'tx-1036', user: 'Elena Rossi', type: 'Deposit', amount: '500.00 USDC', status: 'Completed', time: 'Aug 29' },
+  { id: 'tx-1039', user: 'Kwame Boateng', type: 'Withdrawal', amount: '250.80 USDC', status: 'Processing', time: '昨天' },
+  { id: 'tx-1036', user: 'Elena Rossi', type: 'Deposit', amount: '500.00 USDC', status: 'Completed', time: '8月29日' },
+]
+const adminUsers: WalletUser[] = [
+  { name: 'Amina Yusuf', handle: '@amina', wallet: '0x7A2D...9C4D', balance: '2,480.32 USDC', status: 'Ready', joined: '2026年8月22日' },
+  { name: 'Kwame Boateng', handle: '@kwame', wallet: '0x91C2...1A7F', balance: '840.10 USDC', status: 'Ready', joined: '2026年8月20日' },
+  { name: 'Elena Rossi', handle: '@elena', wallet: '0xA90D...32B1', balance: '120.00 USDC', status: 'Ready', joined: '2026年8月18日' },
+  { name: 'Noah Williams', handle: '@noah', wallet: '待创建', balance: '—', status: 'Pending', joined: '今天 09:22' },
 ]
 
-const adminUsers = [
-  { name: 'Amina Yusuf', handle: '@amina', wallet: '0x7A2D...9C4D', balance: '2,480.32 USDC', status: 'Ready', joined: 'Aug 22, 2026' },
-  { name: 'Kwame Boateng', handle: '@kwame', wallet: '0x91C2...1A7F', balance: '840.10 USDC', status: 'Ready', joined: 'Aug 20, 2026' },
-  { name: 'Elena Rossi', handle: '@elena', wallet: '0xA90D...32B1', balance: '120.00 USDC', status: 'Ready', joined: 'Aug 18, 2026' },
-  { name: 'Noah Williams', handle: '@noah', wallet: 'Pending', balance: '—', status: 'Pending', joined: 'Today, 09:22' },
-]
-
-const IconText: FC<{ icon: ReactNode; children: ReactNode; className?: string }> = ({ icon, children, className = '' }) => <span className={`admin-icon-text ${className}`}>{icon}{children}</span>
-
-const AdminSidebar: FC<{ view: AdminView; onNavigate: (view: AdminView) => void }> = ({ view, onNavigate }) => {
-  const items: { id: AdminView; label: string; icon: ReactNode }[] = [
-    { id: 'dashboard', label: 'Wallet overview', icon: <LayoutDashboard aria-hidden="true" /> },
-    { id: 'transactions', label: 'Transactions', icon: <Activity aria-hidden="true" /> },
-    { id: 'users', label: 'User wallets', icon: <UsersRound aria-hidden="true" /> },
-    { id: 'settings', label: 'Wallet rules', icon: <Settings2 aria-hidden="true" /> },
-    { id: 'audit', label: 'Audit log', icon: <FileSearch aria-hidden="true" /> },
-  ]
-  return <aside className="admin-wallet-sidebar"><div className="admin-wallet-brand"><span><DollarSign aria-hidden="true" /></span><div><strong>SuperIM</strong><small>Operations console</small></div></div><div className="admin-sidebar-label">WALLET V2.0</div><nav>{items.map(item => <button type="button" key={item.id} className={view === item.id ? 'is-active' : ''} onClick={() => onNavigate(item.id)}>{item.icon}<span>{item.label}</span>{view === item.id && <ChevronRight aria-hidden="true" />}</button>)}</nav><div className="admin-sidebar-bottom"><div className="admin-network-lock"><span className="wallet-network-dot" /><div><strong>Base Mainnet</strong><small>USDC · primary network</small></div></div><div className="admin-user-chip"><span className="admin-avatar">JD</span><div><strong>Jordan Davis</strong><small>Wallet admin</small></div></div></div></aside>
-}
-
-const AdminTopbar: FC<{ title: string; subtitle: string }> = ({ title, subtitle }) => <header className="admin-wallet-topbar"><div><span className="admin-breadcrumb">OPERATIONS / WALLET</span><h1>{title}</h1><p>{subtitle}</p></div><div className="admin-topbar-actions"><span className="admin-live-pill"><span />Mock data</span><button type="button" className="admin-round-button" aria-label="Search"><Search aria-hidden="true" /></button><button type="button" className="admin-round-button" aria-label="Filter"><SlidersHorizontal aria-hidden="true" /></button><span className="admin-avatar admin-avatar-top">JD</span></div></header>
-
-const StatCard: FC<{ label: string; value: string; change: string; icon: ReactNode; tone?: 'indigo' | 'sand' | 'green' | 'dark' }> = ({ label, value, change, icon, tone = 'indigo' }) => <div className={`admin-stat-card admin-stat-${tone}`}><div className="admin-stat-top"><span>{label}</span><span className="admin-stat-icon">{icon}</span></div><strong>{value}</strong><small>{change}</small></div>
-
-const StatusBadge = ({ status }: { status: string }) => <span className={`admin-status-badge admin-status-${status.toLowerCase()}`}><span />{status}</span>
+const transactionTypeLabels: Record<string, string> = { 'Internal transfer': '站内转账', Withdrawal: '提现', Deposit: '充值' }
+const statusLabels: Record<string, string> = { Completed: '已完成', Processing: '处理中', Ready: '正常', Pending: '待处理', Failed: '失败' }
+const statusTag = (status: string) => <Tag color={status === 'Completed' || status === 'Ready' ? 'success' : status === 'Processing' || status === 'Pending' ? 'warning' : 'error'}>{statusLabels[status] || status}</Tag>
+const initials = (value: string) => value.split(' ').map(word => word[0]).join('')
+const viewPath = (view: AdminView) => view === 'dashboard' ? '/admin/wallet' : `/admin/wallet/${view}`
 
 const OverviewPage: FC<{ onNavigate: (view: AdminView) => void }> = ({ onNavigate }) => {
   const bars = [42, 54, 49, 68, 61, 78, 74, 88, 72, 94, 82, 100]
-  return <div className="admin-page-content"><div className="admin-stat-grid"><StatCard label="TOTAL WALLET USERS" value="18,492" change="+12.8% vs last month" icon={<UsersRound aria-hidden="true" />} tone="indigo" /><StatCard label="USDC VOLUME · 30D" value="$2.84M" change="+8.4% vs last month" icon={<DollarSign aria-hidden="true" />} tone="sand" /><StatCard label="SUCCESS RATE" value="99.2%" change="+0.6% vs last month" icon={<CheckCircle2 aria-hidden="true" />} tone="green" /><StatCard label="PENDING ACTIONS" value="27" change="9 withdrawals need review" icon={<Clock3 aria-hidden="true" />} tone="dark" /></div><div className="admin-main-grid"><section className="admin-panel admin-volume-panel"><div className="admin-panel-heading"><div><span className="admin-section-label">TRANSACTION VOLUME</span><h2>Wallet activity</h2></div><button type="button" className="admin-select-button">Last 30 days <ChevronRight aria-hidden="true" /></button></div><div className="admin-chart-meta"><strong>$2.84M</strong><span><b>+8.4%</b> compared to previous period</span></div><div className="admin-chart"><div className="admin-chart-y"><span>$400k</span><span>$300k</span><span>$200k</span><span>$100k</span><span>$0</span></div><div className="admin-chart-bars">{bars.map((height, index) => <div className="admin-bar-column" key={index}><div className="admin-bar" style={{ height: `${height}%` }} /><span>{['Aug 1', '', '', 'Aug 10', '', '', 'Aug 20', '', '', 'Aug 30', '', ''][index]}</span></div>)}</div></div><div className="admin-chart-legend"><span><i className="admin-legend-indigo" />Transfers</span><span><i className="admin-legend-sand" />Withdrawals</span><span><i className="admin-legend-line" />USDC · Base Mainnet</span></div></section><section className="admin-panel admin-health-panel"><div className="admin-panel-heading"><div><span className="admin-section-label">SYSTEM HEALTH</span><h2>Wallet infrastructure</h2></div><ShieldCheck className="admin-health-icon" aria-hidden="true" /></div><div className="admin-health-score"><div className="admin-score-ring"><strong>99.2</strong><span>%</span></div><div><strong>Healthy</strong><small>All services operational</small></div></div><div className="admin-health-list"><div><span><i className="admin-health-dot is-green" />Embedded wallet creation</span><b>Operational</b></div><div><span><i className="admin-health-dot is-green" />Base Mainnet RPC</span><b>Operational</b></div><div><span><i className="admin-health-dot is-orange" />Gas sponsorship</span><b>Degraded</b></div></div><button type="button" className="admin-ghost-button" onClick={() => onNavigate('audit')}>View system events <ArrowRightIcon /></button></section></div><section className="admin-panel admin-pending-panel"><div className="admin-panel-heading"><div><span className="admin-section-label">NEEDS ATTENTION</span><h2>Pending withdrawals</h2></div><button type="button" className="admin-link-button" onClick={() => onNavigate('transactions')}>View all <ArrowRightIcon /></button></div><div className="admin-pending-list">{adminTransactions.filter(item => item.status === 'Processing').map(item => <div className="admin-pending-row" key={item.id}><span className="admin-pending-icon"><ArrowUpRight aria-hidden="true" /></span><div><strong>{item.user}</strong><small>{item.id} · {item.time}</small></div><b>{item.amount}</b><StatusBadge status={item.status} /><button type="button" aria-label={`View ${item.id}`} onClick={() => onNavigate('transactions')}><ChevronRight aria-hidden="true" /></button></div>)}<div className="admin-pending-row"><span className="admin-pending-icon admin-pending-icon-warning"><AlertCircle aria-hidden="true" /></span><div><strong>9 withdrawals require review</strong><small>Fee or limit rule triggered</small></div><button type="button" className="admin-review-button" onClick={() => onNavigate('transactions')}>Review queue <ArrowRightIcon /></button></div></div></section></div>
+  return <Space direction="vertical" size={16} style={{ width: '100%' }}>
+    <Row gutter={[16, 16]}>
+      <Col xs={12} xl={6}><Card><Statistic title="钱包用户总数" value="18,492" prefix={<TeamOutlined />} suffix={<Typography.Text type="success" style={{ fontSize: 12 }}>+12.8%</Typography.Text>} /></Card></Col>
+      <Col xs={12} xl={6}><Card><Statistic title="近30日 USDC 交易量" value="$2.84M" prefix={<DollarOutlined />} suffix={<Typography.Text type="success" style={{ fontSize: 12 }}>+8.4%</Typography.Text>} /></Card></Col>
+      <Col xs={12} xl={6}><Card><Statistic title="交易成功率" value="99.2%" prefix={<CheckCircleOutlined />} suffix={<Typography.Text type="success" style={{ fontSize: 12 }}>+0.6%</Typography.Text>} /></Card></Col>
+      <Col xs={12} xl={6}><Card><Statistic title="待处理事项" value={27} prefix={<ClockCircleOutlined />} suffix={<Typography.Text type="warning" style={{ fontSize: 12 }}>9 项待复核</Typography.Text>} /></Card></Col>
+    </Row>
+    <Row gutter={[16, 16]}>
+      <Col xs={24} xl={16}><Card title="钱包活跃度" extra={<Select defaultValue="30" options={[{ value: '30', label: '近30天' }]} style={{ width: 100 }} />}><Typography.Title level={3} style={{ marginTop: 0 }}>$2.84M <Typography.Text type="success" style={{ fontSize: 13 }}>+8.4% 较上一周期</Typography.Text></Typography.Title><div className="wallet-chart" aria-label="钱包活跃度趋势图">{bars.map((height, index) => <div className="wallet-chart__bar" key={index}><i style={{ height: `${height}%` }} /><Typography.Text type="secondary">{[1, 10, 20, 30].includes(index + 1) ? `8月${index + 1}日` : ''}</Typography.Text></div>)}</div><Space style={{ marginTop: 16 }}><Tag color="blue">转账</Tag><Tag color="gold">提现</Tag><Typography.Text type="secondary">USDC · Base 主网</Typography.Text></Space></Card></Col>
+      <Col xs={24} xl={8}><Card title="钱包基础设施" extra={<SafetyCertificateOutlined />}><Progress type="circle" percent={99.2} size={84} /><Typography.Title level={4} style={{ display: 'inline-block', marginLeft: 16 }}>健康</Typography.Title><List size="small" dataSource={[['嵌入式钱包创建', '运行正常'], ['Base 主网 RPC', '运行正常'], ['Gas 赞助', '已降级']]} renderItem={([label, value]) => <List.Item><Typography.Text>{label}</Typography.Text><Tag color={value === '已降级' ? 'warning' : 'success'}>{value}</Tag></List.Item>} /><Button type="link" icon={<ArrowRightOutlined />} onClick={() => onNavigate('audit')}>查看系统事件</Button></Card></Col>
+    </Row>
+    <Card title="待处理提现" extra={<Button type="link" onClick={() => onNavigate('transactions')}>查看全部</Button>}><List dataSource={adminTransactions.filter(item => item.status === 'Processing')} renderItem={item => <List.Item actions={[statusTag(item.status), <Button key="view" type="link" icon={<ArrowRightOutlined />} onClick={() => onNavigate('transactions')}>查看</Button>]}><List.Item.Meta avatar={<ArrowUpOutlined />} title={item.user} description={`${item.id} · ${item.time} · ${item.amount}`} /></List.Item>} /><Alert type="warning" showIcon icon={<AlertOutlined />} message="有 9 笔提现需要复核" description="触发了费用或额度规则" /></Card>
+  </Space>
 }
 
-const TransactionsPage: FC = () => <div className="admin-page-content"><div className="admin-toolbar"><div><span className="admin-section-label">BASE MAINNET · USDC</span><h2>All transactions <span>18,492 total</span></h2></div><div className="admin-toolbar-actions"><button type="button" className="admin-outline-button"><ListFilter aria-hidden="true" />Filter</button><button type="button" className="admin-primary-small">Export CSV</button></div></div><div className="admin-filter-summary"><span className="admin-filter-chip is-active">All transactions</span><span className="admin-filter-chip">Pending <b>27</b></span><span className="admin-filter-chip">Withdrawals</span><span className="admin-filter-chip">Failed</span><div className="admin-search-box"><Search aria-hidden="true" /><span>Search by ID, user or address</span></div></div><div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Transaction ID</th><th>User</th><th>Type</th><th>Amount</th><th>Status</th><th>Created</th><th /></tr></thead><tbody>{adminTransactions.map(item => <tr key={item.id}><td><strong>{item.id}</strong></td><td><span className="admin-table-user"><span className="admin-table-avatar">{item.user.split(' ').map(word => word[0]).join('')}</span>{item.user}</span></td><td><IconText icon={item.type === 'Deposit' ? <ArrowDownLeft aria-hidden="true" /> : <ArrowUpRight aria-hidden="true" />}>{item.type}</IconText></td><td><strong>{item.amount}</strong></td><td><StatusBadge status={item.status} /></td><td>{item.time}</td><td><button type="button" className="admin-row-more" aria-label={`Open ${item.id}`}><ChevronRight aria-hidden="true" /></button></td></tr>)}</tbody></table></div></div>
-
-const UsersPage: FC = () => <div className="admin-page-content"><div className="admin-toolbar"><div><span className="admin-section-label">ACCOUNT LINKAGE</span><h2>User wallets <span>18,492 wallets</span></h2></div><button type="button" className="admin-outline-button"><Search aria-hidden="true" />Search users</button></div><div className="admin-user-summary"><div><strong>18,492</strong><span>Total wallets</span></div><div><strong>18,441</strong><span>Ready</span></div><div><strong>51</strong><span>Pending / failed</span></div><div><strong>$6.2M</strong><span>Total balance</span></div></div><div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>User</th><th>Wallet address</th><th>Balance</th><th>Status</th><th>Registered</th><th /></tr></thead><tbody>{adminUsers.map(user => <tr key={user.handle}><td><span className="admin-table-user"><span className="admin-table-avatar admin-table-avatar-sand">{user.name.split(' ').map(word => word[0]).join('')}</span><span><strong>{user.name}</strong><small>{user.handle}</small></span></span></td><td className="admin-mono">{user.wallet}</td><td><strong>{user.balance}</strong></td><td><StatusBadge status={user.status} /></td><td>{user.joined}</td><td><button type="button" className="admin-row-more" aria-label={`Open ${user.name}`}><ChevronRight aria-hidden="true" /></button></td></tr>)}</tbody></table></div></div>
-
-const SettingsPage: FC<{ onToast: (message: string) => void }> = ({ onToast }) => {
-  const [fee, setFee] = useState('0.80')
-  const [minimum, setMinimum] = useState('10.00')
-  const [daily, setDaily] = useState('5,000.00')
-  const [review, setReview] = useState('1,000.00')
-  return <div className="admin-page-content"><div className="admin-toolbar"><div><span className="admin-section-label">POLICY CONFIGURATION</span><h2>Wallet rules <span>USDC · Base Mainnet</span></h2></div><span className="admin-draft-pill">Draft changes</span></div><div className="admin-settings-grid"><section className="admin-panel admin-settings-panel"><div className="admin-panel-heading"><div><span className="admin-section-label">WITHDRAWAL POLICY</span><h2>Limits & fees</h2></div><SlidersHorizontal aria-hidden="true" /></div><p className="admin-panel-description">These rules are applied to new withdrawal requests. Internal SuperIM transfers remain gas-sponsored and are not charged a service fee.</p><label className="admin-setting-field"><span>Service fee <small>USDC</small></span><div><input value={fee} onChange={event => setFee(event.target.value)} /><b>USDC</b></div><small>Flat fee deducted from the withdrawal amount.</small></label><label className="admin-setting-field"><span>Minimum withdrawal <small>USDC</small></span><div><input value={minimum} onChange={event => setMinimum(event.target.value)} /><b>USDC</b></div><small>Requests below this amount will be blocked.</small></label><label className="admin-setting-field"><span>Daily user limit <small>USDC</small></span><div><input value={daily} onChange={event => setDaily(event.target.value)} /><b>USDC</b></div><small>Rolling 24-hour limit per user.</small></label><label className="admin-setting-field"><span>Manual review threshold <small>USDC</small></span><div><input value={review} onChange={event => setReview(event.target.value)} /><b>USDC</b></div><small>Requests above this amount enter the review queue.</small></label><div className="admin-settings-footer"><span><ShieldCheck aria-hidden="true" /> Last saved by Jordan Davis · 12 min ago</span><button type="button" className="admin-primary-small" onClick={() => onToast('Wallet rules saved as draft')}>Save draft</button></div></section><section className="admin-panel admin-preview-panel"><div className="admin-panel-heading"><div><span className="admin-section-label">USER PREVIEW</span><h2>Confirmation summary</h2></div><EyeIcon /></div><div className="admin-preview-card"><span className="admin-preview-label">WITHDRAWAL</span><strong>250.00 USDC</strong><div><span>Service fee</span><b>-{fee} USDC</b></div><div><span>Network fee</span><b className="admin-green-text">Covered by SuperIM</b></div><div className="admin-preview-total"><span>You'll receive</span><b>{Math.max(0, 250 - Number(fee || 0)).toFixed(2)} USDC</b></div></div><div className="admin-info-box"><ShieldCheck aria-hidden="true" /><span>Rule changes are audited and take effect for new requests only.</span></div></section></div></div>
+const TransactionsPage: FC = () => {
+  const columns: TableColumnsType<Transaction> = [{ title: '交易 ID', dataIndex: 'id', key: 'id' }, { title: '用户', key: 'user', render: (_, item) => <Space><span className="wallet-avatar">{initials(item.user)}</span>{item.user}</Space> }, { title: '类型', key: 'type', render: (_, item) => <Space>{item.type === 'Deposit' ? <ArrowDownOutlined /> : <ArrowUpOutlined />}{transactionTypeLabels[item.type]}</Space> }, { title: '金额', dataIndex: 'amount', key: 'amount' }, { title: '状态', dataIndex: 'status', key: 'status', render: statusTag }, { title: '创建时间', dataIndex: 'time', key: 'time' }, { title: '', key: 'action', render: (_, item) => <Button type="text" icon={<ArrowRightOutlined />} aria-label={`打开交易 ${item.id}`} /> }]
+  return <Card title={<span>全部交易 <Typography.Text type="secondary">共 18,492 笔</Typography.Text></span>} extra={<Space><Button icon={<FilterOutlined />}>筛选</Button><Button type="primary">导出 CSV</Button></Space>}><Space wrap style={{ marginBottom: 16 }}><Tag color="blue">全部交易</Tag><Tag>待处理 27</Tag><Tag>提现</Tag><Tag>失败</Tag><Input prefix={<SearchOutlined />} placeholder="按交易 ID、用户或地址搜索" style={{ width: 240 }} /></Space><Table rowKey="id" columns={columns} dataSource={adminTransactions} scroll={{ x: 760 }} pagination={false} /></Card>
 }
 
-const AuditPage: FC = () => <div className="admin-page-content"><div className="admin-toolbar"><div><span className="admin-section-label">AUDIT TRAIL</span><h2>Wallet audit log <span>All rule and status changes</span></h2></div><button type="button" className="admin-outline-button"><FileSearch aria-hidden="true" />Export log</button></div><div className="admin-audit-list">{[
-  ['Jordan Davis', 'Updated withdrawal service fee', '0.70 → 0.80 USDC', '12 min ago', 'Rule configuration'],
-  ['System', 'Withdrawal entered manual review', 'tx-1039 · 250.80 USDC', 'Yesterday, 18:05', 'Transaction'],
-  ['Maya Chen', 'Wallet binding retried', 'Noah Williams · wallet_pending', 'Today, 09:25', 'Wallet lifecycle'],
-  ['System', 'Gas sponsorship degraded', 'Base Mainnet · Paymaster latency', 'Today, 08:40', 'Infrastructure'],
-].map(([actor, action, detail, time, type]) => <div className="admin-audit-row" key={`${actor}-${time}`}><span className="admin-audit-icon"><FileSearch aria-hidden="true" /></span><div><strong>{action}</strong><small>{detail}</small></div><span className="admin-audit-type">{type}</span><span className="admin-audit-actor">{actor}<small>{time}</small></span><ChevronRight aria-hidden="true" /></div>)}</div></div>
+const UsersPage: FC = () => {
+  const columns: TableColumnsType<WalletUser> = [{ title: '用户', key: 'user', render: (_, user) => <Space><span className="wallet-avatar wallet-avatar--sand">{initials(user.name)}</span><div><Typography.Text strong>{user.name}</Typography.Text><br /><Typography.Text type="secondary">{user.handle}</Typography.Text></div></Space> }, { title: '钱包地址', dataIndex: 'wallet', key: 'wallet' }, { title: '余额', dataIndex: 'balance', key: 'balance' }, { title: '状态', dataIndex: 'status', key: 'status', render: statusTag }, { title: '注册时间', dataIndex: 'joined', key: 'joined' }, { title: '', key: 'action', render: (_, user) => <Button type="text" icon={<ArrowRightOutlined />} aria-label={`打开用户 ${user.name}`} /> }]
+  return <Space direction="vertical" size={16} style={{ width: '100%' }}><Card><Row gutter={16}><Col xs={12} md={6}><Statistic title="钱包总数" value="18,492" /></Col><Col xs={12} md={6}><Statistic title="正常" value="18,441" /></Col><Col xs={12} md={6}><Statistic title="待处理 / 失败" value={51} /></Col><Col xs={12} md={6}><Statistic title="总余额" value="$6.2M" /></Col></Row></Card><Card title="用户钱包" extra={<Button icon={<SearchOutlined />}>搜索用户</Button>}><Table rowKey="handle" columns={columns} dataSource={adminUsers} scroll={{ x: 760 }} pagination={false} /></Card></Space>
+}
 
-const ArrowRightIcon = () => <ArrowUpRight aria-hidden="true" />
-const EyeIcon = () => <WalletCards aria-hidden="true" />
+const SettingsPage: FC<{ onToast: (text: string) => void }> = ({ onToast }) => {
+  const [fee, setFee] = useState('0.80'); const [minimum, setMinimum] = useState('10.00'); const [daily, setDaily] = useState('5,000.00'); const [review, setReview] = useState('1,000.00')
+  return <Row gutter={[16, 16]}><Col xs={24} xl={16}><Card title="提现规则" extra={<SettingOutlined />}><Typography.Paragraph type="secondary">以下规则适用于新的提现申请。SuperIM 站内转账由平台承担 Gas 费用，不收取服务费。</Typography.Paragraph><Form layout="vertical"><Form.Item label="服务费（USDC）" help="从提现金额中扣除的固定费用。"><Input value={fee} onChange={event => setFee(event.target.value)} addonAfter="USDC" /></Form.Item><Form.Item label="最低提现金额（USDC）" help="低于此金额的申请将被拦截。"><Input value={minimum} onChange={event => setMinimum(event.target.value)} addonAfter="USDC" /></Form.Item><Form.Item label="用户每日额度（USDC）" help="每个用户滚动 24 小时的提现额度。"><Input value={daily} onChange={event => setDaily(event.target.value)} addonAfter="USDC" /></Form.Item><Form.Item label="人工审核阈值（USDC）" help="超过此金额的申请将进入人工审核队列。"><Input value={review} onChange={event => setReview(event.target.value)} addonAfter="USDC" /></Form.Item><Button type="primary" onClick={() => onToast('提现规则已保存为草稿')}>保存草稿</Button></Form></Card></Col><Col xs={24} xl={8}><Card title="确认摘要" extra={<EyeOutlined />}><Card className="wallet-preview-card"><Typography.Text>提现</Typography.Text><Typography.Title level={2}>250.00 USDC</Typography.Title><Space direction="vertical" style={{ width: '100%' }}><Space style={{ width: '100%', justifyContent: 'space-between' }}><span>服务费</span><b>-{fee} USDC</b></Space><Space style={{ width: '100%', justifyContent: 'space-between' }}><span>网络费</span><b>由 SuperIM 承担</b></Space><Space style={{ width: '100%', justifyContent: 'space-between' }}><span>实际到账</span><b>{Math.max(0, 250 - Number(fee || 0)).toFixed(2)} USDC</b></Space></Space></Card><Alert type="info" showIcon message="规则变更会记录审计日志，仅对新的提现申请生效。" style={{ marginTop: 16 }} /></Card></Col></Row>
+}
+
+const AuditPage: FC = () => <Card title="钱包审计日志" extra={<Button icon={<AuditOutlined />}>导出日志</Button>}><List dataSource={[['Jordan Davis', '更新提现服务费', '0.70 → 0.80 USDC', '12 分钟前', '规则配置'], ['系统', '提现进入人工审核', 'tx-1039 · 250.80 USDC', '昨天 18:05', '交易'], ['Maya Chen', '重试钱包绑定', 'Noah Williams · wallet_pending', '今天 09:25', '钱包生命周期'], ['系统', 'Gas 赞助服务降级', 'Base 主网 · Paymaster 延迟', '今天 08:40', '基础设施']]} renderItem={([actor, action, detail, time, type]) => <List.Item><List.Item.Meta avatar={<AuditOutlined />} title={action} description={`${detail} · ${type}`} /><Typography.Text type="secondary">{actor} · {time}</Typography.Text></List.Item>} /></Card>
 
 const AdminWalletPage: FC = () => {
-  const location = useLocation()
-  const navigate = useNavigate()
-  const [toast, setToast] = useState<string | null>(null)
-  const view: AdminView = (location.pathname.split('/')[3] as AdminView) || 'dashboard'
-  const titleMap: Record<AdminView, [string, string]> = { dashboard: ['Wallet overview', 'Monitor wallet health, volume and pending actions.'], transactions: ['Transactions', 'Review USDC activity across Base Mainnet.'], users: ['User wallets', 'View wallet readiness and account bindings.'], settings: ['Wallet rules', 'Configure withdrawal fees and limits.'], audit: ['Audit log', 'Trace wallet operations and rule changes.'] }
-  const notify = (message: string) => { setToast(message); window.setTimeout(() => setToast(null), 2200) }
-  return <div className="admin-wallet-prototype"><AdminSidebar view={view} onNavigate={next => navigate(next === 'dashboard' ? '/admin/wallet' : `/admin/wallet/${next}`)} /><div className="admin-wallet-main"><AdminTopbar title={titleMap[view][0]} subtitle={titleMap[view][1]} />{view === 'dashboard' && <OverviewPage onNavigate={next => navigate(next === 'dashboard' ? '/admin/wallet' : `/admin/wallet/${next}`)} />}{view === 'transactions' && <TransactionsPage />}{view === 'users' && <UsersPage />}{view === 'settings' && <SettingsPage onToast={notify} />}{view === 'audit' && <AuditPage />}{toast && <div className="admin-toast"><CheckCircle2 aria-hidden="true" />{toast}</div>}</div></div>
+  const location = useLocation(); const navigate = useNavigate(); const [messageApi, contextHolder] = message.useMessage(); const view: AdminView = (location.pathname.split('/')[3] as AdminView) || 'dashboard'; const titleMap: Record<AdminView, [string, string]> = { dashboard: ['钱包总览', '查看钱包健康度、交易量和待处理事项。'], transactions: ['交易记录', '查看 Base 主网上的 USDC 交易活动。'], users: ['用户钱包', '查看钱包状态和账户绑定情况。'], settings: ['提现规则', '配置提现费用和额度限制。'], audit: ['审计日志', '追踪钱包操作和规则变更。'] }; const activeView = titleMap[view] ? view : 'dashboard'; const onNavigate = (next: AdminView) => navigate(viewPath(next))
+  return <>{contextHolder}<AdminShell title={titleMap[activeView][0]} description={titleMap[activeView][1]}>{activeView === 'dashboard' && <OverviewPage onNavigate={onNavigate} />}{activeView === 'transactions' && <TransactionsPage />}{activeView === 'users' && <UsersPage />}{activeView === 'settings' && <SettingsPage onToast={text => messageApi.success(text)} />}{activeView === 'audit' && <AuditPage />}</AdminShell></>
 }
 
 export default AdminWalletPage

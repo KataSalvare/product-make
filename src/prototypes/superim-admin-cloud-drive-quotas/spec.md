@@ -19,3 +19,12 @@
 - 顶部提供全局默认配额设置卡和用户/覆盖统计。
 - 用户表格展示头像、昵称、用户 ID、有效配额、已用空间、使用率、文件数、最近上传时间和调整入口。
 - 单用户调整使用弹窗；留空并确认等同于清除覆盖。
+
+## 实现映射
+- 使用用户列表同款 `AdminHeader`、`AdminSidebar`，以及 Ant Design `InputNumber`、`Table`、`Modal`、`Progress` 和 `Statistic`。
+
+## 视觉规范
+- UI 层级：后台内容层；主题来源：`src/themes/antd-new/DESIGN.md` 与 `theme.ts`。
+- 参考原型：`/admin/users`；直接复用 `src/components/AdminHeader.tsx`、`src/components/AdminSidebar.tsx`，云盘菜单保持统一激活态。
+- 使用现有 antd token 和组件尺寸，不引入页面专用颜色；使用率同时展示百分比和进度语义。
+- 状态覆盖正常、接近上限、超限、编辑中、校验错误、保存成功和空结果；窄屏指标卡与表格转为可滚动/单列布局。

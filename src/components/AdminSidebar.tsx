@@ -16,6 +16,7 @@ import {
   Shield,
   FileText,
   HardDrive,
+  Wallet,
   ChevronDown,
   ChevronRight,
 } from 'lucide-react';
@@ -40,6 +41,18 @@ const menuItems: MenuItem[] = [
     icon: <Monitor size={18} />,
     label: '数据大屏',
     path: '/admin/bigscreen',
+  },
+  {
+    key: 'wallet',
+    icon: <Wallet size={18} />,
+    label: '钱包管理',
+    children: [
+      { key: 'wallet-overview', icon: <Wallet size={16} />, label: '钱包总览', path: '/admin/wallet' },
+      { key: 'wallet-transactions', icon: <FileText size={16} />, label: '交易记录', path: '/admin/wallet/transactions' },
+      { key: 'wallet-users', icon: <Users size={16} />, label: '用户钱包', path: '/admin/wallet/users' },
+      { key: 'wallet-settings', icon: <Settings size={16} />, label: '规则配置', path: '/admin/wallet/settings' },
+      { key: 'wallet-audit', icon: <FileText size={16} />, label: '审计日志', path: '/admin/wallet/audit' },
+    ],
   },
   {
     key: 'cloud-drive',

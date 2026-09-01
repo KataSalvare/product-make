@@ -57,13 +57,13 @@
 - 后台页面使用 `antd@6`，主题配置来自 `src/themes/antd-new/theme.ts`。
 - 页面根部使用一个 `ConfigProvider`；优先由后台页面壳或共享入口提供，页面内部不要重复嵌套。
 - 表格、表单、弹窗、抽屉、分页、筛选、标签、反馈等优先使用 antd 对应组件，不要手写同类基础控件。
-- 图标优先使用 `@ant-design/icons`；若主题已有 Lucide 实现，迁移时保持同一套图标风格，不要混用 emoji 作为图标。
+- 内容组件图标优先使用 `@ant-design/icons`；后台共用的用户列表菜单直接沿用 `src/components/AdminSidebar.tsx` 的 `lucide-react` 图标，不在云盘/钱包中另换图标体系，也不要混用 emoji 作为功能图标。
 - 使用 antd token、组件 token、`classNames` 或 `styles` 定制，避免依赖 `.ant-*` 内部 DOM 选择器和大范围全局覆盖。
 - 表格必须有稳定 `rowKey`；异步操作必须有 loading、成功、失败和可重试反馈。
 
 ### 5.2 后台布局基线
 
-- 布局：侧边导航 + 顶部栏 + 主内容区；当前页必须有明确 active 状态。
+- 布局：直接复用用户列表的 `AdminHeader` + `AdminSidebar` + 主内容区；当前页必须有明确 active 状态。
 - 页面层级：面包屑（有三层及以上时）→ 页面标题 → 描述/操作 → 筛选或内容区。
 - 主内容区优先使用 antd `Layout`、`Card`、`Space`、`Flex`、`Grid` 等结构能力；不要让每个页面自行发明一套 shell。
 - 数据密集型页面优先保持紧凑密度；详情和配置页面保持清晰分组，不使用前端页面的“极端留白”作为后台默认。
@@ -71,7 +71,7 @@
 
 ### 5.3 迁移边界
 
-`src/prototypes/superim-admin-*` 中仍存在一部分历史 Tailwind/手写后台样式，它们属于待迁移内容，不是新需求的参考实现。新需求不得复制这些旧写法；修改旧页面时，优先将本次触及的控件迁移到 antd 和 `antd-new` token。
+`src/prototypes/superim-admin-users` 及其 `AdminHeader`、`AdminSidebar` 是后台壳层的稳定参考实现。云盘和钱包必须直接复用该壳层；页面内容区仍按本节优先使用 antd 和 `antd-new` token。除菜单数据外，不要在业务页面复制或改写壳层结构。
 
 ## 6. 跨层通用规则
 

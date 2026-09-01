@@ -19,3 +19,13 @@
 - 永久删除使用二次确认，立即硬删除并释放容量；不可恢复。
 - 抽屉仅展示元数据和状态说明，不出现正文预览或下载按钮。
 - 冻结、解冻、永久删除全部写入操作审计。
+
+## 实现映射
+- 使用用户列表同款 `AdminHeader`、`AdminSidebar`，以及 Ant Design `Input`、`Select`、`Table`、`Drawer`、`Modal`、`message`。
+- 表格在窄屏保留横向滚动，筛选区和批量操作区允许换行，抽屉/弹窗由 antd 负责响应式承载。
+
+## 视觉规范
+- UI 层级：后台内容层；主题来源：`src/themes/antd-new/DESIGN.md` 与 `theme.ts`。
+- 参考原型：`/admin/users`；直接复用 `src/components/AdminHeader.tsx`、`src/components/AdminSidebar.tsx` 的统一菜单和顶栏。
+- 不新增颜色、字号、圆角或阴影 token；沿用 antd 表格、表单、反馈语义，交互图标使用 `@ant-design/icons`。
+- 状态覆盖加载、空结果、冻结、解冻、删除确认、错误反馈和成功 Toast；窄屏筛选区换行、表格横向滚动。

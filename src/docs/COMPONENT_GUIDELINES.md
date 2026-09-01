@@ -103,19 +103,19 @@
 
 ### 7.3 后台内容层导航
 
-后台新页面使用 antd `Layout` + `Menu` + 页面级 `Header` 组合，不再创建新的手写 Sidebar。目标尺寸：
+后台新页面直接复用用户列表原型的 `src/components/AdminHeader.tsx` 和 `src/components/AdminSidebar.tsx`，由 `AdminShell` 负责组合，不得重新实现一套 antd `Menu` 或页面级 Header。目标尺寸以用户列表现有实现为准：
 
 | 项目 | 规范 |
 |---|---:|
-| Sider 宽度 | 240px（桌面）；窄屏转为抽屉或横向菜单 |
-| Header 高度 | 64px |
-| Menu glyph | 16px |
-| Menu 行高 | 40px，保持连续可扫描；图标按钮单独满足 44px 点击区域 |
-| 内容区内边距 | 24px，窄屏 16px |
-| 内容区模块间距 | 16px 或 24px，使用 antd `Space`/`Flex`/`Grid` |
-| 当前态 | 使用 antd selected/active 状态，必须同时有文字或结构上的位置反馈 |
+| 侧栏宽度 | 256px（`w-64`）；保留用户列表的边框和滚动行为 |
+| Header 高度 | 72px（`py-4` + 40px 品牌标识） |
+| 菜单 glyph | 一级 18px，二级 16px；沿用 `lucide-react` |
+| 菜单行高 | 一级约 48px，二级约 40px；保留 `p-4` 与子级 `ml-4` 缩进 |
+| 内容区内边距 | 24px（`p-6`） |
+| 内容区模块间距 | 16px 或 24px，内容组件仍优先使用 antd |
+| 当前态 | 沿用 `AdminSidebar` 的父级浅蓝背景与子级蓝色背景，必须同时有文字和结构位置反馈 |
 
-当前仓库存在 `src/components/AdminSidebar.tsx` 和 `src/components/AdminSidebar/index.tsx` 两份同名实现。新代码不得继续新增第三份；后续迁移时应保留一个后台导航 source of truth，并将菜单数据、路由 active 状态和图标映射集中维护。
+当前仓库存在 `src/components/AdminSidebar.tsx` 和 `src/components/AdminSidebar/index.tsx` 两份历史实现。`src/components/AdminSidebar.tsx` 是用户列表及本次后台内容页的 source of truth；新代码不得新增第三份，也不得改用目录版实现。菜单数据、路由 active 状态和图标映射集中维护在该文件。
 
 ## 8. 尺寸与间距契约
 

@@ -1,7 +1,8 @@
 /* eslint-disable react-refresh/only-export-components */
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { AlertTriangle, CheckCircle2, HardDrive, ShieldAlert, XCircle } from 'lucide-react'
-import AdminSidebar from '../../components/AdminSidebar'
+import { Alert, Card, Progress, Space, Tag, Typography } from 'antd'
+import { CheckCircleOutlined, ExclamationCircleOutlined, StopOutlined } from '@ant-design/icons'
+import AdminShell from '../../components/AdminShell'
 import {
   CLOUD_DRIVE_EVENT,
   TEN_GB,
@@ -336,32 +337,26 @@ export const useAdminCloudDrive = () => {
 }
 
 export const AdminCloudDriveShell = ({ title, description, children, actions }: { title: string; description: string; children: ReactNode; actions?: ReactNode }) => (
-  <div className="relative min-h-screen bg-gray-50 text-gray-900">
-    <header className="h-[73px] bg-white border-b border-gray-200 flex items-center justify-between px-6 sticky top-0 z-40">
-      <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center"><HardDrive size={21} /></div><div><p className="font-bold leading-tight">SuperIM Admin</p><p className="text-xs text-gray-500">云盘运营工作台</p></div></div>
-      <div className="flex items-center gap-3"><span className="hidden sm:inline text-sm text-gray-500">当前管理员</span><span className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-semibold">A</span></div>
-    </header>
-    <div className="flex min-h-[calc(100vh-73px)]"><AdminSidebar /><main className="flex-1 min-w-0 p-6"><div className="max-w-[1440px] mx-auto"><div className="flex flex-wrap items-start justify-between gap-4 mb-6"><div><p className="text-sm font-medium text-blue-600">云盘管理</p><h1 className="text-2xl font-bold tracking-tight mt-1">{title}</h1><p className="text-sm text-gray-500 mt-1">{description}</p></div>{actions && <div className="flex items-center gap-2">{actions}</div>}</div>{children}</div></main></div>
-  </div>
+  <AdminShell title={title} description={description} actions={actions}>{children}</AdminShell>
 )
 
-export const MetricCard = ({ label, value, helper, icon: Icon, tone = 'blue' }: { label: string; value: string; helper: string; icon: typeof HardDrive; tone?: 'blue' | 'orange' | 'red' | 'green' }) => {
-  const tones = { blue: 'bg-blue-50 text-blue-700', orange: 'bg-orange-50 text-orange-700', red: 'bg-red-50 text-red-700', green: 'bg-emerald-50 text-emerald-700' }
-  return <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm"><div className="flex items-start justify-between gap-3"><div><p className="text-sm text-gray-500">{label}</p><p className="text-2xl font-bold mt-2 tracking-tight">{value}</p></div><span className={`w-10 h-10 rounded-xl flex items-center justify-center ${tones[tone]}`}><Icon size={19} /></span></div><p className="text-xs text-gray-500 mt-4">{helper}</p></div>
+export const MetricCard = ({ label, value, helper, icon, tone = 'blue' }: { label: string; value: string; helper: string; icon: ReactNode; tone?: 'blue' | 'orange' | 'red' | 'green' }) => {
+  const colors = { blue: '#1677ff', orange: '#d46b08', red: '#cf1322', green: '#389e0d' }
+  return <Card size="small"><Space align="start" style={{ width: '100%', justifyContent: 'space-between' }}><div><Typography.Text type="secondary">{label}</Typography.Text><Typography.Title level={3} style={{ margin: '8px 0 0' }}>{value}</Typography.Title></div><span style={{ color: colors[tone], fontSize: 20 }}>{icon}</span></Space><Typography.Text type="secondary" style={{ display: 'block', marginTop: 12, fontSize: 12 }}>{helper}</Typography.Text></Card>
 }
 
 export const StatusBadge = ({ status }: { status: AdminCloudFileStatus | 'success' | 'failed' | 'active' }) => {
-  if (status === 'frozen') return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-orange-50 text-orange-700"><ShieldAlert size={13} />冻结</span>
-  if (status === 'failed') return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700"><XCircle size={13} />失败</span>
-  if (status === 'success') return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700"><CheckCircle2 size={13} />成功</span>
-  return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700"><CheckCircle2 size={13} />正常</span>
+  if (status === 'frozen') return <Tag color="warning" icon={<StopOutlined />}>冻结</Tag>
+  if (status === 'failed') return <Tag color="error" icon={<ExclamationCircleOutlined />}>失败</Tag>
+  if (status === 'success') return <Tag color="success" icon={<CheckCircleOutlined />}>成功</Tag>
+  return <Tag color="success" icon={<CheckCircleOutlined />}>正常</Tag>
 }
 
 export const UsageBar = ({ used, total, compact = false }: { used: number; total: number; compact?: boolean }) => {
   const percent = total > 0 ? Math.min(100, (used / total) * 100) : 0
-  return <div><div className="flex items-center justify-between gap-3 text-xs text-gray-500"><span>{formatBytes(used)} / {formatBytes(total)}</span><span>{percent.toFixed(0)}%</span></div><div className={`${compact ? 'h-1.5 mt-1' : 'h-2 mt-2'} rounded-full bg-gray-100 overflow-hidden`}><div className={`h-full rounded-full ${percent >= 90 ? 'bg-red-500' : percent >= 80 ? 'bg-orange-500' : 'bg-blue-600'}`} style={{ width: `${percent}%` }} /></div></div>
+  return <div><Space style={{ width: '100%', justifyContent: 'space-between', fontSize: 12 }}><Typography.Text type="secondary">{formatBytes(used)} / {formatBytes(total)}</Typography.Text><Typography.Text type="secondary">{percent.toFixed(0)}%</Typography.Text></Space><Progress percent={percent} showInfo={false} size={compact ? 'small' : 'default'} status={percent >= 90 ? 'exception' : percent >= 80 ? 'active' : 'normal'} /></div>
 }
 
-export const WarningBanner = ({ message, tone = 'orange' }: { message: string; tone?: 'orange' | 'red' }) => <div className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-sm ${tone === 'red' ? 'border-red-200 bg-red-50 text-red-800' : 'border-orange-200 bg-orange-50 text-orange-800'}`}><AlertTriangle size={18} className="mt-0.5 shrink-0" /><span>{message}</span></div>
+export const WarningBanner = ({ message, tone = 'orange' }: { message: string; tone?: 'orange' | 'red' }) => <Alert type={tone === 'red' ? 'error' : 'warning'} showIcon message={message} />
 
 export { CLOUD_DRIVE_STORAGE_KEY, formatBytes }

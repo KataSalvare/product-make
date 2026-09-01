@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, NavLink, matchPath, useLocation, useParams } from 'react-router-dom'
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { Smartphone, Monitor, ChevronRight, ChevronDown, FileText, XIcon, Keyboard, Sun, Moon, Palette } from 'lucide-react'
+import { DynamicProvider } from './integrations/dynamic/DynamicProvider'
 
 // ==================== 主题类型 ====================
 type Theme = 'light' | 'dark'
@@ -140,7 +141,18 @@ const adminPageConfig: Record<string, { path: string; label: string; navPath?: s
   'superim-admin-operation-logs': { path: '/admin/operation-logs', label: '操作日志' },
   'superim-admin-login-logs': { path: '/admin/login-logs', label: '登录日志' },
   'superim-admin-system-logs': { path: '/admin/system-logs', label: '系统日志' },
-  'superim-admin-wallet': { path: '/admin/wallet/*', navPath: '/admin/wallet', label: '钱包运营' },
+  'superim-admin-wallet': { path: '/admin/wallet/*', navPath: '/admin/wallet', label: '钱包管理' },
+}
+
+// 一个后台原型可以包含多个业务路由；这些路由在工具层分别展示，内容仍由同一个原型入口渲染。
+const adminRouteAliases: Record<string, Array<{ path: string; label: string }>> = {
+  'superim-admin-wallet': [
+    { path: '/admin/wallet', label: '钱包总览' },
+    { path: '/admin/wallet/transactions', label: '交易记录' },
+    { path: '/admin/wallet/users', label: '用户钱包' },
+    { path: '/admin/wallet/settings', label: '规则配置' },
+    { path: '/admin/wallet/audit', label: '审计日志' },
+  ],
 }
 
 // 提取默认组件
@@ -312,14 +324,15 @@ const generatePages = (): PageItem[] => {
       const dirName = match[1]
       const config = adminPageConfig[dirName]
       if (config) {
-        pages.push({
-          path: config.path,
-          navPath: config.navPath,
-          label: config.label,
+        const routes = adminRouteAliases[dirName] || [{ path: config.path, label: config.label }]
+        routes.forEach(route => pages.push({
+          path: route.path,
+          navPath: route.path,
+          label: route.label,
           component: getDefaultComponent(mod),
           category: 'admin',
           dirName,
-        })
+        }))
       }
     }
   })
@@ -474,7 +487,7 @@ const Sidebar = ({ theme, projectName, onProjectNameChange }: SidebarProps) => {
   // 后台页面分组配置（按数组顺序排序，与 AdminSidebar 导航结构保持一致）
   const orderedAdminGroups: Record<string, string[]> = {
     '数据概览': ['仪表盘', '数据大屏'],
-    '钱包管理': ['钱包运营'],
+    '钱包管理': ['钱包总览', '交易记录', '用户钱包', '规则配置', '审计日志'],
     '云盘管理': ['云盘总览', '文件管理', '操作审计', '用户配额'],
     '用户管理': ['用户列表', '用户详情', '在线用户', '封禁管理'],
     '消息管理': ['会话列表', '会话详情', '举报消息', '敏感词库'],
@@ -1502,9 +1515,11 @@ function AppContent() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <AppContent />
-    </BrowserRouter>
+    <DynamicProvider>
+      <BrowserRouter>
+        <AppContent />
+      </BrowserRouter>
+    </DynamicProvider>
   )
 }
 
