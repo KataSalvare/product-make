@@ -21,6 +21,15 @@
 | 4 | 主题设计系统 | `src/themes/<theme>/DESIGN.md`、`globals.css` |
 | 5 | 项目文档 | `src/docs/` 中的业务文档 |
 
+### UI 一致性强制入口
+
+- 先读 [`src/docs/UI_GUIDELINES.md`](../../src/docs/UI_GUIDELINES.md)，确定工具层、前端内容层或后台内容层。
+- 前端页面使用 `equatorial-minimalism`；后台页面使用 `antd-new` / `antd@6`；工具层不引入内容主题。
+- 组件复用和新建规则见 [`src/docs/COMPONENT_GUIDELINES.md`](../../src/docs/COMPONENT_GUIDELINES.md)。
+- UI 审核规则见 [`rules/ui-review-guide.md`](../../rules/ui-review-guide.md)；审核必须记录证据、严重度和处理结论。
+- 新页面必须指定同层级参考原型，并在 `spec.md` 记录主题来源、复用组件、状态和响应式行为。
+- 不允许仅凭“做得像一点”实现 UI；必须先搜索现有页面和组件，再编码。
+
 ## ② 需求对齐（可选）
 
 用户要求时启动，澄清以下事项：

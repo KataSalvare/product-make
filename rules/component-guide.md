@@ -103,9 +103,10 @@ Input.displayName = 'Input'
 
 ## ♻️ 复用原则
 
-- 优先使用现有主题组件：`src/themes/<theme>/components/`
-- 优先使用 shadcn/ui 组件：`src/components/ui/`
-- 避免重复造轮子
+- 先阅读 `src/docs/COMPONENT_GUIDELINES.md`，确定组件所属层级。
+- 前端优先使用 `src/themes/equatorial-minimalism/components/`；后台优先使用 `antd@6`，并通过 `src/themes/antd-new/theme.ts` 统一 token。
+- `src/components/ui/` 是通用 shadcn 原语，只有在已确认 token 与当前层一致时才能使用。
+- 避免重复造轮子；业务语义优先通过 props/variant 表达，不按颜色或动作复制组件。
 
 ## ✅ 验收清单
 

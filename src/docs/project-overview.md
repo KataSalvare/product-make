@@ -6,13 +6,14 @@
 
 - 项目定位：SuperIM 控制台和用户端即时通讯原型。
 - 当前阶段：用户端 SuperIM 原型持续迭代，已包含 v2.0 钱包功能原型。
-- 默认主题：Equatorial Minimalism。
+- 默认前端主题：Equatorial Minimalism；后台主题：Ant Design。
 
 ## 2. 阅读顺序
 
 1. 先阅读本文件，确认项目范围与文档索引。
-2. 再按任务阅读专题记忆和主题规范。
-3. 最后进入对应原型目录的 `spec.md`、`design.md` 和实现代码。
+2. 先阅读 `src/docs/UI_GUIDELINES.md`，判断工具层、前端内容层或后台内容层。
+3. 再按任务阅读对应主题规范和专题记忆。
+4. 最后进入对应原型目录的 `spec.md`、`design.md` 和实现代码。
 
 ## 3. 文档索引
 
@@ -23,6 +24,11 @@
 | `src/prototypes/superim-wallet/design.md` | 二级页头盘点及钱包页头落地设计 |
 | `src/themes/equatorial-minimalism/DESIGN.md` | 默认主题视觉规范 |
 | `src/themes/equatorial-minimalism/globals.css` | 主题 tokens 和公共 utility |
+| `src/themes/antd-new/DESIGN.md` | 后台 Ant Design 视觉规范 |
+| `src/themes/antd-new/theme.ts` | 后台 Ant Design token 入口 |
+| `src/docs/UI_GUIDELINES.md` | 三层 UI 边界与页面一致性规则 |
+| `src/docs/COMPONENT_GUIDELINES.md` | 组件归属、复用和验收规则 |
+| `rules/ui-review-guide.md` | UI 审核维度、证据、严重度和交付门槛 |
 | `src/docs/memory-log.md` | 项目记忆维护日志 |
 
 ## 4. 原型索引
