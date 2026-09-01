@@ -40,6 +40,21 @@ src/components/<Name>/
 - 与原型目录区分：组件目录使用大驼峰命名
 - 优先在原型目录内部使用 `components/` 子目录，而不是直接新建 `src/components/<Name>/`
 
+## 原型展示模块与交互逻辑
+
+原型内部的展示 UI 和交互逻辑必须分开：
+
+```text
+src/prototypes/<name>/
+├── <Name>View.tsx         # 展示模块：JSX、语义结构、className
+└── use<Name>Logic.ts      # 逻辑模块：状态、校验、数据转换、事件
+```
+
+- 展示模块通过 props 接收数据、状态和回调，不直接读取业务数据或管理业务状态。
+- 逻辑模块可以调用 hooks 和数据适配器，但不返回 JSX、不写 CSS、不依赖具体 DOM 结构。
+- `index.tsx` 只负责调用逻辑模块并组装 View；不要把整页 UI、复杂状态和全部事件处理集中在入口文件。
+- 只有当一个展示模块在两个及以上原型中复用时，才考虑提升到公共组件目录。
+
 ## 📝 规格文档（spec.md）
 
 ### 生成时机
@@ -110,8 +125,18 @@ Input.displayName = 'Input'
 ### Tailwind 使用
 
 - 优先使用 Tailwind 工具类
-- 复杂样式抽取到 `style.css`
+- 原型公共样式统一维护在 `src/prototypes/style.css`
+- 单个原型的独有样式放在 `src/prototypes/<name>/style.css`
+- 复杂样式抽取到对应的样式文件，不写入逻辑模块
 - 支持主题变量：`var(--background)`、`var(--foreground)`
+
+### 原型公共样式
+
+`src/prototypes/style.css` 只维护多个原型共同使用的内容层样式、变量和动画，不维护原型浏览工具样式，也不承载某个页面的业务布局。
+
+- 公共选择器使用 `prototype-` 前缀或其他明确命名空间。
+- 不要把 `.card`、`.modal`、`.sidebar` 等通用名字直接定义为全局样式。
+- 样式只使用一次时留在原型目录内；重复使用后再提升到公共样式。
 
 ### 状态样式
 

@@ -27,6 +27,22 @@
 
 完整术语定义见根目录 [`CONTEXT.md`](./CONTEXT.md)。
 
+原型内部默认拆分展示和逻辑：
+
+```text
+src/prototypes/<name>/
+├── index.tsx              # 入口和页面组装
+├── <Name>View.tsx         # 展示 UI
+├── use<Name>Logic.ts      # 交互逻辑、状态和事件
+├── components/            # 原型内部展示模块
+├── pages/                 # 可选：内部多页面
+└── assets/                # 原型专属素材
+
+src/prototypes/style.css   # 多个原型共用的内容层样式
+```
+
+`index.tsx` 不应集中承载复杂状态和全部事件处理；展示模块通过 props 接收数据与回调，逻辑模块不返回 JSX、不写 CSS。原型公共样式必须使用 `prototype-` 命名空间，页面独有样式才放入对应原型目录。
+
 ### 全局功能
 
 - **主题切换**: 支持白天/黑夜模式切换，默认黑夜模式，设置自动保存到 localStorage
@@ -83,7 +99,7 @@
 src/                        # 内容层：只放业务/原型相关内容
 ├── main.tsx                # 应用入口
 ├── index.css               # 全局样式
-├── prototypes/             # 页面原型组件（前端原型 + 后台原型）
+├── prototypes/             # 前端原型和后台原型，以及公共 style.css
 ├── themes/                 # 主题设计系统
 ├── docs/                   # 项目文档（Markdown）
 ├── workspace/              # 首页、主题和文档工作区页面
@@ -101,7 +117,7 @@ src/                        # 内容层：只放业务/原型相关内容
 └── lib/                    # 通用工具函数
     └── utils.ts            # cn 等 UI 工具函数
 
-tools/                      # 工具层：原型预览工具实现
+tools/                      # 原型浏览工具实现
 ├── App.tsx                 # 主应用组件，负责路由、全局状态和布局编排
 ├── shell/                  # 界面外壳
 │   ├── Sidebar.tsx         # 左侧边栏（4 个 Tab 导航）

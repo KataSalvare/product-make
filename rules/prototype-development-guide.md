@@ -40,15 +40,21 @@
 
 ```text
 src/prototypes/<name>/
-├── index.tsx      # 必需
-├── style.css      # 可选
-├── components/    # 可选：原型内部共享组件
-├── pages/         # 可选：多页面原型页面组件
-├── docs/          # 可选：目录 Markdown 文档
-└── assets/        # 可选：原型专属素材
+├── index.tsx              # 必需：入口和页面组装
+├── <Name>View.tsx         # 推荐：展示 UI
+├── use<Name>Logic.ts      # 推荐：交互逻辑
+├── components/            # 可选：原型内部展示模块
+├── hooks/                 # 可选：多个逻辑模块
+├── pages/                 # 可选：多页面原型页面组件
+├── docs/                  # 可选：目录 Markdown 文档
+└── assets/                # 可选：原型专属素材
+
+src/prototypes/style.css   # 多个原型共用的内容层样式
 ```
 
 - 原型入口文件必须是 `index.tsx`。
+- `index.tsx` 只负责调用逻辑模块并组装展示 UI；复杂状态、校验和事件流程放到 `use<Name>Logic.ts` 或 `hooks/`。
+- `*View.tsx` 和 `components/` 内的展示模块只通过 props 接收数据、状态和回调，不直接处理业务流程。
 - 原型目录名使用小写字母、数字、连字符，如前端原型 `demo-home`、后台原型 `demo-admin-orders`。
 - 当目录名为 `untitled`、`untitled-*` 或显示名为「未命名」时，开始生成实际内容前应更新为有意义的目录名和 `@name`。
 - 本项目当前不产出独立 `components` 资源；原型内部组件放在对应原型目录下的 `components/`。
@@ -61,6 +67,14 @@ src/prototypes/<name>/
  * @name 评审工作台
  */
 ```
+
+## 样式归属
+
+- `src/prototypes/style.css` 只维护两个及以上原型共用的内容层样式、变量和动画，不维护原型浏览工具的样式。
+- 公共样式选择器必须使用 `prototype-` 前缀或其他明确命名空间，禁止使用容易冲突的全局 `.card`、`.modal`、`.sidebar` 等选择器。
+- 单个原型独有的样式放在 `src/prototypes/<name>/style.css`；如果该文件不断被其他原型复用，应迁移到公共 `style.css`。
+- 展示 UI 中只保留语义化 className；不要在交互逻辑模块中写 className、内联视觉样式或 CSS。
+- 工具栏、侧边栏、批注层等原型浏览工具样式继续放在工具层，不得写入原型公共样式。
 
 ## 多页面原型
 
