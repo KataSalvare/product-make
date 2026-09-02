@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route, NavLink, matchPath, useLocation, useParams } from 'react-router-dom'
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { Smartphone, Monitor, ChevronRight, ChevronDown, FileText, XIcon, Keyboard, Sun, Moon, Palette } from 'lucide-react'
+import ReactMarkdown, { type Components } from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { DynamicProvider } from './integrations/dynamic/DynamicProvider'
 
 // ==================== 主题类型 ====================
@@ -193,6 +195,51 @@ const getPrdDocs = () => Object.entries(docModules).map(([path]) => {
   const fileName = match[1]
   return { id: fileName, name: fileName, path: `/doc/${fileName}` }
 }).filter(Boolean) as { id: string; name: string; path: string }[]
+
+// ==================== 工具层 Markdown 文档渲染 ====================
+// 文档来自仓库内的 Markdown 文件，不开放 HTML，避免原始文档内容影响工具层页面结构。
+const markdownComponents: Components = {
+  h1: ({ children }) => <h1 className="mt-2 mb-6 text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">{children}</h1>,
+  h2: ({ children }) => <h2 className="mt-10 mb-4 border-b border-slate-200 pb-2 text-2xl font-semibold tracking-tight text-slate-900 dark:border-slate-700 dark:text-slate-100">{children}</h2>,
+  h3: ({ children }) => <h3 className="mt-8 mb-3 text-xl font-semibold text-slate-900 dark:text-slate-100">{children}</h3>,
+  h4: ({ children }) => <h4 className="mt-6 mb-2 text-base font-semibold text-slate-900 dark:text-slate-100">{children}</h4>,
+  p: ({ children }) => <p className="mb-4 last:mb-0">{children}</p>,
+  ul: ({ children }) => <ul className="my-4 ml-6 list-disc space-y-1.5">{children}</ul>,
+  ol: ({ children }) => <ol className="my-4 ml-6 list-decimal space-y-1.5">{children}</ol>,
+  li: ({ children }) => <li className="pl-1">{children}</li>,
+  blockquote: ({ children }) => <blockquote className="my-5 border-l-4 border-indigo-300 bg-indigo-50/70 px-4 py-3 text-slate-700 dark:border-indigo-500/70 dark:bg-indigo-950/30 dark:text-slate-300">{children}</blockquote>,
+  hr: () => <hr className="my-8 border-slate-200 dark:border-slate-700" />,
+  strong: ({ children }) => <strong className="font-semibold text-slate-950 dark:text-white">{children}</strong>,
+  a: ({ children, href }) => {
+    const isExternal = Boolean(href && /^https?:\/\//i.test(href))
+    return (
+      <a
+        href={href}
+        target={isExternal ? '_blank' : undefined}
+        rel={isExternal ? 'noreferrer' : undefined}
+        className="font-medium text-indigo-600 underline decoration-indigo-300 underline-offset-2 transition-colors hover:text-indigo-800 dark:text-indigo-300 dark:decoration-indigo-700 dark:hover:text-indigo-200"
+      >
+        {children}
+      </a>
+    )
+  },
+  code: ({ children, className }) => <code className={`${className || ''} rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[0.9em] text-indigo-700 dark:bg-slate-800 dark:text-indigo-300`}>{children}</code>,
+  pre: ({ children }) => <pre className="my-5 overflow-x-auto rounded-xl border border-slate-200 bg-slate-950 px-4 py-3 text-[13px] leading-6 text-slate-100 shadow-sm dark:border-slate-700 [&_code]:bg-transparent [&_code]:p-0 [&_code]:text-inherit">{children}</pre>,
+  table: ({ children }) => <div className="my-6 overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700"><table className="min-w-full border-collapse text-left text-sm">{children}</table></div>,
+  thead: ({ children }) => <thead className="bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-slate-100">{children}</thead>,
+  th: ({ children }) => <th className="border-b border-slate-200 px-3 py-2.5 font-semibold dark:border-slate-700">{children}</th>,
+  td: ({ children }) => <td className="border-b border-slate-200 px-3 py-2.5 align-top dark:border-slate-700">{children}</td>,
+  img: ({ src, alt }) => <img src={src} alt={alt || ''} loading="lazy" className="my-5 max-w-full rounded-lg border border-slate-200 dark:border-slate-700" />,
+  input: ({ checked, type }) => type === 'checkbox' ? <input type="checkbox" checked={Boolean(checked)} readOnly aria-label={checked ? '已完成' : '未完成'} className="mr-2 accent-indigo-600" /> : null,
+}
+
+const MarkdownDocument = ({ content, className = '' }: { content: string; className?: string }) => (
+  <article className={`text-[15px] leading-7 text-slate-700 dark:text-slate-300 ${className}`}>
+    <ReactMarkdown remarkPlugins={[remarkGfm]} skipHtml components={markdownComponents}>
+      {content}
+    </ReactMarkdown>
+  </article>
+)
 
 // ==================== 操作系统检测 ====================
 const getOS = (): 'mac' | 'windows' | 'linux' | 'unknown' => {
@@ -1127,9 +1174,7 @@ const TopBar = ({ deviceMode, setDeviceMode, showToast, shortcuts, setShortcuts,
                   <div className="animate-spin w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full" />
                 </div>
               ) : docContent ? (
-                <pre className={`whitespace-pre-wrap font-mono text-sm leading-relaxed ${isDark ? 'text-slate-300' : 'text-gray-800'}`}>
-                  {docContent}
-                </pre>
+                <MarkdownDocument content={docContent} className="text-sm" />
               ) : (
                 <div className={`text-center py-20 ${isDark ? 'text-slate-500' : 'text-gray-400'}`}>加载失败</div>
               )}
@@ -1189,18 +1234,18 @@ const ThemeDetailPage = () => {
   const info = themeId ? getThemeInfo(themeId) : { name: '未知主题', description: '' }
 
   return (
-    <div className="h-full flex flex-col bg-gray-50">
+    <div className="h-full flex flex-col bg-gray-50 dark:bg-slate-950">
       {/* 主题头部 */}
-      <div className="bg-white border-b px-6 py-4">
+      <div className="border-b bg-white px-6 py-4 dark:border-slate-800 dark:bg-slate-900">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-semibold text-gray-900">{info.name}</h1>
-            <p className="text-sm text-gray-500 mt-1">{info.description}</p>
+            <h1 className="text-xl font-semibold text-gray-900 dark:text-white">{info.name}</h1>
+            <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">{info.description}</p>
           </div>
           <div className="flex gap-2">
             <NavLink
               to="/themes"
-              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              className="rounded-lg px-4 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
             >
               返回主题列表
             </NavLink>
@@ -1212,17 +1257,17 @@ const ThemeDetailPage = () => {
       <div className="flex-1 overflow-hidden flex">
         {/* 左侧：主题预览 */}
         <div className="flex-1 overflow-auto p-6">
-          <div className="bg-white rounded-lg shadow-sm border p-6 min-h-[600px]">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">主题预览</h2>
-            {themeEntry ? <ThemePreview mod={themeEntry[1]} /> : <div className="text-gray-500">主题组件加载失败</div>}
+          <div className="min-h-[600px] rounded-lg border bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <h2 className="mb-4 text-lg font-medium text-gray-900 dark:text-white">主题预览</h2>
+            {themeEntry ? <ThemePreview mod={themeEntry[1]} /> : <div className="text-gray-500 dark:text-slate-400">主题组件加载失败</div>}
           </div>
         </div>
 
         {/* 右侧：设计规范 */}
-        <div className="w-[400px] border-l bg-white overflow-auto">
-          <div className="p-4 border-b">
-            <h3 className="font-medium text-gray-900">设计规范</h3>
-            <p className="text-xs text-gray-500 mt-1">{themeId}/DESIGN.md</p>
+        <div className="w-[400px] overflow-auto border-l bg-white dark:border-slate-800 dark:bg-slate-900">
+          <div className="border-b p-4 dark:border-slate-800">
+            <h3 className="font-medium text-gray-900 dark:text-white">设计规范</h3>
+            <p className="mt-1 text-xs text-gray-500 dark:text-slate-400">{themeId}/DESIGN.md</p>
           </div>
           <div className="p-4">
             {loading ? (
@@ -1230,11 +1275,9 @@ const ThemeDetailPage = () => {
                 <div className="animate-spin w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full" />
               </div>
             ) : designDoc ? (
-              <pre className="whitespace-pre-wrap font-mono text-sm text-gray-700 leading-relaxed">
-                {designDoc}
-              </pre>
+              <MarkdownDocument content={designDoc} className="text-sm" />
             ) : (
-              <div className="text-gray-400 text-center py-10">暂无设计文档</div>
+              <div className="py-10 text-center text-gray-400 dark:text-slate-500">暂无设计文档</div>
             )}
           </div>
         </div>
@@ -1323,30 +1366,28 @@ const DocDetailPage = () => {
   }, [docId])
 
   return (
-    <div className="h-full flex flex-col bg-white">
+    <div className="h-full flex flex-col bg-white dark:bg-slate-950">
       {/* 文档头部 */}
-      <div className="border-b px-6 py-4">
-        <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-          <NavLink to="/docs" className="hover:text-gray-900">文档</NavLink>
+      <div className="border-b bg-white px-6 py-4 dark:border-slate-800 dark:bg-slate-900">
+        <div className="mb-2 flex items-center gap-2 text-sm text-gray-500 dark:text-slate-400">
+          <NavLink to="/docs" className="hover:text-gray-900 dark:hover:text-white">文档</NavLink>
           <ChevronRight size={14} />
-          <span className="text-gray-900">{docId}</span>
+          <span className="text-gray-900 dark:text-slate-200">{docId}</span>
         </div>
-        <h1 className="text-xl font-semibold text-gray-900">{docId}</h1>
+        <h1 className="text-xl font-semibold text-gray-900 dark:text-white">{docId}</h1>
       </div>
 
       {/* 文档内容 */}
-      <div className="flex-1 overflow-auto p-6">
+      <div className="flex-1 overflow-auto bg-white p-6 dark:bg-slate-950">
         <div className="max-w-4xl mx-auto">
           {loading ? (
             <div className="flex items-center justify-center py-20">
               <div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full" />
             </div>
           ) : content ? (
-            <pre className="whitespace-pre-wrap font-mono text-sm text-gray-800 leading-relaxed">
-              {content}
-            </pre>
+            <MarkdownDocument content={content} />
           ) : (
-            <div className="text-gray-400 text-center py-20">文档加载失败</div>
+            <div className="py-20 text-center text-gray-400 dark:text-slate-500">文档加载失败</div>
           )}
         </div>
       </div>
@@ -1359,11 +1400,11 @@ const DocsListPage = () => {
   const docs = getPrdDocs()
 
   return (
-    <div className="h-full overflow-auto p-8 bg-gray-50">
+    <div className="h-full overflow-auto bg-gray-50 p-8 dark:bg-slate-950">
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">项目文档</h1>
-          <p className="text-gray-500 mt-2">浏览和查看项目相关文档</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">项目文档</h1>
+          <p className="mt-2 text-gray-500 dark:text-slate-400">浏览和查看项目相关文档</p>
         </div>
 
         <div className="space-y-3">
@@ -1371,14 +1412,14 @@ const DocsListPage = () => {
             <NavLink
               key={doc.id}
               to={doc.path}
-              className="flex items-center gap-4 p-4 bg-white rounded-lg border hover:border-blue-300 hover:shadow-sm transition-all"
+              className="flex items-center gap-4 rounded-lg border bg-white p-4 transition-all hover:border-blue-300 hover:shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:hover:border-blue-500"
             >
               <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
                 <FileText className="text-blue-600" size={20} />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-medium text-gray-900">{doc.name}</h3>
-                <p className="text-xs text-gray-500 mt-0.5">{doc.id}.md</p>
+                <h3 className="font-medium text-gray-900 dark:text-white">{doc.name}</h3>
+                <p className="mt-0.5 text-xs text-gray-500 dark:text-slate-400">{doc.id}.md</p>
               </div>
               <ChevronRight className="text-gray-400 flex-shrink-0" size={18} />
             </NavLink>
