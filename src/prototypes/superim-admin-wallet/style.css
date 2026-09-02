@@ -1,0 +1,11 @@
+.wallet-chart { height: 230px; display: flex; align-items: end; gap: 8px; padding: 12px 8px 0; border-bottom: 1px solid #f0f0f0; }
+.wallet-chart__bar { height: 100%; flex: 1; display: flex; flex-direction: column; justify-content: end; gap: 8px; min-width: 0; }
+.wallet-chart__bar i { display: block; min-height: 4px; border-radius: 4px 4px 0 0; background: #1677ff; }
+.wallet-avatar { width: 28px; height: 28px; display: grid; place-items: center; flex: 0 0 28px; border-radius: 50%; color: #0958d9; background: #e6f4ff; font-size: 12px; font-weight: 600; }
+.wallet-avatar--sand { color: #874d00; background: #fff7e6; }
+.wallet-preview-card { color: #fff; background: #001529; }
+.wallet-preview-card .ant-typography { color: inherit; }
+@media (max-width: 767px) {
+  .wallet-chart { gap: 3px; padding-inline: 0; }
+  .wallet-chart__bar .ant-typography { font-size: 10px; }
+}

@@ -27,3 +27,9 @@ dist-ssr
 .pm/
 .dbg/
 agents_temp.md
+
+# Generated build artifacts
+.axhub/
+
+# Local environment configuration
+.env

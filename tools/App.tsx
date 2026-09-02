@@ -11,6 +11,7 @@ import { ThemeDetailPage } from '@/workspace/ThemeDetailPage'
 import { ThemesListPage } from '@/workspace/ThemesListPage'
 import { DocDetailPage } from '@/workspace/DocDetailPage'
 import { DocsListPage } from '@/workspace/DocsListPage'
+import { DynamicProvider } from '@/integrations/dynamic/DynamicProvider'
 
 const DEFAULT_PROJECT_NAME = '项目原型预览'
 
@@ -210,9 +211,11 @@ function AppContent() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <AppContent />
-    </BrowserRouter>
+    <DynamicProvider>
+      <BrowserRouter>
+        <AppContent />
+      </BrowserRouter>
+    </DynamicProvider>
   )
 }
 

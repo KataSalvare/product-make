@@ -1,0 +1,1394 @@
+/**
+ * @name GroupChat Page
+ * @description Group chat room with multiple users and message actions
+ * @mode axure
+ * @skill /skills/axure-export-workflow/SKILL.md
+ */
+
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import '../../themes/equatorial-minimalism/globals.css';
+import './style.css';
+import { type CloudFile, formatBytes, useCloudDrive } from '../superim-cloud-drive/store';
+import { DynamicTransferModal } from '../superim-wallet';
+
+type MessageType = 'text' | 'image' | 'location' | 'video' | 'file';
+
+interface Message {
+  id: string;
+  text: string;
+  timestamp: string;
+  sender: string;
+  senderAvatar: string;
+  isMe: boolean;
+  isSystem?: boolean;
+  isPinned?: boolean;
+  type?: MessageType;
+  mediaUrl?: string;
+  fileName?: string;
+  fileSizeBytes?: number;
+  fileMimeType?: string;
+  isCloudDrive?: boolean;
+  location?: {
+    name: string;
+    address: string;
+    lat: number;
+    lng: number;
+  };
+  replyTo?: {
+    id: string;
+    text: string;
+    sender: string;
+  };
+}
+
+interface GroupInfo {
+  name: string;
+  memberCount: number;
+  announcement: string;
+}
+
+const mockGroup: GroupInfo = {
+  name: 'Design Team',
+  memberCount: 12,
+  announcement: '🎉 Welcome to Design Team! Please share your ideas freely.',
+};
+
+interface GroupMember {
+  id: string;
+  name: string;
+  avatar: string;
+  isOnline?: boolean;
+}
+
+const mockMembers: GroupMember[] = [
+  { id: '1', name: 'Amara Okafor', avatar: 'AO', isOnline: true },
+  { id: '2', name: 'Kwame Nkrumah', avatar: 'KN', isOnline: false },
+  { id: '3', name: 'Zara Mensah', avatar: 'ZM', isOnline: true },
+  { id: '4', name: 'Kofi Annan', avatar: 'KA', isOnline: false },
+  { id: '5', name: 'Amina Jalloh', avatar: 'AJ', isOnline: true },
+  { id: '6', name: 'Chioma Okafor', avatar: 'CO', isOnline: false },
+  { id: '7', name: 'Emmanuel Nkrumah', avatar: 'EN', isOnline: true },
+  { id: '8', name: 'Fatima Abdullahi', avatar: 'FA', isOnline: false },
+];
+
+const DEFAULT_CHAT_RECIPIENT_ADDRESS = '0x8e997806487Cf0747B711Bd1D3766556e4821Fad';
+
+const mockMessages: Message[] = [
+  { id: '1', text: 'Hey team! How is everyone doing?', timestamp: '10:30 AM', sender: 'Amara', senderAvatar: 'AO', isMe: false },
+  { id: '2', text: 'Great! Working on the new mockups.', timestamp: '10:32 AM', sender: 'You', senderAvatar: 'ME', isMe: true },
+  { id: '3', text: 'Can\'t wait to see them!', timestamp: '10:33 AM', sender: 'Kwame', senderAvatar: 'KN', isMe: false },
+  { id: '4', text: '🎉 John joined the group', timestamp: '10:35 AM', sender: 'System', senderAvatar: '', isMe: false, isSystem: true },
+  { id: '5', text: '@You Check out this design I just finished!', timestamp: '10:36 AM', sender: 'Zara', senderAvatar: 'ZM', isMe: false },
+  { id: '6', text: 'Wow, that looks amazing! Love the color palette.', timestamp: '10:37 AM', sender: 'You', senderAvatar: 'ME', isMe: true },
+  { id: 'cd-1', text: 'Brand guidelines pack.zip', timestamp: '10:37:30 AM', sender: 'You', senderAvatar: 'ME', isMe: true, type: 'file', fileName: 'Brand guidelines pack.zip', fileSizeBytes: 56.2 * 1024 * 1024, fileMimeType: 'application/zip', isCloudDrive: true },
+  { id: '7', text: 'Thanks! Here\'s the full mockup:', timestamp: '10:38 AM', sender: 'Zara', senderAvatar: 'ZM', isMe: false, type: 'image', mediaUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&h=300&fit=crop' },
+  { id: '8', text: 'I\'m at the coffee shop nearby, come join me!', timestamp: '10:40 AM', sender: 'Amara', senderAvatar: 'AO', isMe: false, type: 'location', location: { name: 'Blue Bottle Coffee', address: '123 Market St, San Francisco', lat: 37.7749, lng: -122.4194 } },
+  { id: '9', text: 'On my way! Sending you a quick video of the prototype:', timestamp: '10:42 AM', sender: 'You', senderAvatar: 'ME', isMe: true },
+  { id: '10', text: '', timestamp: '10:42 AM', sender: 'You', senderAvatar: 'ME', isMe: true, type: 'video', mediaUrl: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=400&h=300&fit=crop' },
+  { id: '11', text: 'Design handoff.pdf', timestamp: '10:45 AM', sender: 'Zara', senderAvatar: 'ZM', isMe: false, type: 'file', fileName: 'Design handoff.pdf', fileSizeBytes: 8.6 * 1024 * 1024, fileMimeType: 'application/pdf' },
+  { id: 'cd-2', text: 'User research summary.xlsx', timestamp: '10:47 AM', sender: 'Amina', senderAvatar: 'AJ', isMe: false, type: 'file', fileName: 'User research summary.xlsx', fileSizeBytes: 1.3 * 1024 * 1024, fileMimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', isCloudDrive: true },
+];
+
+type MessageAction = 'reply' | 'copy' | 'forward' | 'pin' | 'select' | 'saveToCloud' | 'delete';
+
+interface MessageMenuItem {
+  action: MessageAction;
+  label: string;
+  icon: string;
+  danger?: boolean;
+}
+
+const getMessageMenuItems = (isPinned: boolean, isFile: boolean): MessageMenuItem[] => [
+  { action: 'reply', label: 'Reply', icon: 'M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6' },
+  { action: 'copy', label: 'Copy', icon: 'M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z' },
+  { action: 'forward', label: 'Forward', icon: 'M13 5l7 7-7 7M5 5l7 7-7 7' },
+  { action: 'pin', label: isPinned ? 'Unpin' : 'Pin', icon: 'M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z' },
+  { action: 'select', label: 'Select', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' },
+  ...(isFile ? [{ action: 'saveToCloud' as MessageAction, label: 'Save to Cloud Drive', icon: 'M7 16a4 4 0 01-.88-7.903A5.5 5.5 0 1116.9 8H17a4 4 0 010 8h-3m-2-4v9m0 0l-3-3m3 3l3-3' }] : []),
+  { action: 'delete', label: 'Delete', icon: 'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16', danger: true },
+];
+
+interface GroupSettings {
+  muteNotifications: boolean;
+  autoDeleteTimer: number | null; // in hours, null means disabled
+}
+
+const autoDeleteOptions = [
+  { value: null, label: 'Off' },
+  { value: 24, label: '24 Hours' },
+  { value: 168, label: '1 Week' },
+  { value: 720, label: '1 Month' },
+];
+
+const GroupChatPage: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const cloudDrive = useCloudDrive();
+  const [messages, setMessages] = useState<Message[]>(mockMessages);
+  const [inputText, setInputText] = useState('');
+  const [showAnnouncement, setShowAnnouncement] = useState(true);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const [showTransferMemberPicker, setShowTransferMemberPicker] = useState(false);
+  const [transferTarget, setTransferTarget] = useState<GroupMember | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
+  const [showMessageMenu, setShowMessageMenu] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
+  const [replyingTo, setReplyingTo] = useState<Message | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteForEveryone, setDeleteForEveryone] = useState(false);
+  const [showChatMenu, setShowChatMenu] = useState(false);
+  const [groupSettings, setGroupSettings] = useState<GroupSettings>({ muteNotifications: false, autoDeleteTimer: null });
+  const [showAutoDeleteMenu, setShowAutoDeleteMenu] = useState(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [showMentionPopup, setShowMentionPopup] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState('');
+  const [toast, setToast] = useState<string | null>(null);
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
+  const [selectedMessageIds, setSelectedMessageIds] = useState<string[]>([]);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const chatMenuRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  useEffect(() => {
+    const state = location.state as { cloudDriveSelection?: CloudFile[] } | null;
+    if (!state?.cloudDriveSelection?.length) return;
+    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const cloudMessages: Message[] = state.cloudDriveSelection.map((file) => ({
+      id: `cloud-${file.id}-${Date.now()}`,
+      text: file.name,
+      timestamp: now,
+      sender: 'You',
+      senderAvatar: 'ME',
+      isMe: true,
+      type: 'file',
+      fileName: file.name,
+      fileSizeBytes: file.sizeBytes,
+      fileMimeType: file.mimeType,
+      isCloudDrive: true,
+    }));
+    const applySelection = window.setTimeout(() => {
+      setMessages((current) => [...current, ...cloudMessages]);
+      setToast(`${cloudMessages.length} ${cloudMessages.length === 1 ? 'file' : 'files'} sent from Cloud Drive`);
+      window.setTimeout(() => setToast(null), 2200);
+      navigate('/group-chat', { replace: true, state: null });
+    }, 0);
+    return () => window.clearTimeout(applySelection);
+  }, [location.state, navigate]);
+
+  // Recording timer
+  useEffect(() => {
+    if (!isRecording) return;
+    const interval = setInterval(() => {
+      setRecordingTime(prev => prev + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isRecording]);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowMessageMenu(false);
+        setSelectedMessage(null);
+      }
+      if (chatMenuRef.current && !chatMenuRef.current.contains(event.target as Node)) {
+        setShowChatMenu(false);
+        setShowAutoDeleteMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const formatRecordingTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Filter members for mention
+  const filteredMentionMembers = useMemo(() => {
+    if (!mentionQuery) return mockMembers;
+    return mockMembers.filter(m =>
+      m.name.toLowerCase().includes(mentionQuery.toLowerCase())
+    );
+  }, [mentionQuery]);
+
+  // Handle input change for mention detection
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    setInputText(value);
+
+    // Check for @ mention
+    const lastAtIndex = value.lastIndexOf('@');
+    if (lastAtIndex !== -1) {
+      const afterAt = value.slice(lastAtIndex + 1);
+      // Only show popup if no space after @ and cursor is after @
+      if (!afterAt.includes(' ') && document.activeElement === inputRef.current) {
+        setMentionQuery(afterAt);
+        setShowMentionPopup(true);
+      } else {
+        setShowMentionPopup(false);
+      }
+    } else {
+      setShowMentionPopup(false);
+    }
+  };
+
+  // Handle member selection for mention
+  const handleMentionSelect = (member: GroupMember) => {
+    const lastAtIndex = inputText.lastIndexOf('@');
+    const beforeAt = inputText.slice(0, lastAtIndex);
+    const afterQuery = inputText.slice(lastAtIndex + 1 + mentionQuery.length);
+    const newText = `${beforeAt}@${member.name} ${afterQuery}`;
+    setInputText(newText);
+    setShowMentionPopup(false);
+    setMentionQuery('');
+    inputRef.current?.focus();
+  };
+
+  // Render message text with highlighted mentions (Telegram style)
+  const renderMessageText = (text: string): React.ReactNode[] => {
+    const mentionRegex = /@([^\s]+(?:\s+[^\s]+)*)/g;
+    const parts: string[] = text.split(mentionRegex);
+    const matches: string[] = text.match(mentionRegex) || [];
+
+    return parts.map((part, index) => {
+      const isMention = matches.includes(`@${part}`);
+      if (isMention) {
+        return (
+          <span
+            key={index}
+            className="text-[var(--primary)] font-medium underline decoration-[var(--primary)]/40 underline-offset-2"
+          >
+            @{part}
+          </span>
+        );
+      }
+      return <React.Fragment key={index}>{part}</React.Fragment>;
+    });
+  };
+
+  const handleSend = () => {
+    if (!inputText.trim()) return;
+    const newMessage: Message = {
+      id: Date.now().toString(),
+      text: inputText,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      sender: 'You',
+      senderAvatar: 'ME',
+      isMe: true,
+      replyTo: replyingTo ? {
+        id: replyingTo.id,
+        text: replyingTo.text,
+        sender: replyingTo.sender,
+      } : undefined,
+    };
+    setMessages([...messages, newMessage]);
+    setInputText('');
+    setReplyingTo(null);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const handleEmojiClick = (emoji: string) => {
+    setInputText(prev => prev + emoji);
+    setShowEmojiPicker(false);
+  };
+
+  const handleFileSelect = (type: 'image' | 'file' | 'camera') => {
+    if (fileInputRef.current) {
+      fileInputRef.current.accept = type === 'image' ? 'image/*' : type === 'camera' ? 'image/*' : '*';
+      fileInputRef.current.click();
+    }
+    setShowAttachMenu(false);
+  };
+
+  const handleVoiceRecord = () => {
+    if (isRecording) {
+      const duration = recordingTime;
+      setIsRecording(false);
+      setRecordingTime(0);
+      const newMessage: Message = {
+        id: Date.now().toString(),
+        text: `🎤 Voice message (${formatRecordingTime(duration)})`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        sender: 'You',
+        senderAvatar: 'ME',
+        isMe: true,
+      };
+      setMessages([...messages, newMessage]);
+    } else {
+      setRecordingTime(0);
+      setIsRecording(true);
+    }
+  };
+
+  const toggleMessageSelection = (messageId: string) => {
+    setSelectedMessageIds(prev =>
+      prev.includes(messageId) ? prev.filter(id => id !== messageId) : [...prev, messageId]
+    );
+  };
+
+  const exitMultiSelectMode = () => {
+    setIsMultiSelectMode(false);
+    setSelectedMessageIds([]);
+  };
+
+  const handleMultiForward = () => {
+    if (selectedMessageIds.length === 0) return;
+    exitMultiSelectMode();
+    navigate('/forward-message');
+  };
+
+  const handleMultiDelete = () => {
+    if (selectedMessageIds.length === 0) return;
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmMultiDelete = () => {
+    setMessages(prev => prev.filter(m => !selectedMessageIds.includes(m.id)));
+    setShowDeleteConfirm(false);
+    setDeleteForEveryone(false);
+    exitMultiSelectMode();
+  };
+
+  const handleMessageLongPress = (message: Message, e: React.MouseEvent | React.TouchEvent) => {
+    if (message.isSystem || isMultiSelectMode) return;
+    e.preventDefault();
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    
+    // Calculate menu position to keep it on screen
+    const menuWidth = 180;
+    const menuHeight = 260;
+    let x = clientX;
+    let y = clientY;
+    
+    if (x + menuWidth > window.innerWidth) {
+      x = window.innerWidth - menuWidth - 16;
+    }
+    if (y + menuHeight > window.innerHeight) {
+      y = window.innerHeight - menuHeight - 16;
+    }
+    
+    setMenuPosition({ x, y });
+    setSelectedMessage(message);
+    setShowMessageMenu(true);
+  };
+
+  const handleMessageAction = (action: MessageAction) => {
+    if (!selectedMessage) return;
+
+    switch (action) {
+      case 'reply':
+        setReplyingTo(selectedMessage);
+        break;
+      case 'copy':
+        navigator.clipboard.writeText(selectedMessage.text);
+        break;
+      case 'forward':
+        navigate('/forward-message');
+        break;
+      case 'pin':
+        setMessages(prev => prev.map(m => 
+          m.id === selectedMessage.id ? { ...m, isPinned: !m.isPinned } : m
+        ));
+        break;
+      case 'select':
+        setIsMultiSelectMode(true);
+        setSelectedMessageIds([selectedMessage.id]);
+        break;
+      case 'saveToCloud': {
+        if (!selectedMessage.fileName) break;
+        const result = cloudDrive.saveMessageFile({
+          name: selectedMessage.fileName,
+          sizeBytes: selectedMessage.fileSizeBytes,
+          mimeType: selectedMessage.fileMimeType,
+          sourceMessageId: `groupchat-${selectedMessage.id}`,
+          sourceChat: mockGroup.name,
+        });
+        setToast(result.duplicate ? 'Already saved to Cloud Drive' : result.error || 'Saved to Cloud Drive');
+        window.setTimeout(() => setToast(null), 2200);
+        break;
+      }
+      case 'delete':
+        setShowDeleteConfirm(true);
+        setShowMessageMenu(false);
+        return;
+    }
+    setShowMessageMenu(false);
+    setSelectedMessage(null);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!selectedMessage) return;
+    setMessages(prev => prev.filter(m => m.id !== selectedMessage.id));
+    setShowDeleteConfirm(false);
+    setDeleteForEveryone(false);
+    setSelectedMessage(null);
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteConfirm(false);
+    setDeleteForEveryone(false);
+    setSelectedMessage(null);
+  };
+
+  const emojis = [
+    '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣',
+    '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰',
+    '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜',
+    '🤪', '🤨', '🧐', '🤓', '😎', '🥸', '🤩', '🥳',
+    '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️',
+    '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤',
+    '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱',
+    '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫',
+    '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍',
+    '👍', '👎', '👏', '🙌', '🤝', '✌️', '🤞', '🤟',
+    '🔥', '⭐', '✨', '💫', '💥', '💯', '💢', '💬',
+  ];
+
+  const isDeleteMulti = isMultiSelectMode && selectedMessageIds.length > 0 && !selectedMessage;
+
+  const renderCheckbox = (messageId: string) => (
+    <button
+      onClick={() => toggleMessageSelection(messageId)}
+      className={`self-center w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+        selectedMessageIds.includes(messageId)
+          ? 'bg-[var(--primary)] border-[var(--primary)]'
+          : 'border-[var(--outline)]'
+      }`}
+    >
+      {selectedMessageIds.includes(messageId) && (
+        <svg className="w-4 h-4 text-[var(--on-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+        </svg>
+      )}
+    </button>
+  );
+
+  const renderMessageBubble = (message: Message) => {
+    const bubbleContent = () => {
+      if (message.type === 'image' && message.mediaUrl) {
+        return (
+          <div className="relative">
+            <img src={message.mediaUrl} alt="Shared image" className="w-full max-w-[280px] h-auto rounded-lg" />
+            {message.text && <p className="px-3 py-2 text-body-md text-[var(--on-surface)]">{renderMessageText(message.text)}</p>}
+          </div>
+        );
+      }
+      if (message.type === 'video' && message.mediaUrl) {
+        return (
+          <div className="relative">
+            <div className="relative w-full max-w-[280px] aspect-video bg-black rounded-lg overflow-hidden">
+              <img src={message.mediaUrl} alt="Video thumbnail" className="w-full h-full object-cover opacity-80" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6 text-[var(--primary)] ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </div>
+              </div>
+              <div className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-black/60 rounded text-label-xs text-white">
+                0:15
+              </div>
+            </div>
+            {message.text && <p className="px-3 py-2 text-body-md text-[var(--on-surface)]">{renderMessageText(message.text)}</p>}
+          </div>
+        );
+      }
+      if (message.type === 'location' && message.location) {
+        return (
+          <div className="w-full max-w-[280px]">
+            <div className="rounded-lg overflow-hidden">
+              <div className="h-24 bg-gradient-to-br from-[var(--primary)]/20 to-[var(--secondary)]/20 relative">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <svg className="w-8 h-8 text-[var(--primary)]" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                  </svg>
+                </div>
+              </div>
+              <div className="p-3 bg-[var(--surface-container)]">
+                <p className="text-body-md font-medium text-[var(--on-surface)]">{message.location.name}</p>
+                <p className="text-body-sm text-[var(--on-surface-variant)] mt-0.5">{message.location.address}</p>
+              </div>
+            </div>
+            {message.text && <p className="text-body-md mt-2 text-[var(--on-surface)]">{renderMessageText(message.text)}</p>}
+          </div>
+        );
+      }
+      if (message.type === 'file' && message.fileName) {
+        return (
+          <div className="min-w-[210px]">
+            <div className="flex items-center gap-3">
+              <span className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${message.isCloudDrive ? 'bg-[var(--primary-fixed)] text-[var(--on-primary-fixed)]' : (message.isMe ? 'bg-[var(--primary-fixed)] text-[var(--on-primary-fixed)]' : 'bg-[var(--secondary-container)] text-[var(--on-secondary-container)]')}`}>
+                {message.isCloudDrive ? (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5.5 5.5 0 1116.9 8H17a4 4 0 010 8H7z" /></svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                )}
+              </span>
+              <span className="min-w-0 flex-1"><span className="block text-sm font-semibold truncate">{message.fileName}</span><span className="block mt-0.5 text-xs text-[var(--on-surface-variant)]">{formatBytes(message.fileSizeBytes || 0)}</span></span>
+            </div>
+            {message.isCloudDrive && (
+              <div className="mt-2 flex items-center gap-1.5 pt-2 border-t border-[var(--outline-variant)]/60">
+                <svg className="w-3.5 h-3.5 text-[var(--primary)] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5.5 5.5 0 1116.9 8H17a4 4 0 010 8H7z" /></svg>
+                <span className="text-label-xs font-medium text-[var(--primary)]">Shared from Cloud Drive</span>
+              </div>
+            )}
+          </div>
+        );
+      }
+      return <p className="text-body-md">{renderMessageText(message.text)}</p>;
+    };
+
+    const paddingClass = message.type === 'image' || message.type === 'video' ? 'p-0' : 'px-4 py-2.5';
+    const shapeClass = message.isMe
+      ? (message.replyTo ? 'rounded-b-2xl rounded-tl-2xl rounded-tr-sm' : 'rounded-2xl rounded-tr-sm')
+      : (message.replyTo ? 'rounded-b-2xl rounded-tr-2xl rounded-tl-sm' : 'rounded-2xl rounded-tl-sm');
+
+    return (
+      <div
+        className={`bg-[var(--surface-container-lowest)] text-[var(--on-surface)] overflow-hidden cursor-pointer active:scale-[0.98] transition-transform ${shapeClass} ${paddingClass}`}
+        onContextMenu={(e) => handleMessageLongPress(message, e)}
+        onTouchStart={(e) => {
+          const timer = setTimeout(() => handleMessageLongPress(message, e), 500);
+          const clearTimer = () => {
+            clearTimeout(timer);
+            document.removeEventListener('touchend', clearTimer);
+          };
+          document.addEventListener('touchend', clearTimer);
+        }}
+        onClick={() => isMultiSelectMode && toggleMessageSelection(message.id)}
+      >
+        {bubbleContent()}
+      </div>
+    );
+  };
+
+  return (
+    <div className="relative h-full bg-[var(--surface-container-low)] flex flex-col">
+      {/* Header */}
+      <header className="bg-[var(--surface-container-low)] border-b border-[var(--outline-variant)] px-4 py-3 z-20">
+        {isMultiSelectMode ? (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={exitMultiSelectMode}
+                className="p-2 -ml-2 hover:bg-[var(--surface-container)] rounded-full transition-colors"
+              >
+                <svg className="w-6 h-6 text-[var(--on-surface)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              <h1 className="text-body-lg font-semibold text-[var(--on-surface)]">{selectedMessageIds.length} Selected</h1>
+            </div>
+            <button
+              onClick={handleMultiDelete}
+              disabled={selectedMessageIds.length === 0}
+              className={`p-2 rounded-full transition-colors ${selectedMessageIds.length > 0 ? 'text-[var(--error)] hover:bg-[var(--error-container)]' : 'text-[var(--outline)]'}`}
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3">
+            <button className="p-2 -ml-2 hover:bg-[var(--surface-container)] rounded-full transition-colors">
+              <svg className="w-6 h-6 text-[var(--on-surface)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <div className="w-10 h-10 bg-[var(--secondary)] rounded-xl flex items-center justify-center text-[var(--on-secondary)] font-semibold">
+              DT
+            </div>
+            <div className="flex-1">
+              <h1 className="text-body-lg font-semibold text-[var(--on-surface)]">{mockGroup.name}</h1>
+              <p className="text-label-sm text-[var(--on-surface-variant)]">{mockGroup.memberCount} members</p>
+            </div>
+            {/* Group Menu Button */}
+            <div className="relative">
+              <button 
+                onClick={() => setShowChatMenu(!showChatMenu)}
+                className="p-2 hover:bg-[var(--surface-container)] rounded-full transition-colors"
+              >
+                <svg className="w-6 h-6 text-[var(--on-surface)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                </svg>
+              </button>
+
+              {/* Group Menu Dropdown */}
+              {showChatMenu && (
+                <div 
+                  ref={chatMenuRef}
+                  className="absolute right-0 top-full mt-2 w-64 bg-[var(--surface-container-low)] rounded-xl shadow-ambient-lg py-2 z-50"
+                >
+                  {/* Mute Notifications */}
+                  <button
+                    onClick={() => {
+                      setGroupSettings(prev => ({ ...prev, muteNotifications: !prev.muteNotifications }));
+                      setShowChatMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--surface-container)] transition-colors text-[var(--on-surface)]"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      {groupSettings.muteNotifications ? (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                      ) : (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                      )}
+                    </svg>
+                    <span className="text-body-sm">{groupSettings.muteNotifications ? 'Unmute Notifications' : 'Mute Notifications'}</span>
+                  </button>
+
+                  <div className="h-px bg-[var(--outline-variant)] mx-4 my-1" />
+
+                  {/* Auto Delete */}
+                  <button
+                    onClick={() => {
+                      setShowChatMenu(false);
+                      setShowAutoDeleteMenu(true);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--surface-container)] transition-colors text-[var(--on-surface)]"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div className="flex-1 text-left">
+                      <span className="text-body-sm block">Auto Delete</span>
+                      <span className="text-label-xs text-[var(--on-surface-variant)]">
+                        {autoDeleteOptions.find(opt => opt.value === groupSettings.autoDeleteTimer)?.label || 'Off'}
+                      </span>
+                    </div>
+                    <svg className="w-4 h-4 text-[var(--on-surface-variant)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+
+                  <div className="h-px bg-[var(--outline-variant)] mx-4 my-1" />
+
+                  {/* Group Info */}
+                  <button
+                    onClick={() => {
+                      setShowChatMenu(false);
+                      console.log('Navigate to group settings');
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--surface-container)] transition-colors text-[var(--on-surface)]"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-body-sm">Group Info</span>
+                  </button>
+
+                  <div className="h-px bg-[var(--outline-variant)] mx-4 my-1" />
+
+                  {/* Leave Group */}
+                  <button
+                    onClick={() => {
+                      setShowLeaveConfirm(true);
+                      setShowChatMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--surface-container)] transition-colors text-[var(--error)]"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    <span className="text-body-sm">Leave Group</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </header>
+
+      {/* Pinned Messages */}
+      {!isMultiSelectMode && messages.some(m => m.isPinned) && (
+        <div className="mx-4 mt-3 p-3 bg-[var(--secondary-container)] rounded-xl">
+          <div className="flex items-start gap-2">
+            <svg className="w-4 h-4 text-[var(--secondary)] flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
+            </svg>
+            <div className="flex-1">
+              <p className="text-label-xs text-[var(--secondary)] mb-1">Pinned Message</p>
+              {messages.filter(m => m.isPinned).map(m => (
+                <p key={m.id} className="text-body-sm text-[var(--on-secondary-container)] line-clamp-2">{m.text}</p>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Announcement */}
+      {!isMultiSelectMode && showAnnouncement && (
+        <div className="mx-4 mt-3 p-3 bg-[var(--secondary-container)] rounded-xl flex items-start gap-2">
+          <svg className="w-5 h-5 text-[var(--secondary)] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+          </svg>
+          <p className="flex-1 text-body-sm text-[var(--on-secondary-container)]">{mockGroup.announcement}</p>
+          <button onClick={() => setShowAnnouncement(false)} className="p-1 hover:bg-[var(--surface-container)] rounded-full">
+            <svg className="w-4 h-4 text-[var(--on-surface-variant)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+        {messages.map((message) => (
+          <div key={message.id}>
+            {message.isSystem ? (
+              <div className="flex justify-center">
+                <span className="text-label-sm text-[var(--on-surface-variant)] bg-[var(--surface-container)] px-3 py-1 rounded-full">
+                  {message.text}
+                </span>
+              </div>
+            ) : message.isMe ? (
+              <div className="flex gap-2">
+                {isMultiSelectMode && renderCheckbox(message.id)}
+                <div className="flex-1 flex justify-end">
+                  <div className="max-w-[70%]">
+                    {/* Reply Preview */}
+                    {message.replyTo && (
+                      <div className="mb-1 px-3 py-1.5 bg-[var(--surface-container-lowest)] rounded-t-xl border-l-2 border-[var(--primary)]/30">
+                        <p className="text-label-xs text-[var(--on-surface-variant)]">{message.replyTo.sender}</p>
+                        <p className="text-body-sm text-[var(--on-surface)]/80 line-clamp-1">{message.replyTo.text}</p>
+                      </div>
+                    )}
+                    {renderMessageBubble(message)}
+                    <span className="text-label-xs text-[var(--on-surface-variant)] mt-1 block text-right">{message.timestamp}</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                {isMultiSelectMode && renderCheckbox(message.id)}
+                {!isMultiSelectMode && (
+                  <button
+                    onClick={() => navigate(`/user-profile?isContact=false&name=${encodeURIComponent(message.sender)}`)}
+                    className="w-8 h-8 self-start bg-[var(--primary-container)] rounded-full flex items-center justify-center text-[var(--on-primary-container)] text-xs font-semibold flex-shrink-0 hover:opacity-90 transition-opacity"
+                  >
+                    {message.senderAvatar}
+                  </button>
+                )}
+                <div className="max-w-[70%]">
+                  <button
+                    onClick={() => navigate(`/user-profile?isContact=false&name=${encodeURIComponent(message.sender)}`)}
+                    className="text-label-xs text-[var(--on-surface-variant)] ml-1 hover:underline"
+                  >
+                    {message.sender}
+                  </button>
+                  {/* Reply Preview */}
+                  {message.replyTo && (
+                    <div className="mb-1 px-3 py-1.5 bg-[var(--surface-container-lowest)] rounded-t-xl border-l-2 border-[var(--outline)]">
+                      <p className="text-label-xs text-[var(--on-surface-variant)]">{message.replyTo.sender}</p>
+                      <p className="text-body-sm text-[var(--on-surface)]/80 line-clamp-1">{message.replyTo.text}</p>
+                    </div>
+                  )}
+                  {renderMessageBubble(message)}
+                  <span className="text-label-xs text-[var(--on-surface-variant)] mt-1 block">{message.timestamp}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Emoji Picker */}
+      {!isMultiSelectMode && showEmojiPicker && (
+        <div className="bg-[var(--surface-container)] border-t border-[var(--outline-variant)] animate-in slide-in-from-bottom duration-200">
+          <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--outline-variant)]">
+            <span className="text-label-sm text-[var(--on-surface-variant)]">Emoji</span>
+            <button
+              onClick={() => setShowEmojiPicker(false)}
+              className="p-1 hover:bg-[var(--surface-container-high)] rounded-full transition-colors"
+            >
+              <svg className="w-5 h-5 text-[var(--on-surface-variant)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div className="p-3 max-h-48 overflow-y-auto">
+            <div className="grid grid-cols-8 gap-2">
+              {emojis.map((emoji, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleEmojiClick(emoji)}
+                  className="aspect-square flex items-center justify-center text-2xl hover:bg-[var(--surface-container-high)] rounded-lg transition-colors"
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Voice Recording Bar */}
+      {!isMultiSelectMode && isRecording && (
+        <div className="bg-[var(--error-container)] border-t border-[var(--outline-variant)] px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-3 h-3 bg-[var(--error)] rounded-full animate-pulse" />
+              <span className="text-body-md text-[var(--on-error-container)] font-medium">Recording...</span>
+              <span className="text-body-md text-[var(--on-error-container)]">{formatRecordingTime(recordingTime)}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => { setIsRecording(false); setRecordingTime(0); }}
+                className="px-4 py-2 text-label-sm text-[var(--on-surface-variant)] hover:bg-[var(--surface-container)] rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleVoiceRecord}
+                className="px-4 py-2 bg-[var(--primary)] text-[var(--on-primary)] rounded-lg text-label-sm font-medium"
+              >
+                Send
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Input Bar */}
+      {!isMultiSelectMode && !isRecording && (
+        <div className="bg-[var(--surface-container-low)] border-t border-[var(--outline-variant)] px-3 py-2.5">
+          {replyingTo && (
+            <div className="flex items-center justify-between px-1 py-2 mb-2">
+              <div className="flex-1 min-w-0 border-l-2 border-[var(--secondary)] pl-3">
+                <p className="text-label-sm text-[var(--on-surface-variant)] line-clamp-1">{replyingTo.sender}: {replyingTo.text}</p>
+              </div>
+              <button onClick={() => setReplyingTo(null)} className="p-1 hover:bg-[var(--surface-container-high)] rounded-full ml-2">
+                <svg className="w-4 h-4 text-[var(--on-surface-variant)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            {/* Attachment */}
+            <button
+              onClick={() => setShowAttachMenu(!showAttachMenu)}
+              className={`h-11 w-11 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${showAttachMenu ? 'bg-[var(--primary)] text-[var(--on-primary)]' : 'text-[var(--on-surface-variant)] hover:bg-[var(--surface-container)]'}`}
+            >
+              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+                <path d="m21.44 11.05-9.19 9.19a6.003 6.003 0 0 1-8.49-8.49l9.19-9.19a4.002 4.002 0 0 1 5.66 5.66l-9.2 9.19a2.001 2.001 0 0 1-2.83-2.83l8.49-8.48" />
+              </svg>
+            </button>
+
+            {/* Input Field */}
+            <div className="flex-1 relative">
+              <textarea
+                ref={inputRef}
+                value={inputText}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyPress}
+                placeholder="Message..."
+                rows={1}
+                className="w-full min-h-[44px] max-h-[120px] bg-[var(--surface-container-lowest)] text-[var(--on-surface)] placeholder:text-[var(--on-surface-variant)]/50 resize-none focus:outline-none rounded-2xl px-4 py-2.5 pr-10 text-body-md border border-[var(--outline-variant)] focus:border-[var(--primary)]/30 transition-colors"
+              />
+              {/* Emoji Button (inside input) */}
+              <button
+                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                className={`absolute right-2 top-1/2 -translate-y-1/2 transition-colors ${showEmojiPicker ? 'text-[var(--primary)]' : 'text-[var(--on-surface-variant)]/70 hover:text-[var(--on-surface-variant)]'}`}
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+                  <line x1="9" y1="9" x2="9.01" y2="9" />
+                  <line x1="15" y1="9" x2="15.01" y2="9" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Voice / Send */}
+            {inputText.trim() ? (
+              <button
+                onClick={handleSend}
+                className="h-11 w-11 rounded-full bg-[var(--primary)] text-[var(--on-primary)] flex items-center justify-center flex-shrink-0 hover:opacity-90 active:scale-95 transition-all shadow-ambient-sm"
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2.01z" />
+                </svg>
+              </button>
+            ) : (
+              <button
+                onClick={() => setIsRecording(true)}
+                className="h-11 w-11 rounded-full text-[var(--on-surface-variant)] hover:bg-[var(--surface-container)] flex items-center justify-center flex-shrink-0 transition-colors"
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                  <line x1="12" y1="19" x2="12" y2="22" />
+                  <line x1="8" y1="22" x2="16" y2="22" />
+                </svg>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Multi-select Bottom Action Bar */}
+      {isMultiSelectMode && (
+        <div className="bg-[var(--surface-container-low)] border-t border-[var(--outline-variant)] px-4 py-3">
+          <button
+            onClick={handleMultiForward}
+            disabled={selectedMessageIds.length === 0}
+            className={`w-full py-3 rounded-xl text-body-md font-semibold transition-colors ${
+              selectedMessageIds.length > 0
+                ? 'bg-[var(--primary)] text-[var(--on-primary)] hover:opacity-90 active:scale-[0.98]'
+                : 'bg-[var(--surface-container)] text-[var(--outline)] cursor-not-allowed'
+            }`}
+          >
+            Forward {selectedMessageIds.length > 0 && `(${selectedMessageIds.length})`}
+          </button>
+        </div>
+      )}
+
+      {/* Message Action Menu */}
+      {showMessageMenu && selectedMessage && (
+        <div 
+          ref={menuRef}
+          className="fixed bg-[var(--surface-container-low)] rounded-xl shadow-ambient-lg py-2 z-50 min-w-[160px]"
+          style={{ left: menuPosition.x, top: menuPosition.y }}
+        >
+          {getMessageMenuItems(selectedMessage.isPinned || false, selectedMessage.type === 'file').map((item: MessageMenuItem) => (
+            <button
+              key={item.action}
+              onClick={() => handleMessageAction(item.action)}
+              className={`w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[var(--surface-container)] transition-colors ${item.danger ? 'text-[var(--error)]' : 'text-[var(--on-surface)]'}`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={item.icon} />
+              </svg>
+              <span className="text-body-sm">{item.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {showDeleteConfirm && (
+        <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-[var(--surface-container-lowest)] rounded-2xl mx-4 w-full max-w-[320px] p-6">
+            <h3 className="text-title-md font-semibold text-[var(--on-surface)] mb-2">
+              {isDeleteMulti ? `Delete ${selectedMessageIds.length} Messages` : 'Delete Message'}
+            </h3>
+            <p className="text-body-md text-[var(--on-surface-variant)] mb-4">
+              {isDeleteMulti
+                ? 'Are you sure you want to delete these messages?'
+                : 'Are you sure you want to delete this message?'}
+            </p>
+            
+            {/* Delete for everyone option - only for my messages */}
+            {((selectedMessage && selectedMessage.isMe) || isDeleteMulti) && (
+              <label className="flex items-center gap-3 mb-6 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={deleteForEveryone}
+                  onChange={(e) => setDeleteForEveryone(e.target.checked)}
+                  className="w-5 h-5 rounded border-[var(--outline)] text-[var(--primary)] focus:ring-[var(--primary)]"
+                />
+                <span className="text-body-sm text-[var(--on-surface)]">Delete for everyone</span>
+              </label>
+            )}
+            
+            <div className="flex gap-3">
+              <button
+                onClick={handleCancelDelete}
+                className="flex-1 py-3 px-4 rounded-xl bg-[var(--surface-container)] text-[var(--on-surface)] text-label-lg font-medium hover:bg-[var(--surface-container-high)] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={isDeleteMulti ? handleConfirmMultiDelete : handleConfirmDelete}
+                className="flex-1 py-3 px-4 rounded-xl bg-[var(--error)] text-[var(--on-error)] text-label-lg font-medium hover:opacity-90 transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Leave Group Confirmation Dialog */}
+      {showLeaveConfirm && (
+        <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-[var(--surface-container-lowest)] rounded-2xl mx-4 w-full max-w-[320px] p-6">
+            <h3 className="text-title-md font-semibold text-[var(--on-surface)] mb-2">Leave Group</h3>
+            <p className="text-body-md text-[var(--on-surface-variant)] mb-6">
+              Are you sure you want to leave "{mockGroup.name}"? You won't receive any new messages from this group.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowLeaveConfirm(false)}
+                className="flex-1 py-3 px-4 rounded-xl bg-[var(--surface-container)] text-[var(--on-surface)] text-label-lg font-medium hover:bg-[var(--surface-container-high)] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setShowLeaveConfirm(false);
+                  // Navigate back to chats list
+                  console.log('Left group, navigate back');
+                }}
+                className="flex-1 py-3 px-4 rounded-xl bg-[var(--error)] text-[var(--on-error)] text-label-lg font-medium hover:opacity-90 transition-colors"
+              >
+                Leave
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Auto Delete Dialog */}
+      {showAutoDeleteMenu && (
+        <div className="absolute inset-0 bg-black/50 flex items-end justify-center z-50">
+          <div className="bg-[var(--surface-container-lowest)] rounded-t-3xl w-full max-w-[420px] overflow-hidden animate-in slide-in-from-bottom duration-200">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--outline-variant)]">
+              <h3 className="text-title-lg font-semibold text-[var(--on-surface)]">Auto Delete</h3>
+              <button
+                onClick={() => setShowAutoDeleteMenu(false)}
+                className="p-2 -mr-2 hover:bg-[var(--surface-container)] rounded-full transition-colors"
+              >
+                <svg className="w-6 h-6 text-[var(--on-surface-variant)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Options */}
+            <div className="py-1">
+              {autoDeleteOptions.map((option) => (
+                <button
+                  key={option.label}
+                  onClick={() => {
+                    setGroupSettings(prev => ({ ...prev, autoDeleteTimer: option.value }));
+                    setShowAutoDeleteMenu(false);
+                  }}
+                  className="w-full flex items-center justify-between px-5 py-4 hover:bg-[var(--surface-container)] transition-colors text-[var(--on-surface)]"
+                >
+                  <span className="text-body-lg">{option.label}</span>
+                  {groupSettings.autoDeleteTimer === option.value && (
+                    <svg className="w-6 h-6 text-[var(--primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {/* Description */}
+            <div className="px-5 pb-6 pt-2">
+              <p className="text-body-md text-[var(--on-surface-variant)] leading-relaxed">
+                Messages will be automatically deleted for everyone after the selected time period.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mention Popup */}
+      {showMentionPopup && (
+        <div className="absolute bottom-20 left-4 right-4 bg-[var(--surface-container-lowest)] rounded-2xl shadow-ambient-lg max-h-[280px] overflow-hidden z-40">
+          {/* Header */}
+          <div className="px-4 py-3 border-b border-[var(--outline-variant)]">
+            <p className="text-label-sm text-[var(--on-surface-variant)]">Mention someone</p>
+          </div>
+
+          {/* Member List */}
+          <div className="overflow-y-auto max-h-[220px]">
+            {filteredMentionMembers.length === 0 ? (
+              <div className="px-4 py-4 text-center">
+                <p className="text-body-md text-[var(--on-surface-variant)]">No members found</p>
+              </div>
+            ) : (
+              filteredMentionMembers.map((member) => (
+                <button
+                  key={member.id}
+                  onClick={() => handleMentionSelect(member)}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--surface-container)] transition-colors"
+                >
+                  <div className="relative">
+                    <div className="w-10 h-10 bg-[var(--secondary-container)] rounded-full flex items-center justify-center text-[var(--on-secondary-container)] font-semibold">
+                      {member.avatar}
+                    </div>
+                    {member.isOnline && (
+                      <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-[var(--surface-container-lowest)]" />
+                    )}
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className="text-body-md font-medium text-[var(--on-surface)]">{member.name}</p>
+                    <p className="text-label-xs text-[var(--on-surface-variant)]">
+                      {member.isOnline ? 'Online' : 'Last seen recently'}
+                    </p>
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Hidden File Input */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        className="hidden"
+        onChange={(e) => {
+          if (e.target.files?.[0]) {
+            const file = e.target.files[0];
+            const newMessage: Message = {
+              id: Date.now().toString(),
+              text: `📎 ${file.name}`,
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              sender: 'You',
+              senderAvatar: 'ME',
+              isMe: true,
+              type: 'file',
+              fileName: file.name,
+              fileSizeBytes: file.size,
+              fileMimeType: file.type || 'application/octet-stream',
+            };
+            setMessages([...messages, newMessage]);
+          }
+        }}
+      />
+
+      {/* Toast */}
+      {toast && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[60] px-4 py-2 rounded-lg bg-[var(--inverse-surface)] text-[var(--inverse-on-surface)] text-body-sm font-medium shadow-ambient-lg pointer-events-auto">
+          {toast}
+        </div>
+      )}
+
+      {/* Attach Menu - WeChat Style Bottom Sheet */}
+      {!isMultiSelectMode && showAttachMenu && (
+        <div className="absolute inset-0 z-50">
+          {/* Overlay */}
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setShowAttachMenu(false)}
+          />
+          {/* Sheet */}
+          <div className="absolute bottom-0 left-0 right-0 bg-[var(--surface-container-lowest)] rounded-t-3xl animate-in slide-in-from-bottom duration-200">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--outline-variant)]">
+              <h3 className="text-title-md font-semibold text-[var(--on-surface)]">Share</h3>
+              <button
+                onClick={() => setShowAttachMenu(false)}
+                className="p-2 -mr-2 hover:bg-[var(--surface-container)] rounded-full transition-colors"
+              >
+                <svg className="w-5 h-5 text-[var(--on-surface-variant)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Grid Menu - First Row */}
+            <div className="grid grid-cols-4 gap-2 px-4 py-6">
+              <button
+                onClick={() => {
+                  handleFileSelect('image');
+                  setShowAttachMenu(false);
+                }}
+                className="flex flex-col items-center gap-2 py-2"
+              >
+                <div className="w-14 h-14 bg-[var(--surface-container)] rounded-2xl flex items-center justify-center">
+                  <svg className="w-7 h-7 text-[var(--on-surface)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <span className="text-label-xs text-[var(--on-surface)]">Photos</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  handleFileSelect('camera');
+                  setShowAttachMenu(false);
+                }}
+                className="flex flex-col items-center gap-2 py-2"
+              >
+                <div className="w-14 h-14 bg-[var(--surface-container)] rounded-2xl flex items-center justify-center">
+                  <svg className="w-7 h-7 text-[var(--on-surface)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+                <span className="text-label-xs text-[var(--on-surface)]">Camera</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  handleFileSelect('file');
+                  setShowAttachMenu(false);
+                }}
+                className="flex flex-col items-center gap-2 py-2"
+              >
+                <div className="w-14 h-14 bg-[var(--surface-container)] rounded-2xl flex items-center justify-center">
+                  <svg className="w-7 h-7 text-[var(--on-surface)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <span className="text-label-xs text-[var(--on-surface)]">Files</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  const locMsg: Message = {
+                    id: Date.now().toString(),
+                    text: '📍 Blue Bottle Coffee',
+                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    sender: 'You',
+                    senderAvatar: 'ME',
+                    isMe: true,
+                    type: 'location',
+                    location: {
+                      name: 'Blue Bottle Coffee',
+                      address: '123 Market St, San Francisco',
+                      lat: 37.7749,
+                      lng: -122.4194,
+                    },
+                  };
+                  setMessages([...messages, locMsg]);
+                  setShowAttachMenu(false);
+                }}
+                className="flex flex-col items-center gap-2 py-2"
+              >
+                <div className="w-14 h-14 bg-[var(--surface-container)] rounded-2xl flex items-center justify-center">
+                  <svg className="w-7 h-7 text-[var(--on-surface)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+                <span className="text-label-xs text-[var(--on-surface)]">Location</span>
+              </button>
+              <button
+                onClick={() => {
+                  setShowAttachMenu(false);
+                  navigate('/cloud-drive?mode=picker&target=group-chat');
+                }}
+                className="flex flex-col items-center gap-2 py-2 cursor-pointer"
+              >
+                <div className="w-14 h-14 bg-[var(--primary-fixed)] rounded-2xl flex items-center justify-center">
+                  <svg className="w-7 h-7 text-[var(--on-primary-fixed)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5.5 5.5 0 1116.9 8H17a4 4 0 010 8H7z" /></svg>
+                </div>
+                <span className="text-label-xs text-[var(--on-surface)]">Cloud Drive</span>
+              </button>
+              <button
+                onClick={() => {
+                  setShowAttachMenu(false);
+                  setShowTransferMemberPicker(true);
+                }}
+                className="flex flex-col items-center gap-2 py-2 cursor-pointer"
+              >
+                <div className="w-14 h-14 bg-[var(--secondary-fixed)] rounded-2xl flex items-center justify-center">
+                  <svg className="w-7 h-7 text-[var(--on-secondary-fixed)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M20 7H4a2 2 0 00-2 2v9a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2zM2 11h20M16 16h.01" />
+                  </svg>
+                </div>
+                <span className="text-label-xs text-[var(--on-surface)]">Transfer</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Group Transfer Member Picker */}
+      {!isMultiSelectMode && showTransferMemberPicker && (
+        <div className="absolute inset-0 z-50">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setShowTransferMemberPicker(false)}
+          />
+          <div className="absolute bottom-0 left-0 right-0 max-h-[80%] overflow-hidden rounded-t-3xl bg-[var(--surface-container-lowest)] animate-in slide-in-from-bottom duration-200">
+            <div className="flex items-center justify-between border-b border-[var(--outline-variant)] px-5 py-4">
+              <div>
+                <h3 className="text-title-md font-semibold text-[var(--on-surface)]">Select recipient</h3>
+                <p className="mt-1 text-label-xs text-[var(--on-surface-variant)]">Choose one member from this group</p>
+              </div>
+              <button
+                type="button"
+                aria-label="Close recipient picker"
+                onClick={() => setShowTransferMemberPicker(false)}
+                className="-mr-2 rounded-full p-2 transition-colors hover:bg-[var(--surface-container)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface-container-lowest)]"
+              >
+                <svg className="h-6 w-6 text-[var(--on-surface-variant)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="max-h-[55vh] overflow-y-auto py-1">
+              {mockMembers.map((member) => (
+                <button
+                  key={member.id}
+                  type="button"
+                  onClick={() => {
+                    setShowTransferMemberPicker(false);
+                    setTransferTarget(member);
+                  }}
+                  className="flex w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-[var(--surface-container)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-inset"
+                >
+                  <div className="relative">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--secondary-container)] font-semibold text-[var(--on-secondary-container)]">
+                      {member.avatar}
+                    </div>
+                    {member.isOnline && (
+                      <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[var(--surface-container-lowest)] bg-green-500" />
+                    )}
+                  </div>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-body-md font-medium text-[var(--on-surface)]">{member.name}</span>
+                    <span className="mt-0.5 block text-label-xs text-[var(--on-surface-variant)]">{member.isOnline ? 'Online' : 'Last seen recently'}</span>
+                  </span>
+                  <svg className="h-5 w-5 text-[var(--on-surface-variant)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {transferTarget && (
+        <DynamicTransferModal
+          inChat
+          recipientUserId={transferTarget.id}
+          recipientName={transferTarget.name}
+          recipientAddress={DEFAULT_CHAT_RECIPIENT_ADDRESS}
+          onClose={() => setTransferTarget(null)}
+        />
+      )}
+    </div>
+  );
+};
+
+const Component = GroupChatPage;
+export default Component;
