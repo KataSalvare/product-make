@@ -2,6 +2,7 @@ import type { FC, ReactNode } from 'react'
 import {
   DynamicContextProvider,
   DynamicEmbeddedWidget,
+  DynamicUserProfile,
   useDynamicContext,
   useIsLoggedIn,
   useUserWallets,
@@ -9,7 +10,51 @@ import {
 import { EthereumWalletConnectors } from '@dynamic-labs/ethereum'
 import { dynamicEnvironmentId, isDynamicConfigured } from './config'
 import { bindDynamicWallet, walletBindingApiConfigured } from './walletBinding'
-import { useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
+
+type WalletBindingState = 'idle' | 'binding' | 'bound' | 'error'
+
+const DynamicWalletBindingContext = createContext<WalletBindingState>('idle')
+
+const DynamicWalletBinding: FC<{ children: ReactNode }> = ({ children }) => {
+  const { user } = useDynamicContext()
+  const isLoggedIn = useIsLoggedIn()
+  const userWallets = useUserWallets()
+  const embeddedWallet = userWallets.find(wallet => wallet.connector.isEmbeddedWallet)
+  const [bindingSnapshot, setBindingSnapshot] = useState<{ userId: string; walletId: string; state: Exclude<WalletBindingState, 'idle'> } | null>(null)
+  const userId = user?.userId
+  const walletId = embeddedWallet?.id
+  const canBind = isLoggedIn && Boolean(embeddedWallet && userId && walletId && walletBindingApiConfigured)
+  const hasMatchingSnapshot = Boolean(canBind && bindingSnapshot && bindingSnapshot.userId === userId && bindingSnapshot.walletId === walletId)
+  const bindingState: WalletBindingState = !canBind
+    ? 'idle'
+    : hasMatchingSnapshot
+      ? bindingSnapshot?.state ?? 'binding'
+      : 'binding'
+
+  useEffect(() => {
+    if (!canBind || !embeddedWallet || !userId || !walletId) return
+
+    let cancelled = false
+    bindDynamicWallet(embeddedWallet)
+      .then(() => {
+        if (!cancelled) setBindingSnapshot({ userId, walletId, state: 'bound' })
+      })
+      .catch(() => {
+        if (!cancelled) setBindingSnapshot({ userId, walletId, state: 'error' })
+      })
+
+    return () => { cancelled = true }
+  }, [canBind, embeddedWallet, userId, walletId])
+
+  return (
+    <DynamicWalletBindingContext.Provider value={bindingState}>
+      {children}
+    </DynamicWalletBindingContext.Provider>
+  )
+}
+
+const useDynamicWalletBinding = () => useContext(DynamicWalletBindingContext)
 
 export const DynamicProvider: FC<{ children: ReactNode }> = ({ children }) => {
   if (!isDynamicConfigured) return <>{children}</>
@@ -23,29 +68,21 @@ export const DynamicProvider: FC<{ children: ReactNode }> = ({ children }) => {
         initialAuthenticationMode: 'connect-and-sign',
       }}
     >
-      {children}
+      <DynamicWalletBinding>
+        <DynamicUserProfile variant="modal" />
+        {children}
+      </DynamicWalletBinding>
     </DynamicContextProvider>
   )
 }
 
 export const DynamicWalletDemo: FC = () => {
-  const { sdkHasLoaded, user } = useDynamicContext()
+  const { sdkHasLoaded } = useDynamicContext()
   const isLoggedIn = useIsLoggedIn()
   const userWallets = useUserWallets()
+  const bindingState = useDynamicWalletBinding()
   const embeddedWallet = userWallets.find(wallet => wallet.connector.isEmbeddedWallet)
   const walletAddress = embeddedWallet?.address
-  const [bindingState, setBindingState] = useState<'idle' | 'bound' | 'error'>('idle')
-
-  useEffect(() => {
-    if (!isLoggedIn || !embeddedWallet || !user?.userId || !walletBindingApiConfigured) return
-
-    let cancelled = false
-    bindDynamicWallet(embeddedWallet)
-      .then(() => { if (!cancelled) setBindingState('bound') })
-      .catch(() => { if (!cancelled) setBindingState('error') })
-
-    return () => { cancelled = true }
-  }, [embeddedWallet, isLoggedIn, user?.userId])
 
   return (
     <section className="wallet-dynamic-card" aria-labelledby="dynamic-demo-title">
@@ -69,7 +106,7 @@ export const DynamicWalletDemo: FC = () => {
             <strong>Embedded Wallet address bound to SuperIM</strong>
             <small>{walletAddress}</small>
           </div>
-          <span>{bindingState === 'bound' ? 'Bound' : bindingState === 'error' ? 'Binding failed' : walletBindingApiConfigured && user?.userId ? 'Binding…' : `${userWallets.length} wallet${userWallets.length === 1 ? '' : 's'}`}</span>
+          <span>{bindingState === 'bound' ? 'Bound' : bindingState === 'error' ? 'Binding failed' : bindingState === 'binding' ? 'Binding…' : `${userWallets.length} wallet${userWallets.length === 1 ? '' : 's'}`}</span>
         </div>
       )}
     </section>

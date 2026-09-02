@@ -2,12 +2,12 @@
 
 ## 原型目标
 
-验证 SuperIM 作为 Dynamic 钱包入口和聊天转账编排层的核心路径。SuperIM 先完成账号注册/登录，用户进入「我的 → 钱包」后再由 Dynamic SDK 提供钱包开通、连接、充值、转账、交易确认和签名；SuperIM 只负责钱包入口、身份绑定、钱包地址查询和聊天场景衔接。
+验证 SuperIM 作为 Dynamic 钱包入口和聊天转账编排层的核心路径。SuperIM 先完成账号注册/登录，用户点击「我的 → 钱包」后直接由 Dynamic SDK 弹出钱包开通或钱包资料管理界面；SuperIM 只负责钱包入口、身份绑定、钱包地址查询和聊天场景衔接。
 
 ## Dynamic 接入
 
 - 应用根部使用 `DynamicContextProvider`。
-- SuperIM 登录和注册继续使用现有 SuperIM 账号表单；仅钱包入口使用 `DynamicEmbeddedWidget`。
+- SuperIM 登录和注册继续使用现有 SuperIM 账号表单；「我的 → Wallet」直接触发 Dynamic 认证或钱包资料模态框，`/wallet` 仅保留兼容/独立访问页面。
 - Dynamic SDK 使用 `connect-and-sign`。
 - Dashboard 配置 EVM 和 Embedded Wallet；是否开启 `Create on Sign up` 按钱包开通策略决定。
 - Base 是产品网络；开发/验收使用 Base Sepolia，生产再使用 Base Mainnet。
@@ -17,11 +17,13 @@
 
 ## 页面与入口
 
-- `/wallet`：Dynamic Embedded Wallet 页面。
+- 「我的 → Wallet」：未开通时打开 Dynamic 登录/注册弹窗，已开通时打开 Dynamic 钱包资料/管理弹窗，不进入 SuperIM Demo 页面。
+- `/wallet`：Dynamic Embedded Wallet 兼容页面。
 - `/wallet/deposit`：兼容旧链接，展示 Dynamic Wallet/Funding 页面。
 - `/wallet/transactions`：兼容旧链接，展示 Dynamic Wallet 页面。
-- `/wallet/chat-transfer`：单聊查询地址后打开 Dynamic Send。
-- `/wallet/transfer`：群聊查询指定成员地址后打开 Dynamic Send。
+- `/wallet/chat-transfer`：保留旧链接兼容；实际聊天入口在当前会话内打开转账弹窗。
+- `/wallet/transfer`：保留旧链接兼容；群聊先选择成员，再在当前会话内打开转账弹窗。
+- 未绑定当前用户的 Embedded Wallet：转账页使用全英文提示，并提供 `Open wallet` 快捷入口直接打开 Dynamic 认证/开通弹窗。
 
 钱包原型不再实现自有余额卡、充值二维码、交易列表、提现表单、交易详情或支付授权面板。
 
@@ -57,8 +59,12 @@ GET /api/users/:userId/wallet
 ## 聊天场景
 
 - 单聊 Transfer 默认使用当前会话对象。
-- 群聊 Transfer 必须明确一名收款人。
+- 单聊和群聊均不跳转钱包二级页面，直接在当前聊天窗口底部打开 `Transfer in chat` 抽屉；关闭后返回原聊天上下文。
+- 群聊 Transfer 必须先从当前群成员列表选择一名收款人，再打开转账弹窗。
+- 当前原型从聊天室/群聊进入转账时，默认将 `0x8e997806487Cf0747B711Bd1D3766556e4821Fad` 作为收款地址；接入真实钱包查询 API 后，由已验证的绑定地址覆盖该 Mock 默认值。
 - 没有钱包地址时阻止打开 Dynamic Send。
+- 当前用户未绑定 Embedded Wallet 时，聊天转账页不展示转账表单，显示 `Open your wallet first` 和 `Open wallet` 按钮；点击按钮直接触发 Dynamic 弹窗。
+- 转账抽屉使用遮罩、标题栏返回/关闭按钮和 Escape 关闭；抽屉关闭不得改变聊天路由或清除聊天状态。
 - 不支持转给群组、多人分发、跨链或 SuperIM 自行签名。
 
 ## 状态
@@ -88,4 +94,4 @@ GET /api/users/:userId/wallet
 - 参考页面：`src/prototypes/superim-me/`、`src/prototypes/superim-chatroom/`。
 - 复用组件：Dynamic Embedded Widget、钱包二级页头、聊天更多操作入口。
 - 状态：默认、加载、绑定中、成功、取消、失败、未开通钱包、未配置。
-- 响应式：移动端保持 400 × 852 预览；宽屏内容区扩展但不改变钱包页头层级。
+- 响应式：移动端保持 400 × 852 预览；转账抽屉贴底并铺满聊天容器宽度（宽屏最大 420px），仅保留顶部圆角，内容超高时仅抽屉内容滚动；宽屏内容区扩展但不改变钱包页头层级。

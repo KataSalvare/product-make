@@ -6,6 +6,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useDynamicContext, useIsLoggedIn, useUserWallets } from '@dynamic-labs/sdk-react-core';
+import { isDynamicConfigured } from '../../integrations/dynamic/config';
 import '../../themes/equatorial-minimalism/globals.css';
 import './style.css';
 
@@ -109,6 +111,42 @@ const ChevronRightIcon = () => (
   </svg>
 );
 
+const MenuRow: React.FC<{ item: MenuItem; isLast: boolean; onClick: () => void }> = ({ item, isLast, onClick }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={`w-full flex items-center gap-4 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-container-low)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--primary)] ${
+      !isLast ? 'border-b border-[var(--outline-variant)]/50' : ''
+    }`}
+  >
+    <svg className="w-5 h-5 text-[var(--secondary)] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={item.icon} />
+    </svg>
+    <div className="flex-1 min-w-0">
+      <span className="text-body-md text-[var(--on-surface)]">{item.label}</span>
+      {item.description && (
+        <p className="text-label-sm text-[var(--on-surface-variant)] mt-0.5">{item.description}</p>
+      )}
+    </div>
+    <ChevronRightIcon />
+  </button>
+);
+
+const DynamicWalletMenuRow: React.FC<{ item: MenuItem; isLast: boolean }> = ({ item, isLast }) => {
+  const { setShowAuthFlow, setShowDynamicUserProfile } = useDynamicContext();
+  const isLoggedIn = useIsLoggedIn();
+  const userWallets = useUserWallets();
+  const hasEmbeddedWallet = userWallets.some(wallet => wallet.connector.isEmbeddedWallet);
+
+  return (
+    <MenuRow
+      item={item}
+      isLast={isLast}
+      onClick={() => (isLoggedIn && hasEmbeddedWallet ? setShowDynamicUserProfile(true) : setShowAuthFlow(true))}
+    />
+  );
+};
+
 const MePage: React.FC = () => {
   const navigate = useNavigate();
   const [accounts, setAccounts] = useState<Account[]>(mockAccounts);
@@ -151,26 +189,13 @@ const MePage: React.FC = () => {
 
   const renderMenuGroup = (items: MenuItem[]) => (
     <div className="bg-[var(--surface-container-lowest)] rounded-2xl overflow-hidden shadow-ambient-sm">
-      {items.map((item, index) => (
-        <button
-          key={item.id}
-          onClick={() => navigate(item.path)}
-          className={`w-full flex items-center gap-4 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-container-low)] ${
-            index !== items.length - 1 ? 'border-b border-[var(--outline-variant)]/50' : ''
-          }`}
-        >
-          <svg className="w-5 h-5 text-[var(--secondary)] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={item.icon} />
-          </svg>
-          <div className="flex-1 min-w-0">
-            <span className="text-body-md text-[var(--on-surface)]">{item.label}</span>
-            {item.description && (
-              <p className="text-label-sm text-[var(--on-surface-variant)] mt-0.5">{item.description}</p>
-            )}
-          </div>
-          <ChevronRightIcon />
-        </button>
-      ))}
+      {items.map((item, index) => {
+        const isLast = index === items.length - 1;
+        if (item.id === 'wallet' && isDynamicConfigured) {
+          return <DynamicWalletMenuRow key={item.id} item={item} isLast={isLast} />;
+        }
+        return <MenuRow key={item.id} item={item} isLast={isLast} onClick={() => navigate(item.path)} />;
+      })}
     </div>
   );
 

@@ -10,6 +10,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import '../../themes/equatorial-minimalism/globals.css';
 import './style.css';
 import { type CloudFile, formatBytes, useCloudDrive } from '../superim-cloud-drive/store';
+import { DynamicTransferModal } from '../superim-wallet';
 
 type MessageType = 'text' | 'image' | 'location' | 'video' | 'file';
 
@@ -71,6 +72,8 @@ const mockMembers: GroupMember[] = [
   { id: '8', name: 'Fatima Abdullahi', avatar: 'FA', isOnline: false },
 ];
 
+const DEFAULT_CHAT_RECIPIENT_ADDRESS = '0x8e997806487Cf0747B711Bd1D3766556e4821Fad';
+
 const mockMessages: Message[] = [
   { id: '1', text: 'Hey team! How is everyone doing?', timestamp: '10:30 AM', sender: 'Amara', senderAvatar: 'AO', isMe: false },
   { id: '2', text: 'Great! Working on the new mockups.', timestamp: '10:32 AM', sender: 'You', senderAvatar: 'ME', isMe: true },
@@ -127,6 +130,8 @@ const GroupChatPage: React.FC = () => {
   const [showAnnouncement, setShowAnnouncement] = useState(true);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const [showTransferMemberPicker, setShowTransferMemberPicker] = useState(false);
+  const [transferTarget, setTransferTarget] = useState<GroupMember | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
@@ -582,7 +587,7 @@ const GroupChatPage: React.FC = () => {
   };
 
   return (
-    <div className="h-full bg-[var(--surface-container-low)] flex flex-col">
+    <div className="relative h-full bg-[var(--surface-container-low)] flex flex-col">
       {/* Header */}
       <header className="bg-[var(--surface-container-low)] border-b border-[var(--outline-variant)] px-4 py-3 z-20">
         {isMultiSelectMode ? (
@@ -1299,7 +1304,7 @@ const GroupChatPage: React.FC = () => {
               <button
                 onClick={() => {
                   setShowAttachMenu(false);
-                  navigate('/wallet/transfer?source=group-chat&recipientUserId=1&recipientName=Amara%20Okafor');
+                  setShowTransferMemberPicker(true);
                 }}
                 className="flex flex-col items-center gap-2 py-2 cursor-pointer"
               >
@@ -1313,6 +1318,73 @@ const GroupChatPage: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Group Transfer Member Picker */}
+      {!isMultiSelectMode && showTransferMemberPicker && (
+        <div className="absolute inset-0 z-50">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setShowTransferMemberPicker(false)}
+          />
+          <div className="absolute bottom-0 left-0 right-0 max-h-[80%] overflow-hidden rounded-t-3xl bg-[var(--surface-container-lowest)] animate-in slide-in-from-bottom duration-200">
+            <div className="flex items-center justify-between border-b border-[var(--outline-variant)] px-5 py-4">
+              <div>
+                <h3 className="text-title-md font-semibold text-[var(--on-surface)]">Select recipient</h3>
+                <p className="mt-1 text-label-xs text-[var(--on-surface-variant)]">Choose one member from this group</p>
+              </div>
+              <button
+                type="button"
+                aria-label="Close recipient picker"
+                onClick={() => setShowTransferMemberPicker(false)}
+                className="-mr-2 rounded-full p-2 transition-colors hover:bg-[var(--surface-container)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface-container-lowest)]"
+              >
+                <svg className="h-6 w-6 text-[var(--on-surface-variant)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="max-h-[55vh] overflow-y-auto py-1">
+              {mockMembers.map((member) => (
+                <button
+                  key={member.id}
+                  type="button"
+                  onClick={() => {
+                    setShowTransferMemberPicker(false);
+                    setTransferTarget(member);
+                  }}
+                  className="flex w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-[var(--surface-container)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-inset"
+                >
+                  <div className="relative">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--secondary-container)] font-semibold text-[var(--on-secondary-container)]">
+                      {member.avatar}
+                    </div>
+                    {member.isOnline && (
+                      <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[var(--surface-container-lowest)] bg-green-500" />
+                    )}
+                  </div>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-body-md font-medium text-[var(--on-surface)]">{member.name}</span>
+                    <span className="mt-0.5 block text-label-xs text-[var(--on-surface-variant)]">{member.isOnline ? 'Online' : 'Last seen recently'}</span>
+                  </span>
+                  <svg className="h-5 w-5 text-[var(--on-surface-variant)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {transferTarget && (
+        <DynamicTransferModal
+          inChat
+          recipientUserId={transferTarget.id}
+          recipientName={transferTarget.name}
+          recipientAddress={DEFAULT_CHAT_RECIPIENT_ADDRESS}
+          onClose={() => setTransferTarget(null)}
+        />
       )}
     </div>
   );

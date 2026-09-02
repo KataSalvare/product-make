@@ -12,7 +12,7 @@
 | **页面目的** | 参考 Telegram Settings 风格，平铺展示个人信息、快捷切换账号入口与核心功能入口 |
 
 ### 1.2 页面描述
-个人中心页面采用 Telegram Settings 的扁平列表风格。顶部为可点击的个人信息卡片，多账号场景下展示快捷切换账号入口，下方按分组平铺 My Posts、Saved Messages、Chat Folders、Settings、Help Center、About、Terms of Service 等功能入口。
+个人中心页面采用 Telegram Settings 的扁平列表风格。顶部为可点击的个人信息卡片，多账号场景下展示快捷切换账号入口，下方按分组平铺 My Posts、Saved Messages、Wallet、Chat Folders、Settings、Help Center、About、Terms of Service 等功能入口。Wallet 在 Dynamic 已配置时不改变页面路由：未开通 Embedded Wallet 直接打开 Dynamic 登录/注册弹窗，已开通则打开 Dynamic 钱包资料/管理弹窗；未配置 Dynamic 时保留 `/wallet` 配置提示页。
 
 ---
 

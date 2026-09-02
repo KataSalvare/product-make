@@ -10,6 +10,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import '../../themes/equatorial-minimalism/globals.css';
 import './style.css';
 import { type CloudFile, formatBytes, useCloudDrive } from '../superim-cloud-drive/store';
+import { DynamicTransferModal } from '../superim-wallet';
 
 interface Message {
   id: string;
@@ -41,6 +42,8 @@ const mockContact: Contact = {
   name: 'Amara Okafor',
   isOnline: true,
 };
+
+const DEFAULT_CHAT_RECIPIENT_ADDRESS = '0x8e997806487Cf0747B711Bd1D3766556e4821Fad';
 
 const mockMessages: Message[] = [
   { id: '1', text: 'Hey! How are you doing?', timestamp: '10:30 AM', isSent: false, isRead: true, sender: 'Amara', senderAvatar: 'AO' },
@@ -83,6 +86,7 @@ const Component: React.FC = () => {
   const [inputText, setInputText] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const [showTransferModal, setShowTransferModal] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
@@ -365,7 +369,7 @@ const Component: React.FC = () => {
   const isDeleteMulti = isMultiSelectMode && selectedMessageIds.length > 0 && !selectedMessage;
 
   return (
-    <div className="h-full bg-[var(--surface-container-low)] flex flex-col">
+    <div className="relative h-full bg-[var(--surface-container-low)] flex flex-col">
       {/* Header */}
       <header className="bg-[var(--surface-container-low)] border-b border-[var(--outline-variant)] px-4 py-3 z-20">
         {isMultiSelectMode ? (
@@ -1118,7 +1122,7 @@ const Component: React.FC = () => {
               <button
                 onClick={() => {
                   setShowAttachMenu(false);
-                  navigate('/wallet/chat-transfer?recipientUserId=1&recipientName=Amara%20Okafor');
+                  setShowTransferModal(true);
                 }}
                 className="flex flex-col items-center gap-2 py-2 cursor-pointer"
               >
@@ -1132,6 +1136,16 @@ const Component: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {showTransferModal && (
+        <DynamicTransferModal
+          inChat
+          recipientUserId="1"
+          recipientName={mockContact.name}
+          recipientAddress={DEFAULT_CHAT_RECIPIENT_ADDRESS}
+          onClose={() => setShowTransferModal(false)}
+        />
       )}
     </div>
   );

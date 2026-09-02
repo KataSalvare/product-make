@@ -85,7 +85,7 @@ SuperIM 不保存私钥、助记词、支付密码、签名材料或自行维护
 - 应用使用 `@dynamic-labs/sdk-react-core` 和 `@dynamic-labs/ethereum`。
 - 所有 Dynamic 包必须保持同一版本；当前仓库锁定 `5.3.1`。
 - `DynamicContextProvider` 位于应用根部。
-- 仅钱包入口使用 `DynamicEmbeddedWidget`；SuperIM 登录/注册继续使用 SuperIM 自有账号流程。
+- 「我的 → Wallet」入口直接触发 Dynamic 钱包认证或钱包资料模态框；SuperIM 登录/注册继续使用 SuperIM 自有账号流程。`/wallet` 仅保留为兼容或独立访问页面，不作为个人中心的默认跳转目标。
 - Dynamic Dashboard 开启 EVM 和 Embedded Wallet。
 - 是否开启 `Create on Sign up` 由钱包开通策略决定；v2.0 必须支持用户在钱包入口按需创建或恢复 Embedded Wallet。
 - 前端只配置 `VITE_DYNAMIC_ENVIRONMENT_ID` 等公开环境标识，不存放 Dynamic API Secret；开发、测试、生产环境必须使用各自的 Environment。
@@ -102,10 +102,12 @@ SuperIM 不保存私钥、助记词、支付密码、签名材料或自行维护
 用户注册 / 登录 SuperIM
     ↓
 进入「我的 → Wallet」
-    ↓
-Dynamic 内嵌钱包认证
-    ↓
-创建或恢复 Embedded Wallet
+    ├─ 未开通：打开 Dynamic 登录/注册模态框
+    │       ↓
+    │   创建或恢复 Embedded Wallet
+    └─ 已开通：打开 Dynamic 钱包资料/管理模态框
+            ↓
+        查看或管理已有钱包
     ↓
 读取 Embedded Wallet 地址和 Dynamic userId
     ↓
@@ -193,18 +195,20 @@ Cookie: <SuperIM session>
 | --- | --- | --- |
 | SuperIM 登录 | `/login` | 使用 SuperIM 自有账号流程登录，不创建 Dynamic 钱包 |
 | SuperIM 注册 | `/register` | 使用 SuperIM 自有账号流程注册，不创建 Dynamic 钱包 |
-| 钱包入口 | `/wallet` | 在已有 SuperIM 登录态下展示 Dynamic Embedded Wallet 开通页面 |
+| 钱包入口 | 「我的 → Wallet」 | 未开通时打开 Dynamic 登录/注册模态框；已开通时打开 Dynamic 钱包资料/管理模态框，不进入 SuperIM Demo 页面 |
+| 钱包兼容页面 | `/wallet` | 保留独立访问和旧链接兼容，不作为个人中心钱包入口的默认目标 |
 | 钱包兼容入口 | `/wallet/deposit`、`/wallet/transactions` 等 | 保留旧链接，展示或跳转 Dynamic 钱包页 |
-| 单聊快捷转账 | `/wallet/chat-transfer` | 查询收款人地址并打开 Dynamic Send |
-| 群聊快捷转账 | `/wallet/transfer` | 选择一名群成员并打开 Dynamic Send |
+| 单聊快捷转账 | 聊天容器内弹窗；`/wallet/chat-transfer` 仅作兼容 | 查询收款人地址并在当前聊天内打开 Dynamic Send |
+| 群聊快捷转账 | 先选群成员，再在聊天容器内弹窗；`/wallet/transfer` 仅作兼容 | 选择一名群成员并在当前群聊内打开 Dynamic Send |
 
 钱包页面不再自行实现余额卡、充值二维码、交易列表、提现表单或交易详情。
 
 页面前置条件：
 
 - `/login`、`/register` 只处理 SuperIM 账号，不触发 Dynamic 钱包创建。
-- `/wallet` 必须要求已有 SuperIM 登录会话；未登录时跳转 `/login`。
+- `/wallet` 必须要求已有 SuperIM 登录会话；未登录时跳转 `/login`。个人中心的 Wallet 入口不改变 SuperIM 页面路由，直接调用 Dynamic 弹窗。
 - 已登录但钱包状态不是 `active` 时，允许进入钱包页完成开通，但禁止聊天转账。
+- 聊天转账页检测到当前用户没有 `active` Embedded Wallet 时，必须使用英文提示引导开通，并提供直接触发 Dynamic 弹窗的 `Open wallet` 快捷入口；不得要求用户返回个人中心。
 - 已连接外部钱包但没有 `active` Embedded Wallet 时，仍视为未开通聊天钱包。
 
 ---
@@ -268,11 +272,22 @@ SuperIM 更新聊天消息关联状态
 
 ## 7. 聊天转账
 
+### 7.0 交互边界
+
+- 转账表单内容有限，不新增聊天场景二级页面；单聊和群聊均在当前聊天容器内以底部抽屉呈现。
+- 抽屉打开后必须保留当前聊天上下文和路由；关闭抽屉后回到原聊天位置。
+- 抽屉必须贴齐聊天容器底边并铺满容器宽度，底部无额外留白，仅保留顶部圆角；宽屏场景最大宽度为 420px。
+- 抽屉至少包含标题 `Transfer in chat`、收款人卡片、Dynamic 安全说明和 `Continue in Dynamic` 操作；金额、网络、费用、签名和交易确认由 Dynamic Send 承担。
+- 单聊点击 Transfer 后直接打开底部抽屉，收款人固定为当前会话对象。
+- 群聊点击 Transfer 后必须先打开群成员选择器；只有选定一名当前群成员后，才允许打开底部抽屉。不能默认选择群主、第一位成员或群组本身。
+- `/wallet/chat-transfer` 和 `/wallet/transfer` 仅保留历史链接兼容，不作为新的聊天入口交互。
+
 ### 7.1 单聊
 
 - 输入栏更多操作提供 Transfer。
 - 收款人默认为当前会话对象。
 - 只有当前用户存在 `active` 聊天钱包，且对方存在有效聊天钱包时，才允许发起转账。
+- 当前用户没有 `active` 聊天钱包时，聊天内转账弹窗仍保留当前聊天上下文，展示英文开通提示和 `Open wallet` 快捷入口；点击后直接触发 Dynamic 认证/开通弹窗。
 - 收款地址只从 SuperIM 后端绑定记录获取，不允许用户在聊天转账流程中手工替换地址。
 - 被拉黑、被封禁或不再属于有效会话关系的用户，不允许发起聊天转账。
 - 有绑定地址时打开 Dynamic Send。
