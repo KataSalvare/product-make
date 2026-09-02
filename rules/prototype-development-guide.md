@@ -17,10 +17,6 @@
 - 多步骤或高风险修改先拆成短任务，逐项处理并维护当前状态。
 - 一次只处理一个明确问题；遇到构建、运行或验收失败，先定位原因再继续。
 - 完成后必须通过预览验收；纯视觉、文案、布局和素材调整不要求测试驱动。
-- 新原型必须先按 `src/docs/UI_GUIDELINES.md` 判断 UI 层级：前端导入 Equatorial Minimalism；后台使用 `antd@6` 与 `src/themes/antd-new/theme.ts`；工具层不得导入内容主题。
-- 后台页面不得以历史 Tailwind/手写页面作为新实现模板；优先使用 antd 组件、`ConfigProvider` 和主题 token。
-- 前端页面不得直接把 `src/index.css` 的 shadcn 默认变量当成主题变量；优先使用 `src/themes/equatorial-minimalism/` 的 tokens 和组件。
-- 新增或修改页面时，必须在 `spec.md` 写明主题来源、参考原型、复用组件、状态和响应式策略。
 
 ## 原型与真实业务边界
 
@@ -211,8 +207,6 @@ node scripts/check-app-ready.mjs /prototypes/[原型目录]
 - [ ] `index.tsx` 顶部有清晰的 `@name`。
 - [ ] 占位原型已更新为有意义的目录名和显示名。
 - [ ] 新增依赖已写入 `package.json`。
-- [ ] UI 层级和主题来源正确，未发生跨层主题混用。
-- [ ] 已搜索同层级参考页面和已有组件。
 - [ ] `check-app-ready.mjs` 原型验收通过。
 - [ ] 已标记 mock 数据、模拟交互和原型未实现项，未将其当作生产逻辑。
 - [ ] `check-doc-handoff.mjs` 文档交接校验通过。

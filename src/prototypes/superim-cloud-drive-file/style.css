@@ -1,8 +1,0 @@
-@import "tailwindcss";
-
-@media (prefers-reduced-motion: reduce) {
-  .cloud-drive-file-page * {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
-  }
-}

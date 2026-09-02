@@ -12,8 +12,6 @@
   },
   "dependencies": {
     "@ant-design/icons": "^6.2.5",
-    "@dynamic-labs/ethereum": "^5.3.1",
-    "@dynamic-labs/sdk-react-core": "^5.3.1",
     "@fontsource-variable/geist": "^5.2.9",
     "antd": "^6.4.3",
     "class-variance-authority": "^0.7.1",
