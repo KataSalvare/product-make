@@ -28,14 +28,15 @@ Object.entries(allModules).forEach(([path, mod]) => {
 })
 
 const frontendPageConfig: Record<string, { path: string; label: string }> = {
-  'demo-login 20-22-24-906': { path: '/login2', label: '登录' },
-  'demo-home': { path: '/home', label: '首页' },
-  'demo-profile': { path: '/profile', label: '个人中心' },
+  'DEMO-ecommerce-detail': { path: '/demo/ecommerce-detail', label: 'DEMO 电商详情页' },
+  'DEMO-sports-health-home': { path: '/demo/sports-health', label: 'DEMO 运动健康首页' },
+  'DEMO-blockchain-wallet': { path: '/demo/blockchain-wallet', label: 'DEMO 区块链钱包' },
 }
 
 const adminPageConfig: Record<string, { path: string; label: string }> = {
-  'demo-admin-dashboard': { path: '/admin/dashboard', label: '仪表盘' },
-  'demo-admin-orders': { path: '/admin/orders', label: '订单管理' },
+  'DEMO-admin-saas-home': { path: '/demo/admin/saas-home', label: 'DEMO SaaS 平台首页' },
+  'DEMO-admin-user-management': { path: '/demo/admin/user-management', label: 'DEMO 用户管理' },
+  'DEMO-admin-analytics': { path: '/demo/admin/analytics', label: 'DEMO 运营数据看板' },
 }
 
 export const getDefaultComponent = (mod: unknown): React.ComponentType => {

@@ -75,15 +75,16 @@ src/prototypes/style.css   # 多个原型共用的内容层样式
 
 前端原型和后台原型的入口统一放在 `src/prototypes/<name>/index.tsx`。原型浏览工具通过 Vite `import.meta.glob` 自动发现这些入口，再由 `tools/config/pages.ts` 为每个目录配置 URL、名称和分类。
 
-当前已注册的原型路由：
+当前已注册的 DEMO 原型路由：
 
 | 分类 | 页面 | 路径 | 目录 |
 |------|------|------|------|
-| 前端 | 登录 | `/login2` | `demo-login 20-22-24-906` |
-| 前端 | 首页 | `/home` | `demo-home` |
-| 前端 | 个人中心 | `/profile` | `demo-profile` |
-| 后台 | 仪表盘 | `/admin/dashboard` | `demo-admin-dashboard` |
-| 后台 | 订单管理 | `/admin/orders` | `demo-admin-orders` |
+| 前端 | DEMO 电商详情页 | `/demo/ecommerce-detail` | `DEMO-ecommerce-detail` |
+| 前端 | DEMO 运动健康首页 | `/demo/sports-health` | `DEMO-sports-health-home` |
+| 前端 | DEMO 区块链钱包 | `/demo/blockchain-wallet` | `DEMO-blockchain-wallet` |
+| 后台 | DEMO SaaS 平台首页 | `/demo/admin/saas-home` | `DEMO-admin-saas-home` |
+| 后台 | DEMO 用户管理 | `/demo/admin/user-management` | `DEMO-admin-user-management` |
+| 后台 | DEMO 运营数据看板 | `/demo/admin/analytics` | `DEMO-admin-analytics` |
 
 新增原型时，需要同时完成以下事项：
 
@@ -112,8 +113,7 @@ src/                        # 内容层：只放业务/原型相关内容
 │   └── annotations/        # 批注默认分类与示例数据
 │       ├── categories.ts
 │       └── defaults.ts
-├── common/                 # 内容层共享组件（如 DesignMdBatchShowcase）
-├── components/ui/          # 通用 UI 组件（Button、Input 等）
+├── common/                 # 内容层共享组件（如 DesignMdBatchShowcase、DEMO 组件）
 └── lib/                    # 通用工具函数
     └── utils.ts            # cn 等 UI 工具函数
 
