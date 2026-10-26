@@ -103,7 +103,7 @@ export default function DocDrawer({
 
   const beginEditing = () => {
     if (!docContent || docContent === '暂无 PRD 文档。' || docContent === '无法加载文档。') return
-    if (!verified) {
+    if (import.meta.env.PROD && !verified) {
       setPasswordPrompt(true)
       setPasswordError(false)
       return
