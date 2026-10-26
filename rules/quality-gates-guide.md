@@ -6,7 +6,7 @@
 
 | 修改范围 | 必做检查 | 额外验收 |
 | --- | --- | --- |
-| `tools/` | `npm run lint`、`npm run build` | 打开目标路径，走通核心交互，检查 Console 和弹层定位 |
+| `tools/` | `npm run lint`、`npm run build` | 打开目标路径，走通核心交互，检查弹层定位、滚动、响应式和 Console |
 | `src/prototypes/` | `npm run lint`、`npm run build`、`npm run check:docs` | 运行目标原型验收脚本，检查主要 viewport 和状态 |
 | `src/docs/`、PRD、SPEC | `npm run check:docs` | 检查需求、状态、mock 边界和验收编号 |
 | `worker/`、`wrangler.jsonc` | `npm run lint`、`npm run build`、`npx wrangler deploy --dry-run` | 使用本地 Wrangler KV 验证默认回退、GET、合法 POST 和非法请求 |

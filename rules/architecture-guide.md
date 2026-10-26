@@ -20,6 +20,7 @@
 对象类型：原型浏览工具 / 前端原型 / 后台原型
 业务内容目录：src/prototypes/<name>/（仅前端原型或后台原型）
 工具实现目录：tools/<directory>/（仅原型浏览工具）
+路由分类：frontend / admin（仅业务原型）
 ```
 
 ### 1.1 业务原型内部的分工
@@ -79,6 +80,8 @@ src/prototypes/style.css   # 多个原型共用的内容层样式
 | `tools/hooks/` | 工具层 Hooks | `useAnnotations.ts` |
 | `tools/config/` | 动态导入与工具配置 | `pages.ts`、`themes.ts`、`docs.ts` |
 | `tools/lib/` | 工具函数 | `annotations.ts`、`shortcuts.ts` |
+
+`tools/hooks/` 存放 React Hook；仓库级 Git Hook 位于 `.githooks/`，两者不可混用。
 
 ## 4. import 规范
 
