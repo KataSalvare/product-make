@@ -85,6 +85,15 @@ Reference these guidelines when:
 - `color-guidance` - Use accessible color palettes
 - `data-table` - Provide table alternative for accessibility
 
+### 9. Content & Discoverability
+
+- Prefer strong visual hierarchy and self-explanatory structure over explanatory copy.
+- Avoid slogan-like text, tutorial paragraphs, and repetitive helper copy under every section by default.
+- Put optional supporting details behind an info icon and tooltip; keep essential instructions and decision-critical information available without hover-only interaction.
+- Keep necessary visible form labels and accessible names for controls, including icon-only buttons. A clean interface must remain usable with screen readers and keyboards.
+- Clearly state the consequences of destructive or irreversible actions such as deletion, payment, or permanent submission.
+- After removing explanatory copy, verify that a first-time user can still identify the next action and understand its outcome. Improve hierarchy, control labels, or feedback when that is unclear.
+
 ## How to Use
 
 Search specific domains using the CLI tool below.
@@ -382,5 +391,8 @@ Before delivering UI code, verify these items:
 ### Accessibility
 - [ ] All images have alt text
 - [ ] Form inputs have labels
+- [ ] Icon-only controls have accessible names; essential guidance does not depend on hover-only tooltips
+- [ ] Destructive or irreversible actions clearly communicate their consequences
+- [ ] A first-time user can identify the next action and its outcome without tutorial copy
 - [ ] Color is not the only indicator
 - [ ] `prefers-reduced-motion` respected
