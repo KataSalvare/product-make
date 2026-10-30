@@ -21,6 +21,7 @@ import { PreviewStateBar } from './PreviewStateBar'
 import { ToolbarMoreMenu } from './ToolbarMoreMenu'
 import { ShortcutsDialog } from '../tools/ShortcutsDialog'
 import {
+  checkAxureBridge,
   formatShortcut,
   isShortcutModalOpen,
   matchShortcut,
@@ -50,6 +51,13 @@ interface TopbarProps {
   sidebarCollapsed: boolean
   onToggleSidebarCollapsed: () => void
 }
+
+const AxureIcon = ({ className }: { className?: string }) => (
+  <svg className={className} width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="0.75" y="0.75" width="12.5" height="12.5" rx="3.25" stroke="currentColor" strokeWidth="1.5" />
+    <path d="M4 10.2 6.6 4h0.8l2.6 6.2M5 8.4h4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+)
 
 const FigmaIcon = ({ className }: { className?: string }) => (
   <svg className={className} width="14" height="14" viewBox="0 0 38 57" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -83,6 +91,7 @@ export const Topbar = ({
   const location = useLocation()
   const currentPage = pages.find(p => p.path === location.pathname)
   const [copying, setCopying] = useState(false)
+  const [copyingAxure, setCopyingAxure] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [showAnnotationsBeforeEdit, setShowAnnotationsBeforeEdit] = useState(annotationState.showAnnotations)
 
@@ -115,6 +124,26 @@ export const Topbar = ({
     }
   }, [showToast])
 
+  const copyToAxure = useCallback(async () => {
+    setCopyingAxure(true)
+    try {
+      if (!(await checkAxureBridge())) {
+        showToast('请先打开 Axure RP 10 或更高版本，再复制到 Axure', 'error')
+        return
+      }
+      const response = await fetch('/scripts/axure/runner.js')
+      const scriptText = await response.text()
+      const runnerFn = new Function('return ' + scriptText)()
+      const result = await runnerFn('#preview-container')
+      showToast(`已复制 ${result?.itemCount ?? 0} 个元件到 Axure，请在画布中粘贴`, 'success')
+    } catch (error) {
+      console.error('复制到 Axure 失败:', error)
+      showToast('复制到 Axure 失败，请检查 Axure 是否已打开文件', 'error')
+    } finally {
+      setCopyingAxure(false)
+    }
+  }, [showToast])
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (isShortcutModalOpen()) return
@@ -129,6 +158,12 @@ export const Topbar = ({
       if (matchShortcut(e, shortcuts.copyToFigma)) {
         e.preventDefault()
         copyToFigma()
+        return
+      }
+
+      if (matchShortcut(e, shortcuts.copyToAxure)) {
+        e.preventDefault()
+        copyToAxure()
         return
       }
 
@@ -151,7 +186,7 @@ export const Topbar = ({
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [shortcuts, onToggleDoc, copyToFigma, annotationEditMode, showAnnotations, enableEditMode, toggleSelecting, exitEditMode, setShowAnnotations, showAnnotationsBeforeEdit])
+  }, [shortcuts, onToggleDoc, copyToFigma, copyToAxure, annotationEditMode, showAnnotations, enableEditMode, toggleSelecting, exitEditMode, setShowAnnotations, showAnnotationsBeforeEdit])
 
   return (
     <>
@@ -331,6 +366,23 @@ export const Topbar = ({
               <FigmaIcon />
             )}
             <span className="hidden min-[1000px]:inline">{copying ? '复制中...' : '复制到 Figma'}</span>
+          </TooltipButton>
+
+          <TooltipButton
+            tooltip={`复制到 Axure (${formatShortcut(shortcuts.copyToAxure)})`}
+            onClick={async (e) => {
+              e.stopPropagation()
+              await copyToAxure()
+            }}
+            disabled={copyingAxure}
+            className={`${baseBtn} text-[var(--tool-brand)] hover:bg-[var(--tool-brand)]/10 disabled:opacity-40 disabled:cursor-not-allowed`}
+          >
+            {copyingAxure ? (
+              <div className="animate-spin motion-reduce:animate-none w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full" />
+            ) : (
+              <AxureIcon />
+            )}
+            <span className="hidden min-[1180px]:inline">{copyingAxure ? '复制中...' : '复制到 Axure'}</span>
           </TooltipButton>
 
           {hasSpec && (

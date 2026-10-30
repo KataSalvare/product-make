@@ -8,7 +8,7 @@
 
 | 内容类型 | 用途 | 修改位置 |
 | --- | --- | --- |
-| 原型浏览工具 | 预览外壳、侧边栏、顶部栏、批注、快捷键和 Figma 复制 | `tools/` |
+| 原型浏览工具 | 预览外壳、侧边栏、顶部栏、批注、快捷键和 Figma / Axure 复制 | `tools/` |
 | 前端原型 | 面向终端用户的业务页面 | `src/prototypes/` |
 | 后台原型 | 面向运营、管理员或内部员工的业务页面 | `src/prototypes/` |
 
@@ -89,6 +89,15 @@ Hook 的详细行为、安全边界和故障处理见 [`rules/git-hooks-guide.md
 生产环境使用 Cloudflare Worker、Static Assets 和 Workers KV。Worker 入口、Assets 路由、`ANNOTATIONS_KV` 绑定、`/api/annotations` 数据行为、本地 KV 验证和生产部署流程统一维护在 [`rules/cloudflare-deployment-guide.md`](rules/cloudflare-deployment-guide.md)。
 
 部署前至少执行 `npm run build` 和 `npx wrangler deploy --dry-run`；只有用户明确授权后才执行正式部署。
+
+## 复制到 Figma / Axure
+
+顶部工具栏的「复制到 Figma」和「复制到 Axure」都会复制 `#preview-container` 内的预览区，不包含工具层界面。
+
+- **复制到 Figma**：调用官方插件桥接脚本，需安装并运行对应的 Figma 插件。
+- **复制到 Axure**：通过 Axure RP 10 及更高版本内置的本地桥 `http://127.0.0.1:32767` 写入剪贴板，粘贴后得到可编辑的 Axure 元件（形状、文本和图片）。使用前需先打开 Axure RP 10+，并保持目标文件处于打开状态；若未检测到本地桥，工具栏会提示先启动 Axure。
+
+实现脚本位于 `public/scripts/figma/runner.js` 和 `public/scripts/axure/runner.js`，由 `tools/shell/Topbar.tsx` 按需加载执行。
 
 ## 修改边界
 
