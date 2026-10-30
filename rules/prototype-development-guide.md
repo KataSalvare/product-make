@@ -234,5 +234,6 @@ node scripts/check-app-ready.mjs /prototypes/[原型目录]
 - [ ] 占位原型已更新为有意义的目录名和显示名。
 - [ ] 新增依赖已写入 `package.json`。
 - [ ] `check-app-ready.mjs` 原型验收通过。
+- [ ] 信息层级能引导首次使用者理解下一步及结果；必要标签、可访问名称、键盘操作和危险操作后果提示均已检查。
 - [ ] 已标记 mock 数据、模拟交互和原型未实现项，未将其当作生产逻辑。
 - [ ] `check-doc-handoff.mjs` 文档交接校验通过。
