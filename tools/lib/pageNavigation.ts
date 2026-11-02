@@ -2,6 +2,7 @@ import type { PageCategory } from '../config/pages'
 
 export interface PageTree {
   path: string
+  label?: string
   children: PageTree[]
 }
 

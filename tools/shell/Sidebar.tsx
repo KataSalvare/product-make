@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
-import { FileText, Monitor, Palette, Smartphone, XIcon, Search, ChevronRight } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { FileText, Monitor, Palette, Smartphone, XIcon, Search, ChevronRight, ChevronDown, ChevronUp, ChevronsDown, ChevronsUp, Pencil, Check } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { pages, type PageCategory } from '../config/pages'
 import { docModules } from '../config/docs'
 import { getThemeInfo, themeModules } from '../config/themes'
 import { loadPageNavigation, savePageNavigation, type PageNavigationData, type PageTree } from '../lib/pageNavigation'
+import { useBuildVerification } from '../hooks/useBuildVerification'
 
 interface SidebarProps {
   projectName: string
@@ -21,13 +23,22 @@ interface PageListProps {
 
 const flattenTree = (tree: PageTree[]): string[] => tree.flatMap(node => [node.path, ...flattenTree(node.children)])
 
+const findParentPath = (tree: PageTree[], path: string): string | null => {
+  for (const node of tree) {
+    if (node.children.some(child => child.path === path)) return node.path
+    const parentPath = findParentPath(node.children, path)
+    if (parentPath) return parentPath
+  }
+  return null
+}
+
 const createPageTree = (items: typeof pages, saved: PageTree[], category: PageCategory): PageTree[] => {
   const categoryPaths = new Set(items.filter(item => item.category === category).map(item => item.path))
   const used = new Set<string>()
   const clean = (nodes: PageTree[], depth = 0): PageTree[] => nodes.flatMap(node => {
     if (!categoryPaths.has(node.path) || used.has(node.path)) return []
     used.add(node.path)
-    return [{ path: node.path, children: clean(node.children, depth + 1) }]
+    return [{ path: node.path, ...(node.label ? { label: node.label } : {}), children: clean(node.children, depth + 1) }]
   })
   const tree = clean(saved)
   items.filter(item => item.category === category && !used.has(item.path)).forEach(item => tree.push({ path: item.path, children: [] }))
@@ -54,15 +65,24 @@ const updateTree = (tree: PageTree[], source: string, target: string, position: 
   return insert(remaining)
 }
 
+const updateNodeLabel = (tree: PageTree[], path: string, label: string): PageTree[] => tree.map(node =>
+  node.path === path ? { ...node, label } : { ...node, children: updateNodeLabel(node.children, path, label) },
+)
+
 const PageList = ({ filteredPages, icon: Icon, tree, onTreeChange }: PageListProps) => {
   const [draggedPath, setDraggedPath] = useState<string | null>(null)
   const [dropTarget, setDropTarget] = useState<{ path: string; position: 'before' | 'after' | 'inside' } | null>(null)
+  const [collapsedPaths, setCollapsedPaths] = useState<Set<string>>(new Set())
+  const [contextMenu, setContextMenu] = useState<{ path: string; x: number; y: number } | null>(null)
+  const [renamingPath, setRenamingPath] = useState<string | null>(null)
+  const [renameValue, setRenameValue] = useState('')
   const pageByPath = new Map(filteredPages.map(page => [page.path, page]))
   const visiblePaths = new Set(filteredPages.map(page => page.path))
-  const visibleTree = tree.flatMap(node => {
-    if (visiblePaths.has(node.path)) return [node]
-    return node.children.filter(child => visiblePaths.has(child.path)).map(child => ({ ...child, children: [] }))
+  const filterTree = (nodes: PageTree[]): PageTree[] => nodes.flatMap(node => {
+    const children = filterTree(node.children)
+    return visiblePaths.has(node.path) ? [{ ...node, children }] : children
   })
+  const visibleTree = filterTree(tree)
 
   const moveByKeyboard = (path: string, direction: 'up' | 'down' | 'in' | 'out') => {
     const flat = flattenTree(tree)
@@ -71,9 +91,58 @@ const PageList = ({ filteredPages, icon: Icon, tree, onTreeChange }: PageListPro
     if (target && (direction === 'up' || direction === 'down')) onTreeChange(updateTree(tree, path, target, direction === 'up' ? 'before' : 'after'))
     if (direction === 'in' && index > 0) onTreeChange(updateTree(tree, path, flat[index - 1], 'inside'))
     if (direction === 'out') {
-      const parent = tree.find(node => node.children.some(child => child.path === path))
-      if (parent) onTreeChange(updateTree(tree, path, parent.path, 'after'))
+      const parentPath = findParentPath(tree, path)
+      if (parentPath) onTreeChange(updateTree(tree, path, parentPath, 'after'))
     }
+  }
+
+  const allPaths = flattenTree(tree)
+  const getNode = (nodes: PageTree[], path: string): PageTree | undefined => {
+    for (const node of nodes) {
+      if (node.path === path) return node
+      const child = getNode(node.children, path)
+      if (child) return child
+    }
+    return undefined
+  }
+  const openContextMenu = (event: React.MouseEvent, path: string) => {
+    event.preventDefault()
+    setContextMenu({ path, x: Math.min(event.clientX, window.innerWidth - 205), y: Math.min(event.clientY, window.innerHeight - 230) })
+    setRenamingPath(null)
+  }
+  const renameNode = () => {
+    if (!contextMenu || !renameValue.trim()) return
+    onTreeChange(updateNodeLabel(tree, contextMenu.path, renameValue.trim()))
+    setContextMenu(null)
+    setRenamingPath(null)
+  }
+
+  const renderContextMenu = () => {
+    if (!contextMenu) return null
+    const node = getNode(tree, contextMenu.path)
+    if (!node) return null
+    const actionClass = 'flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-xs text-[var(--tool-text)] hover:bg-[var(--tool-surface-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--tool-focus)]'
+    return createPortal(<>
+      <button aria-label="关闭菜单操作面板" className="fixed inset-0 z-[1100] cursor-default" onClick={() => { setContextMenu(null); setRenamingPath(null) }} />
+      <div role="menu" className="fixed z-[1101] w-48 rounded-xl border border-[var(--tool-border)] tool-panel-light dark:tool-panel-dark p-1.5 shadow-xl" style={{ left: contextMenu.x, top: contextMenu.y }}>
+        {renamingPath === contextMenu.path ? (
+          <form className="flex gap-1 p-1" onSubmit={event => { event.preventDefault(); renameNode() }}>
+            <input autoFocus value={renameValue} onChange={event => setRenameValue(event.target.value)} aria-label="菜单名称" className="min-w-0 flex-1 rounded-md border border-[var(--tool-border)] bg-[var(--tool-background)] px-2 py-1.5 text-xs text-[var(--tool-text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--tool-focus)]" />
+            <button type="submit" aria-label="保存名称" className="rounded-md p-1.5 text-[var(--tool-text)] hover:bg-[var(--tool-surface-hover)]"><Check size={14} /></button>
+          </form>
+        ) : (
+          <>
+            <button role="menuitem" disabled={!node.children.length} className={`${actionClass} disabled:cursor-not-allowed disabled:opacity-40`} onClick={() => { setCollapsedPaths(current => { const next = new Set(current); if (next.has(node.path)) next.delete(node.path); else next.add(node.path); return next }); setContextMenu(null) }}>
+              {collapsedPaths.has(node.path) ? <ChevronDown size={15} /> : <ChevronUp size={15} />}{collapsedPaths.has(node.path) ? '展开' : '折叠'}
+            </button>
+            <button role="menuitem" className={actionClass} onClick={() => { setCollapsedPaths(new Set(allPaths)); setContextMenu(null) }}><ChevronsDown size={15} />折叠全部</button>
+            <button role="menuitem" className={actionClass} onClick={() => { setCollapsedPaths(new Set()); setContextMenu(null) }}><ChevronsUp size={15} />展开全部</button>
+            <div className="my-1 border-t border-[var(--tool-border)]" />
+            <button role="menuitem" className={actionClass} onClick={() => { setRenameValue(node.label ?? pageByPath.get(node.path)?.label ?? ''); setRenamingPath(node.path) }}><Pencil size={15} />重命名</button>
+          </>
+        )}
+      </div>
+    </>, document.body)
   }
 
   const renderNode = (node: PageTree, depth = 0): React.ReactNode => {
@@ -82,6 +151,7 @@ const PageList = ({ filteredPages, icon: Icon, tree, onTreeChange }: PageListPro
     return <div key={node.path}>
       <div
         draggable
+        onContextMenu={event => openContextMenu(event, node.path)}
         onDragStart={event => { setDraggedPath(node.path); event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', node.path) }}
         onDragEnd={() => { setDraggedPath(null); setDropTarget(null) }}
         onDragOver={event => {
@@ -101,8 +171,8 @@ const PageList = ({ filteredPages, icon: Icon, tree, onTreeChange }: PageListPro
       >
         <NavLink
           to={page.path}
-          title={page.label}
-          aria-label={`${page.label}。方向键上下来排序，右方向键设为上一项子项，左方向键移出父级`}
+          title={node.label ?? page.label}
+          aria-label={`${node.label ?? page.label}。方向键上下来排序，右方向键设为上一项子项，左方向键移出父级`}
           aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight"
           onKeyDown={event => {
             const direction = { ArrowUp: 'up', ArrowDown: 'down', ArrowRight: 'in', ArrowLeft: 'out' }[event.key] as 'up' | 'down' | 'in' | 'out' | undefined
@@ -111,17 +181,18 @@ const PageList = ({ filteredPages, icon: Icon, tree, onTreeChange }: PageListPro
           className={({ isActive }) => `group flex min-w-0 flex-1 items-center gap-2.5 px-3 py-2 rounded-xl text-xs leading-5 tool-control cursor-grab active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--tool-focus)] ${isActive ? 'tool-menu-active-light dark:tool-menu-active-dark' : 'text-[var(--tool-text-muted)] hover:bg-[var(--tool-surface-hover)] hover:text-[var(--tool-text)]'}`}
         >
           <Icon size={15} className="opacity-80" />
-          <span className="truncate font-medium">{page.label}</span>
+          <span className="truncate font-medium">{node.label ?? page.label}</span>
           <ChevronRight size={12} className="ml-auto opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
         </NavLink>
       </div>
-      {node.children.map(child => renderNode(child, depth + 1))}
+      {!collapsedPaths.has(node.path) && node.children.map(child => renderNode(child, depth + 1))}
     </div>
   }
 
   return (
     <div className="space-y-0.5" onDragOver={event => event.preventDefault()} onDrop={() => { setDraggedPath(null); setDropTarget(null) }}>
       {visibleTree.map(node => renderNode(node))}
+      {renderContextMenu()}
     </div>
   )
 }
@@ -240,6 +311,7 @@ export const Sidebar = ({ projectName, onProjectNameChange, collapsed }: Sidebar
   const [pageTrees, setPageTrees] = useState<PageNavigationData>({ frontend: [], admin: [] })
   const [navigationReady, setNavigationReady] = useState(false)
   const [navigationError, setNavigationError] = useState<string | null>(null)
+  const { requestVerification, verificationDialog } = useBuildVerification()
 
   useEffect(() => {
     let cancelled = false
@@ -391,10 +463,10 @@ export const Sidebar = ({ projectName, onProjectNameChange, collapsed }: Sidebar
           <nav className="flex-1 overflow-y-auto px-2 pb-4" aria-label="原型工作区导航">
             {navigationError && <p role="alert" className="px-3 py-2 text-xs text-red-600">菜单配置读写失败：{navigationError}</p>}
             {activeTab === 'frontend' && (
-              <PageList filteredPages={filteredPages} icon={Smartphone} tree={pageTree} onTreeChange={nextTree => { if (navigationReady) void savePageTree(nextTree) }} />
+              <PageList filteredPages={filteredPages} icon={Smartphone} tree={pageTree} onTreeChange={nextTree => { if (navigationReady) requestVerification(() => { void savePageTree(nextTree) }) }} />
             )}
             {activeTab === 'admin' && (
-              <PageList filteredPages={filteredPages} icon={Monitor} tree={pageTree} onTreeChange={nextTree => { if (navigationReady) void savePageTree(nextTree) }} />
+              <PageList filteredPages={filteredPages} icon={Monitor} tree={pageTree} onTreeChange={nextTree => { if (navigationReady) requestVerification(() => { void savePageTree(nextTree) }) }} />
             )}
             {activeTab === 'themes' && (
               <ThemeNav searchQuery={searchQuery} />
@@ -403,6 +475,7 @@ export const Sidebar = ({ projectName, onProjectNameChange, collapsed }: Sidebar
               <DocNav searchQuery={searchQuery} />
             )}
           </nav>
+      {verificationDialog}
         </>
       )}
     </aside>

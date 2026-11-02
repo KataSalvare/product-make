@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Check, FileText, LockKeyhole, MapPin, Pencil, Save, XIcon } from 'lucide-react'
+import { FileText, MapPin, Pencil, Save, XIcon } from 'lucide-react'
 import AnnotationPanel from './AnnotationPanel'
 import MarkdownDocument from './MarkdownDocument'
 import type { Annotation, AnnotationCategory, AnnotationMarkerColor } from '../lib/annotations'
 import { useToolEntrance } from '../hooks/useToolEntrance'
+import { useBuildVerification } from '../hooks/useBuildVerification'
 
 export type Theme = 'light' | 'dark'
 
@@ -30,8 +31,6 @@ interface DocDrawerProps {
 }
 
 const specGlob = import.meta.glob('../../src/prototypes/*/spec.md', { query: '?raw', import: 'default' })
-const EDIT_SESSION_KEY = 'prototype-spec-edit-verified'
-
 function getSpecKey(dirName: string): string {
   return `../../src/prototypes/${dirName}/spec.md`
 }
@@ -56,11 +55,8 @@ export default function DocDrawer({
   const [docLoading, setDocLoading] = useState(false)
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState('')
-  const [password, setPassword] = useState('')
-  const [passwordPrompt, setPasswordPrompt] = useState(false)
-  const [passwordError, setPasswordError] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [verified, setVerified] = useState(() => sessionStorage.getItem(EDIT_SESSION_KEY) === 'true')
+  const { requestVerification, verificationDialog } = useBuildVerification()
   const drawerRef = useRef<HTMLDivElement>(null)
 
   useToolEntrance(drawerRef, drawerRef, isOpen, { x: 20, duration: 0.28 })
@@ -105,26 +101,10 @@ export default function DocDrawer({
 
   const beginEditing = () => {
     if (!docContent || docContent === '暂无 PRD 文档。' || docContent === '无法加载文档。') return
-    if (import.meta.env.PROD && !verified) {
-      setPasswordPrompt(true)
-      setPasswordError(false)
-      return
-    }
-    setDraft(docContent)
-    setEditing(true)
-  }
-
-  const verifyPassword = () => {
-    if (password !== '891025') {
-      setPasswordError(true)
-      return
-    }
-    sessionStorage.setItem(EDIT_SESSION_KEY, 'true')
-    setVerified(true)
-    setPasswordPrompt(false)
-    setPassword('')
-    setDraft(docContent ?? '')
-    setEditing(true)
+    requestVerification(() => {
+      setDraft(docContent)
+      setEditing(true)
+    })
   }
 
   const saveDocument = async () => {
@@ -250,19 +230,7 @@ export default function DocDrawer({
           />
         )}
       </div>
-      {passwordPrompt && (
-        <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/35 p-4" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setPasswordPrompt(false) }}>
-          <form onSubmit={event => { event.preventDefault(); verifyPassword() }} className={`w-full max-w-sm rounded-2xl border border-[var(--tool-border)] ${panelClass} p-5 shadow-2xl`}>
-            <div className={`mb-4 flex items-center gap-2 font-semibold ${textPrimary}`}><LockKeyhole size={17} />验证编辑密码</div>
-            <input autoFocus type="password" value={password} onChange={event => setPassword(event.target.value)} placeholder="请输入密码" className="w-full rounded-xl border border-[var(--tool-border)] bg-[var(--tool-background)] px-3 py-2.5 text-sm text-[var(--tool-text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--tool-focus)]" />
-            {passwordError && <p className="mt-2 text-xs text-red-500">密码错误，请重试。</p>}
-            <div className="mt-5 flex justify-end gap-2">
-              <button type="button" onClick={() => setPasswordPrompt(false)} className={`rounded-lg px-3 py-2 text-sm ${textSecondary} ${hoverSurface}`}>取消</button>
-              <button type="submit" className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--tool-brand)] px-3 py-2 text-sm font-semibold text-white"><Check size={15} />验证并编辑</button>
-            </div>
-          </form>
-        </div>
-      )}
+      {verificationDialog}
     </div>
   )
 }

@@ -13,6 +13,7 @@ import {
   revealAnnotationTarget,
 } from '../lib/annotations'
 import type { Theme } from '../lib/shortcuts'
+import { useBuildVerification } from '../hooks/useBuildVerification'
 
 export interface AnnotationControllerState {
   showAnnotations: boolean
@@ -66,6 +67,7 @@ export function useAnnotationController({
   const [modalReadOnly, setModalReadOnly] = useState(false)
   const [hiddenCategoryKeys, setHiddenCategoryKeys] = useState<Set<string>>(new Set())
   const [revealRequest, setRevealRequest] = useState<{ id: string; nonce: number } | null>(null)
+  const { requestVerification, verificationDialog } = useBuildVerification()
 
   const {
     annotations: allAnnotations,
@@ -291,17 +293,21 @@ export function useAnnotationController({
   )
 
   const handleEditAnnotationModal = useCallback(() => {
-    setShowAnnotations(true)
-    setModalReadOnly(false)
-  }, [])
+    requestVerification(() => {
+      setShowAnnotations(true)
+      setModalReadOnly(false)
+    })
+  }, [requestVerification])
 
   const actions: AnnotationControllerActions = useMemo(
     () => ({
       enableEditMode: () => {
-        setShowAnnotations(true)
-        setAnnotationEditMode(true)
-        // 进入批注模式即开启选择元素
-        setAnnotationSelecting(true)
+        requestVerification(() => {
+          setShowAnnotations(true)
+          setAnnotationEditMode(true)
+          // 进入批注模式即开启选择元素
+          setAnnotationSelecting(true)
+        })
       },
       exitEditMode: () => {
         setAnnotationEditMode(false)
@@ -321,7 +327,7 @@ export function useAnnotationController({
         setShowAnnotations(show)
       },
     }),
-    []
+    [requestVerification]
   )
 
   const state: AnnotationControllerState = useMemo(
@@ -348,6 +354,7 @@ export function useAnnotationController({
 
   const ui = (
     <>
+      {verificationDialog}
       {showAnnotations && (
         <AnnotationLayer
           annotations={visibleAnnotations}
