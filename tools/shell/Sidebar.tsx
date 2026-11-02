@@ -14,29 +14,116 @@ interface SidebarProps {
 interface PageListProps {
   filteredPages: typeof pages
   icon: typeof Smartphone
+  tree: PageTree[]
+  onTreeChange: (tree: PageTree[]) => void
 }
 
-const PageList = ({ filteredPages, icon: Icon }: PageListProps) => {
-  return (
-    <div className="space-y-0.5">
-      {filteredPages.map((page) => (
+interface PageTree { path: string; children: PageTree[] }
+const PAGE_TREE_KEY = 'prototype-page-navigation-tree'
+
+const flattenTree = (tree: PageTree[]): string[] => tree.flatMap(node => [node.path, ...flattenTree(node.children)])
+
+const createPageTree = (items: typeof pages, saved: PageTree[], category: PageCategory): PageTree[] => {
+  const categoryPaths = new Set(items.filter(item => item.category === category).map(item => item.path))
+  const used = new Set<string>()
+  const clean = (nodes: PageTree[], depth = 0): PageTree[] => nodes.flatMap(node => {
+    if (!categoryPaths.has(node.path) || used.has(node.path)) return []
+    used.add(node.path)
+    return [{ path: node.path, children: clean(node.children, depth + 1) }]
+  })
+  const tree = clean(saved)
+  items.filter(item => item.category === category && !used.has(item.path)).forEach(item => tree.push({ path: item.path, children: [] }))
+  return tree
+}
+
+const updateTree = (tree: PageTree[], source: string, target: string, position: 'before' | 'after' | 'inside'): PageTree[] => {
+  let moving: PageTree | undefined
+  const extract = (nodes: PageTree[]): PageTree[] => nodes.flatMap(node => {
+    if (node.path === source) { moving = node; return [] }
+    return [{ ...node, children: extract(node.children) }]
+  })
+  const remaining = extract(tree)
+  if (!moving || source === target || flattenTree([moving]).includes(target)) return tree
+  if (position === 'inside') {
+    const insert = (nodes: PageTree[]): PageTree[] => nodes.map(node => node.path === target ? { ...node, children: [...node.children, moving!] } : { ...node, children: insert(node.children) })
+    return insert(remaining)
+  }
+  const insert = (nodes: PageTree[]): PageTree[] => {
+    const index = nodes.findIndex(node => node.path === target)
+    if (index >= 0) { const next = [...nodes]; next.splice(index + (position === 'after' ? 1 : 0), 0, moving!); return next }
+    return nodes.map(node => ({ ...node, children: insert(node.children) }))
+  }
+  return insert(remaining)
+}
+
+const PageList = ({ filteredPages, icon: Icon, tree, onTreeChange }: PageListProps) => {
+  const [draggedPath, setDraggedPath] = useState<string | null>(null)
+  const [dropTarget, setDropTarget] = useState<{ path: string; position: 'before' | 'after' | 'inside' } | null>(null)
+  const pageByPath = new Map(filteredPages.map(page => [page.path, page]))
+  const visiblePaths = new Set(filteredPages.map(page => page.path))
+  const visibleTree = tree.flatMap(node => {
+    if (visiblePaths.has(node.path)) return [node]
+    return node.children.filter(child => visiblePaths.has(child.path)).map(child => ({ ...child, children: [] }))
+  })
+
+  const moveByKeyboard = (path: string, direction: 'up' | 'down' | 'in' | 'out') => {
+    const flat = flattenTree(tree)
+    const index = flat.indexOf(path)
+    const target = direction === 'up' ? flat[index - 1] : direction === 'down' ? flat[index + 1] : undefined
+    if (target && (direction === 'up' || direction === 'down')) onTreeChange(updateTree(tree, path, target, direction === 'up' ? 'before' : 'after'))
+    if (direction === 'in' && index > 0) onTreeChange(updateTree(tree, path, flat[index - 1], 'inside'))
+    if (direction === 'out') {
+      const parent = tree.find(node => node.children.some(child => child.path === path))
+      if (parent) onTreeChange(updateTree(tree, path, parent.path, 'after'))
+    }
+  }
+
+  const renderNode = (node: PageTree, depth = 0): React.ReactNode => {
+    const page = pageByPath.get(node.path)
+    if (!page) return null
+    return <div key={node.path}>
+      <div
+        draggable
+        onDragStart={event => { setDraggedPath(node.path); event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', node.path) }}
+        onDragEnd={() => { setDraggedPath(null); setDropTarget(null) }}
+        onDragOver={event => {
+          if (!draggedPath || draggedPath === node.path) return
+          event.preventDefault()
+          const rect = event.currentTarget.getBoundingClientRect()
+          const ratio = (event.clientY - rect.top) / rect.height
+          setDropTarget({ path: node.path, position: ratio < 0.25 ? 'before' : ratio > 0.75 ? 'after' : 'inside' })
+        }}
+        onDrop={event => {
+          event.preventDefault()
+          if (draggedPath && dropTarget?.path === node.path) onTreeChange(updateTree(tree, draggedPath, node.path, dropTarget.position))
+          setDraggedPath(null); setDropTarget(null)
+        }}
+        className={`relative flex items-center rounded-xl ${dropTarget?.path === node.path ? dropTarget.position === 'inside' ? 'ring-1 ring-inset ring-[var(--tool-focus)] bg-[var(--tool-surface-hover)]' : dropTarget.position === 'before' ? 'before:absolute before:inset-x-2 before:top-0 before:border-t-2 before:border-[var(--tool-focus)]' : 'after:absolute after:inset-x-2 after:bottom-0 after:border-b-2 after:border-[var(--tool-focus)]' : ''}`}
+        style={{ marginLeft: depth ? 14 : 0 }}
+      >
         <NavLink
-          key={page.path}
           to={page.path}
           title={page.label}
-          className={({ isActive }) =>
-            `group flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs leading-5 tool-control ${
-              isActive
-                ? 'tool-menu-active-light dark:tool-menu-active-dark'
-                : 'text-[var(--tool-text-muted)] hover:bg-[var(--tool-surface-hover)] hover:text-[var(--tool-text)]'
-            }`
-          }
+          aria-label={`${page.label}。方向键上下来排序，右方向键设为上一项子项，左方向键移出父级`}
+          aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight"
+          onKeyDown={event => {
+            const direction = { ArrowUp: 'up', ArrowDown: 'down', ArrowRight: 'in', ArrowLeft: 'out' }[event.key] as 'up' | 'down' | 'in' | 'out' | undefined
+            if (direction) { event.preventDefault(); moveByKeyboard(node.path, direction) }
+          }}
+          className={({ isActive }) => `group flex min-w-0 flex-1 items-center gap-2.5 px-3 py-2 rounded-xl text-xs leading-5 tool-control cursor-grab active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--tool-focus)] ${isActive ? 'tool-menu-active-light dark:tool-menu-active-dark' : 'text-[var(--tool-text-muted)] hover:bg-[var(--tool-surface-hover)] hover:text-[var(--tool-text)]'}`}
         >
           <Icon size={15} className="opacity-80" />
           <span className="truncate font-medium">{page.label}</span>
           <ChevronRight size={12} className="ml-auto opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
         </NavLink>
-      ))}
+      </div>
+      {node.children.map(child => renderNode(child, depth + 1))}
+    </div>
+  }
+
+  return (
+    <div className="space-y-0.5" onDragOver={event => event.preventDefault()} onDrop={() => { setDraggedPath(null); setDropTarget(null) }}>
+      {visibleTree.map(node => renderNode(node))}
     </div>
   )
 }
@@ -152,6 +239,24 @@ export const Sidebar = ({ projectName, onProjectNameChange, collapsed }: Sidebar
   const [tempName, setTempName] = useState(projectName)
   const [activeTab, setActiveTab] = useState<PageCategory | 'themes' | 'docs'>('frontend')
   const [searchQuery, setSearchQuery] = useState('')
+  const [pageTrees, setPageTrees] = useState<Record<PageCategory, PageTree[]>>(() => {
+    try {
+      const saved = localStorage.getItem(PAGE_TREE_KEY)
+      if (saved) return JSON.parse(saved) as Record<PageCategory, PageTree[]>
+    } catch { /* Ignore invalid local navigation data. */ }
+    return { frontend: [], admin: [] }
+  })
+
+  const pageTree = useMemo(() => activeTab === 'frontend' || activeTab === 'admin'
+    ? createPageTree(pages, pageTrees[activeTab] ?? [], activeTab)
+    : [], [activeTab, pageTrees])
+
+  const savePageTree = (nextTree: PageTree[]) => {
+    if (activeTab !== 'frontend' && activeTab !== 'admin') return
+    const nextTrees = { ...pageTrees, [activeTab]: nextTree }
+    setPageTrees(nextTrees)
+    localStorage.setItem(PAGE_TREE_KEY, JSON.stringify(nextTrees))
+  }
 
   const filteredPages = useMemo(() => {
     const categoryPages = pages.filter(p => p.category === activeTab as PageCategory)
@@ -275,10 +380,10 @@ export const Sidebar = ({ projectName, onProjectNameChange, collapsed }: Sidebar
 
           <nav className="flex-1 overflow-y-auto px-2 pb-4" aria-label="原型工作区导航">
             {activeTab === 'frontend' && (
-              <PageList filteredPages={filteredPages} icon={Smartphone} />
+              <PageList filteredPages={filteredPages} icon={Smartphone} tree={pageTree} onTreeChange={savePageTree} />
             )}
             {activeTab === 'admin' && (
-              <PageList filteredPages={filteredPages} icon={Monitor} />
+              <PageList filteredPages={filteredPages} icon={Monitor} tree={pageTree} onTreeChange={savePageTree} />
             )}
             {activeTab === 'themes' && (
               <ThemeNav searchQuery={searchQuery} />
