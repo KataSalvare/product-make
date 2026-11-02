@@ -463,10 +463,10 @@ export const Sidebar = ({ projectName, onProjectNameChange, collapsed }: Sidebar
           <nav className="flex-1 overflow-y-auto px-2 pb-4" aria-label="原型工作区导航">
             {navigationError && <p role="alert" className="px-3 py-2 text-xs text-red-600">菜单配置读写失败：{navigationError}</p>}
             {activeTab === 'frontend' && (
-              <PageList filteredPages={filteredPages} icon={Smartphone} tree={pageTree} onTreeChange={nextTree => { if (navigationReady) requestVerification(() => { void savePageTree(nextTree) }) }} />
+              <PageList filteredPages={filteredPages} icon={Smartphone} tree={pageTree} onTreeChange={nextTree => { if (navigationReady) requestVerification(() => { void savePageTree(nextTree) }, { requireVerification: true }) }} />
             )}
             {activeTab === 'admin' && (
-              <PageList filteredPages={filteredPages} icon={Monitor} tree={pageTree} onTreeChange={nextTree => { if (navigationReady) requestVerification(() => { void savePageTree(nextTree) }) }} />
+              <PageList filteredPages={filteredPages} icon={Monitor} tree={pageTree} onTreeChange={nextTree => { if (navigationReady) requestVerification(() => { void savePageTree(nextTree) }, { requireVerification: true }) }} />
             )}
             {activeTab === 'themes' && (
               <ThemeNav searchQuery={searchQuery} />

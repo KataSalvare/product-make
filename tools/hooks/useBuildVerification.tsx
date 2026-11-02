@@ -11,8 +11,8 @@ export function useBuildVerification() {
   const [hasError, setHasError] = useState(false)
   const pendingAction = useRef<(() => void) | null>(null)
 
-  const requestVerification = useCallback((action: () => void) => {
-    if (!import.meta.env.PROD || sessionStorage.getItem(EDIT_SESSION_KEY) === 'true') {
+  const requestVerification = useCallback((action: () => void, options?: { requireVerification?: boolean }) => {
+    if ((!options?.requireVerification && !import.meta.env.PROD) || sessionStorage.getItem(EDIT_SESSION_KEY) === 'true') {
       action()
       return
     }
