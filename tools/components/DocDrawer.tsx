@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { Check, FileText, LockKeyhole, MapPin, Pencil, Save, XIcon } from 'lucide-react'
 import AnnotationPanel from './AnnotationPanel'
 import MarkdownDocument from './MarkdownDocument'
-import type { Annotation, AnnotationCategory } from '../lib/annotations'
+import type { Annotation, AnnotationCategory, AnnotationMarkerColor } from '../lib/annotations'
 import { useToolEntrance } from '../hooks/useToolEntrance'
 
 export type Theme = 'light' | 'dark'
@@ -22,6 +22,7 @@ interface DocDrawerProps {
   theme: Theme
   annotations: Annotation[]
   categories: AnnotationCategory[]
+  markerColor: AnnotationMarkerColor
   selectedCategories: Set<string>
   onToggleCategory: (key: string) => void
   selectedId: string | null
@@ -45,6 +46,7 @@ export default function DocDrawer({
   annotations,
   categories,
   selectedCategories,
+  markerColor,
   onToggleCategory,
   selectedId,
   onSelectAnnotation,
@@ -239,6 +241,7 @@ export default function DocDrawer({
           <AnnotationPanel
             annotations={annotations}
             categories={categories}
+            markerColor={markerColor}
             selectedCategories={selectedCategories}
             onToggleCategory={onToggleCategory}
             selectedId={selectedId}

@@ -23,6 +23,8 @@ export interface Annotation {
   category: string
   // 元素选择器定位（新方式）
   selector?: string
+  // 元素所在弹窗的 data-overlay 标识，用于从列表点击时自动打开弹窗
+  overlayId?: string
   // 兼容旧数据的百分比坐标
   x?: number
   y?: number
@@ -68,7 +70,7 @@ export function getNextNumber(annotations: Annotation[], pagePath: string): numb
   return pageAnnotations.length > 0 ? Math.max(...pageAnnotations.map((a) => a.number)) + 1 : 1
 }
 
-// 按页面重新排列编号：每个页面内部按 createdAt 排序后从 1 开始编号
+// 同一页面内，同一元素（选择器或坐标）的多个分类批注共用同一个序号
 export function renumberAnnotations(annotations: Annotation[]): Annotation[] {
   const byPage: Record<string, Annotation[]> = {}
   annotations.forEach((a) => {
@@ -76,12 +78,21 @@ export function renumberAnnotations(annotations: Annotation[]): Annotation[] {
     byPage[a.pagePath].push(a)
   })
 
+  const getElementKey = (a: Annotation) => {
+    if (a.selector) return `selector:${a.selector}`
+    if (a.x != null && a.y != null) return `position:${a.x},${a.y}`
+    return `id:${a.id}`
+  }
+
   const result: Annotation[] = []
   Object.values(byPage).forEach((group) => {
+    const numberByElement = new Map<string, number>()
     group
       .sort((a, b) => a.createdAt - b.createdAt)
-      .forEach((a, idx) => {
-        result.push({ ...a, number: idx + 1 })
+      .forEach((a) => {
+        const key = getElementKey(a)
+        if (!numberByElement.has(key)) numberByElement.set(key, numberByElement.size + 1)
+        result.push({ ...a, number: numberByElement.get(key)! })
       })
   })
   return result
@@ -114,6 +125,23 @@ export function applyDraft(data: AnnotationsData, draft: AnnotationDraft): Annot
   }
 }
 
+// 将一组增删改直接应用到批注数组
+export function applyAnnotationChanges(
+  annotations: Annotation[],
+  changes: { upserted: Annotation[]; deleted: string[] }
+): Annotation[] {
+  const next = annotations.filter((a) => !changes.deleted.includes(a.id))
+  changes.upserted.forEach((annotation) => {
+    const index = next.findIndex((a) => a.id === annotation.id)
+    if (index >= 0) {
+      next[index] = annotation
+    } else {
+      next.push(annotation)
+    }
+  })
+  return renumberAnnotations(next)
+}
+
 // 从 localStorage 加载草稿
 export function loadDraft(): AnnotationDraft {
   try {
@@ -136,15 +164,6 @@ export function loadDraft(): AnnotationDraft {
     // ignore
   }
   return EMPTY_DRAFT
-}
-
-// 保存草稿到 localStorage
-export function saveDraft(draft: AnnotationDraft): void {
-  try {
-    localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft))
-  } catch {
-    // ignore
-  }
 }
 
 // 清空草稿
@@ -257,7 +276,94 @@ export function findActiveOverlay(container: HTMLElement): HTMLElement | null {
   return candidates[0] || null
 }
 
+// 获取元素所属弹窗的 data-overlay 标识
+export function getOverlayId(element: HTMLElement): string | undefined {
+  return element.closest('[data-overlay]')?.getAttribute('data-overlay') ?? undefined
+}
+
+// 根据选择器获取元素所属弹窗的 data-overlay 标识
+export function getOverlayIdForSelector(selector: string, root: HTMLElement): string | undefined {
+  const element = findElementBySelector(selector, root)
+  return element ? getOverlayId(element) : undefined
+}
+
+function nextFrame(): Promise<void> {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => resolve())
+  })
+}
+
+async function waitForElement(root: HTMLElement, selector: string, timeoutMs = 360): Promise<HTMLElement | null> {
+  const deadline = performance.now() + timeoutMs
+  let element = findElementBySelector(selector, root)
+  while (!element && performance.now() < deadline) {
+    await nextFrame()
+    element = findElementBySelector(selector, root)
+  }
+  return element
+}
+
+// 尝试展示批注元素：如果元素只在弹窗内出现，则点击对应的弹窗触发器
+// 原型弹窗触发器使用 data-overlay-trigger="<overlayId>" 标记，遮罩使用 data-overlay="<overlayId>" 标记
+export async function revealAnnotationTarget(root: HTMLElement, annotation: Annotation): Promise<HTMLElement | null> {
+  const selector = annotation.selector
+  if (!selector) return null
+  const existing = findElementBySelector(selector, root)
+  if (existing) return existing
+
+  const triggers = Array.from(root.querySelectorAll<HTMLElement>('[data-overlay-trigger]'))
+  const openOverlay = async (trigger: HTMLElement) => {
+    trigger.click()
+    const element = await waitForElement(root, selector)
+    if (element) return element
+    // 未命中时关闭刚打开的弹窗，避免残留
+    const opened = findActiveOverlay(root)
+    if (opened) {
+      opened.click()
+      await nextFrame()
+    }
+    return null
+  }
+
+  if (annotation.overlayId) {
+    const matched = triggers.find((trigger) => trigger.dataset.overlayTrigger === annotation.overlayId)
+    if (matched) {
+      const element = await openOverlay(matched)
+      if (element) return element
+    }
+  }
+
+  for (const trigger of triggers) {
+    if (annotation.overlayId && trigger.dataset.overlayTrigger === annotation.overlayId) continue
+    const element = await openOverlay(trigger)
+    if (element) return element
+  }
+
+  return null
+}
+
 const MARKER_SIZE = 20
+
+export type AnnotationMarkerColor = 'black' | 'blue' | 'orange' | 'red' | 'green' | 'purple'
+
+export const ANNOTATION_MARKER_COLOR_OPTIONS: Array<{
+  value: AnnotationMarkerColor
+  label: string
+  color: string
+}> = [
+  { value: 'black', label: '黑色', color: '#111827' },
+  { value: 'blue', label: '蓝色', color: '#3b82f6' },
+  { value: 'orange', label: '橙色', color: '#f97316' },
+  { value: 'red', label: '红色', color: '#ef4444' },
+  { value: 'green', label: '绿色', color: '#22c55e' },
+  { value: 'purple', label: '紫色', color: '#8b5cf6' },
+]
+
+export const DEFAULT_ANNOTATION_MARKER_COLOR: AnnotationMarkerColor = 'orange'
+
+export function getAnnotationMarkerColor(color: AnnotationMarkerColor): string {
+  return ANNOTATION_MARKER_COLOR_OPTIONS.find((option) => option.value === color)?.color ?? '#f97316'
+}
 
 // 计算元素相对于容器的位置，支持四角定位
 export function getElementPosition(
