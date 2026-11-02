@@ -19,6 +19,7 @@ interface PageListProps {
   icon: typeof Smartphone
   tree: PageTree[]
   onTreeChange: (tree: PageTree[]) => void
+  onRequestRename: (action: () => void) => void
 }
 
 const flattenTree = (tree: PageTree[]): string[] => tree.flatMap(node => [node.path, ...flattenTree(node.children)])
@@ -69,7 +70,7 @@ const updateNodeLabel = (tree: PageTree[], path: string, label: string): PageTre
   node.path === path ? { ...node, label } : { ...node, children: updateNodeLabel(node.children, path, label) },
 )
 
-const PageList = ({ filteredPages, icon: Icon, tree, onTreeChange }: PageListProps) => {
+const PageList = ({ filteredPages, icon: Icon, tree, onTreeChange, onRequestRename }: PageListProps) => {
   const [draggedPath, setDraggedPath] = useState<string | null>(null)
   const [dropTarget, setDropTarget] = useState<{ path: string; position: 'before' | 'after' | 'inside' } | null>(null)
   const [collapsedPaths, setCollapsedPaths] = useState<Set<string>>(new Set())
@@ -138,7 +139,7 @@ const PageList = ({ filteredPages, icon: Icon, tree, onTreeChange }: PageListPro
             <button role="menuitem" className={actionClass} onClick={() => { setCollapsedPaths(new Set(allPaths)); setContextMenu(null) }}><ChevronsDown size={15} />折叠全部</button>
             <button role="menuitem" className={actionClass} onClick={() => { setCollapsedPaths(new Set()); setContextMenu(null) }}><ChevronsUp size={15} />展开全部</button>
             <div className="my-1 border-t border-[var(--tool-border)]" />
-            <button role="menuitem" className={actionClass} onClick={() => { setRenameValue(node.label ?? pageByPath.get(node.path)?.label ?? ''); setRenamingPath(node.path) }}><Pencil size={15} />重命名</button>
+            <button role="menuitem" className={actionClass} onClick={() => onRequestRename(() => { setRenameValue(node.label ?? pageByPath.get(node.path)?.label ?? ''); setRenamingPath(node.path) })}><Pencil size={15} />重命名</button>
           </>
         )}
       </div>
@@ -463,10 +464,10 @@ export const Sidebar = ({ projectName, onProjectNameChange, collapsed }: Sidebar
           <nav className="flex-1 overflow-y-auto px-2 pb-4" aria-label="原型工作区导航">
             {navigationError && <p role="alert" className="px-3 py-2 text-xs text-red-600">菜单配置读写失败：{navigationError}</p>}
             {activeTab === 'frontend' && (
-              <PageList filteredPages={filteredPages} icon={Smartphone} tree={pageTree} onTreeChange={nextTree => { if (navigationReady) requestVerification(() => { void savePageTree(nextTree) }, { requireVerification: true }) }} />
+              <PageList filteredPages={filteredPages} icon={Smartphone} tree={pageTree} onTreeChange={nextTree => { if (navigationReady) requestVerification(() => { void savePageTree(nextTree) }, { requireVerification: true }) }} onRequestRename={action => requestVerification(action, { requireVerification: true, alwaysPrompt: true })} />
             )}
             {activeTab === 'admin' && (
-              <PageList filteredPages={filteredPages} icon={Monitor} tree={pageTree} onTreeChange={nextTree => { if (navigationReady) requestVerification(() => { void savePageTree(nextTree) }, { requireVerification: true }) }} />
+              <PageList filteredPages={filteredPages} icon={Monitor} tree={pageTree} onTreeChange={nextTree => { if (navigationReady) requestVerification(() => { void savePageTree(nextTree) }, { requireVerification: true }) }} onRequestRename={action => requestVerification(action, { requireVerification: true, alwaysPrompt: true })} />
             )}
             {activeTab === 'themes' && (
               <ThemeNav searchQuery={searchQuery} />
