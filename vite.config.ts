@@ -7,7 +7,64 @@ import path from 'path'
 import fs from 'fs'
 
 const ANNOTATIONS_FILE = path.resolve(__dirname, 'src/resources/annotations.json')
+const PAGE_NAVIGATION_FILE = path.resolve(__dirname, 'src/resources/page-navigation.json')
 const PROTOTYPES_DIR = path.resolve(__dirname, 'src/prototypes')
+
+function isPageNavigationData(value: unknown): value is { frontend: unknown[]; admin: unknown[] } {
+  if (!value || typeof value !== 'object') return false
+  const data = value as Record<string, unknown>
+  const isTree = (node: unknown, depth = 0): boolean => {
+    if (!node || typeof node !== 'object' || depth > 8) return false
+    const item = node as Record<string, unknown>
+    return typeof item.path === 'string' && /^\/[a-zA-Z0-9/_-]+$/.test(item.path) && Array.isArray(item.children) && item.children.every(child => isTree(child, depth + 1))
+  }
+  return Array.isArray(data.frontend) && data.frontend.every(node => isTree(node)) && Array.isArray(data.admin) && data.admin.every(node => isTree(node))
+}
+
+function pageNavigationPlugin() {
+  return {
+    name: 'page-navigation-api',
+    configureServer(server: ViteDevServer) {
+      server.middlewares.use('/api/page-navigation', (req: IncomingMessage, res: ServerResponse) => {
+        if (req.method === 'GET') {
+          try {
+            res.setHeader('Content-Type', 'application/json; charset=utf-8')
+            res.end(fs.readFileSync(PAGE_NAVIGATION_FILE, 'utf8'))
+          } catch (error) {
+            res.statusCode = 500
+            res.end(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }))
+          }
+          return
+        }
+
+        if (req.method === 'POST') {
+          let body = ''
+          req.on('data', (chunk: Buffer) => { body += chunk.toString() })
+          req.on('end', () => {
+            try {
+              const data: unknown = JSON.parse(body)
+              if (!isPageNavigationData(data)) {
+                res.statusCode = 400
+                res.end(JSON.stringify({ error: 'Invalid page navigation data' }))
+                return
+              }
+              fs.writeFileSync(PAGE_NAVIGATION_FILE, JSON.stringify(data, null, 2), 'utf8')
+              res.setHeader('Content-Type', 'application/json; charset=utf-8')
+              res.end(JSON.stringify({ success: true }))
+            } catch (error) {
+              res.statusCode = 400
+              res.end(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }))
+            }
+          })
+          return
+        }
+
+        res.statusCode = 405
+        res.end(JSON.stringify({ error: 'Method not allowed' }))
+      })
+    },
+  }
+}
 
 function specApiPlugin() {
   return {
@@ -116,13 +173,13 @@ function annotationsPlugin() {
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss(), annotationsPlugin(), specApiPlugin()],
+  plugins: [react(), tailwindcss(), annotationsPlugin(), pageNavigationPlugin(), specApiPlugin()],
   server: {
     port: 1025,
     strictPort: true,
     watch: {
-      // 批注保存会直接写入该文件，忽略监听以避免开发时整页刷新
-      ignored: ['**/src/resources/annotations.json'],
+      // API 保存会直接写入数据文件，忽略监听以避免开发时整页刷新
+      ignored: ['**/src/resources/annotations.json', '**/src/resources/page-navigation.json'],
     },
   },
   resolve: {

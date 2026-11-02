@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { FileText, Monitor, Palette, Smartphone, XIcon, Search, ChevronRight } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { pages, type PageCategory } from '../config/pages'
 import { docModules } from '../config/docs'
 import { getThemeInfo, themeModules } from '../config/themes'
+import { loadPageNavigation, savePageNavigation, type PageNavigationData, type PageTree } from '../lib/pageNavigation'
 
 interface SidebarProps {
   projectName: string
@@ -17,9 +18,6 @@ interface PageListProps {
   tree: PageTree[]
   onTreeChange: (tree: PageTree[]) => void
 }
-
-interface PageTree { path: string; children: PageTree[] }
-const PAGE_TREE_KEY = 'prototype-page-navigation-tree'
 
 const flattenTree = (tree: PageTree[]): string[] => tree.flatMap(node => [node.path, ...flattenTree(node.children)])
 
@@ -239,23 +237,35 @@ export const Sidebar = ({ projectName, onProjectNameChange, collapsed }: Sidebar
   const [tempName, setTempName] = useState(projectName)
   const [activeTab, setActiveTab] = useState<PageCategory | 'themes' | 'docs'>('frontend')
   const [searchQuery, setSearchQuery] = useState('')
-  const [pageTrees, setPageTrees] = useState<Record<PageCategory, PageTree[]>>(() => {
-    try {
-      const saved = localStorage.getItem(PAGE_TREE_KEY)
-      if (saved) return JSON.parse(saved) as Record<PageCategory, PageTree[]>
-    } catch { /* Ignore invalid local navigation data. */ }
-    return { frontend: [], admin: [] }
-  })
+  const [pageTrees, setPageTrees] = useState<PageNavigationData>({ frontend: [], admin: [] })
+  const [navigationReady, setNavigationReady] = useState(false)
+  const [navigationError, setNavigationError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    loadPageNavigation()
+      .then(data => { if (!cancelled) setPageTrees(data) })
+      .catch(error => {
+        if (!cancelled) setNavigationError(error instanceof Error ? error.message : '菜单配置读取失败')
+      })
+      .finally(() => { if (!cancelled) setNavigationReady(true) })
+    return () => { cancelled = true }
+  }, [])
 
   const pageTree = useMemo(() => activeTab === 'frontend' || activeTab === 'admin'
     ? createPageTree(pages, pageTrees[activeTab] ?? [], activeTab)
     : [], [activeTab, pageTrees])
 
-  const savePageTree = (nextTree: PageTree[]) => {
+  const savePageTree = async (nextTree: PageTree[]) => {
     if (activeTab !== 'frontend' && activeTab !== 'admin') return
     const nextTrees = { ...pageTrees, [activeTab]: nextTree }
-    setPageTrees(nextTrees)
-    localStorage.setItem(PAGE_TREE_KEY, JSON.stringify(nextTrees))
+    try {
+      await savePageNavigation(nextTrees)
+      setPageTrees(nextTrees)
+      setNavigationError(null)
+    } catch (error) {
+      setNavigationError(error instanceof Error ? error.message : '菜单配置保存失败')
+    }
   }
 
   const filteredPages = useMemo(() => {
@@ -379,11 +389,12 @@ export const Sidebar = ({ projectName, onProjectNameChange, collapsed }: Sidebar
           </div>
 
           <nav className="flex-1 overflow-y-auto px-2 pb-4" aria-label="原型工作区导航">
+            {navigationError && <p role="alert" className="px-3 py-2 text-xs text-red-600">菜单配置读写失败：{navigationError}</p>}
             {activeTab === 'frontend' && (
-              <PageList filteredPages={filteredPages} icon={Smartphone} tree={pageTree} onTreeChange={savePageTree} />
+              <PageList filteredPages={filteredPages} icon={Smartphone} tree={pageTree} onTreeChange={nextTree => { if (navigationReady) void savePageTree(nextTree) }} />
             )}
             {activeTab === 'admin' && (
-              <PageList filteredPages={filteredPages} icon={Monitor} tree={pageTree} onTreeChange={savePageTree} />
+              <PageList filteredPages={filteredPages} icon={Monitor} tree={pageTree} onTreeChange={nextTree => { if (navigationReady) void savePageTree(nextTree) }} />
             )}
             {activeTab === 'themes' && (
               <ThemeNav searchQuery={searchQuery} />

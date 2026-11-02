@@ -74,6 +74,10 @@ Hook 的详细行为、安全边界和故障处理见 [`rules/git-hooks-guide.md
 
 可复用的文档模板位于 `src/docs/templates/`。文档内容应记录产品目标、页面说明、业务规则或交互约束，不要把临时调试信息写入正式文档。
 
+## 工具层菜单导航
+
+原型侧边栏的排序和父子关系保存在 `src/resources/page-navigation.json`。本地开发时通过 `/api/page-navigation` 直接读写该文件；线上运行时使用 Worker 的 `ANNOTATIONS_KV` 保存菜单配置。
+
 ## 批注配置与使用
 
 批注属于原型浏览工具能力，相关代码位于 `tools/`，默认批注数据位于 `src/resources/annotations.json`。

@@ -14,6 +14,7 @@
 | 批注 Key | `annotations` | 保存整份批注 JSON |
 | API | `/api/annotations` | 支持 GET 和合法 JSON POST |
 | 原型 SPEC Key | `spec:<原型目录名>` | 保存通过文档面板编辑的 Markdown 内容 |
+| 菜单配置 Key | `page-navigation` | 保存前端和后台原型菜单排序及父子关系 |
 
 除非用户明确授权，不得把测试数据写入线上 KV，不得把生产 namespace 用作本地开发存储。
 
@@ -25,6 +26,7 @@
 - 不支持的方法返回 405；KV 读写异常返回 500。
 - 当前 API 没有用户身份校验、用户隔离、租户隔离或敏感数据保护。
 - `/api/spec/<原型目录名>` 读取和保存对应 SPEC；KV 中没有保存版本时，前端使用构建时打包的 `spec.md` 原文。
+- `/api/page-navigation` 读取和保存菜单配置；KV 中没有保存版本时，使用 `src/resources/page-navigation.json` 默认值。本地 Vite 开发环境的同名 API 会直接读写该 JSON 文件。
 - 文档面板的密码验证在浏览器会话内记忆；它用于进入编辑界面的提示门槛，不构成 Worker API 的身份认证或写入权限控制。
 
 ## 3. 本地验证
